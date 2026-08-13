@@ -1044,6 +1044,7 @@ async function openMovie(key,options,label){
   MVM.data=data;
   MVM.opts=options.filter(o=>data[o.sub]&&data[o.sub].frames&&data[o.sub].frames.length>=2);
   const sel=document.getElementById("mvm-sel");
+  sel.style.display="";
   sel.innerHTML=MVM.opts.map(o=>{
     const n=data[o.sub].frames.length;
     return `<option value="${o.sub}">${MVM.opts.length>1?o.name+" · ":"ionic relaxation · "}${n} frames</option>`;}).join("");
@@ -1069,7 +1070,7 @@ async function openStaticMovie(key,label,E,fmax,info){
   document.getElementById("mvm-play").textContent="▶ Play";
   ["mvm-play","mvm-prev","mvm-next","mvm-speed"].forEach(id=>{
     const e=document.getElementById(id); e.disabled=true; e.style.opacity=".45"; e.style.cursor="default";});
-  document.getElementById("mvm-sel").innerHTML=`<option>static run · 1 configuration</option>`;
+  document.getElementById("mvm-sel").style.display="none";
   const conv=fmax!==null&&fmax!==undefined&&fmax<=EDIFFG;
   document.getElementById("mvm-summary").innerHTML=
     `static run (NSW = 0) · single configuration <span class="sep">|</span> `+
@@ -1338,7 +1339,7 @@ function typeInto(el, html){
   const gen=++TYPEGEN;
   const tokens=html.split(/(<[^>]+>|\s+)/).filter(t=>t!=="");
   if(document.hidden){ el.innerHTML=html; return; }
-  const perTick=Math.max(3, Math.ceil(tokens.length/220));   // finishes in ~3 s however long the panel
+  const perTick=Math.max(1, Math.ceil(tokens.length/700));   // deliberate pace (~30 s on long panels)
   let i=0, buf="";
   el.innerHTML="";
   TYPETIMER=setInterval(()=>{
@@ -1350,7 +1351,7 @@ function typeInto(el, html){
     }
     el.innerHTML=i<tokens.length?buf+'<span class="caret"></span>':buf;
     if(i>=tokens.length){clearInterval(TYPETIMER);TYPETIMER=null;}
-  },14);
+  },44);
 }
 /* ---------- provenance arithmetic ---------- */
 function setupHTML(r,v){
