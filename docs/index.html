@@ -144,6 +144,27 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #moviemodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:92%;max-height:94vh;overflow-y:auto;z-index:95;background:#fff;border:1px solid var(--wbg-border);
   border-radius:14px;padding:18px 22px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.4)}
 #moviemodal.on{display:block}
+.mvm-chip{display:inline-block;padding:2px 9px;border:1px solid var(--wbg-border);border-radius:999px;
+  font-size:12.5px;color:#475569;background:var(--wbg-surface);margin-right:6px;white-space:nowrap}
+.mvm-chip.ok{color:#15803d;border-color:#c3e6c9;background:#eefaf0}
+.mvm-chip.warn{color:#a5541a;border-color:#f0d9bf;background:#fdf5ec}
+#mvm-body{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:start}
+#mvm-body.static{grid-template-columns:1.85fr .8fr}
+#mvm-grid{height:520px}
+#mvm-controls{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+#mvm-controls input[type=range]{flex:1 1 120px;accent-color:var(--wbg-accent)}
+.mvm-card{border:1px solid var(--wbg-border);border-radius:8px;padding:12px 14px}
+.mvm-card h5{margin:0 0 8px;font-size:13.5px;color:var(--wbg-accent);font-weight:400}
+.mvm-card .row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid #eef1f5;font-size:13.5px}
+.mvm-card .row:last-of-type{border-bottom:none}
+.mvm-card .row span:last-child{color:var(--wbg-ink)}
+.mvm-bar{height:7px;border-radius:999px;background:#eef1f5;overflow:hidden;margin:6px 0 4px}
+.mvm-bar>i{display:block;height:100%;background:#2e8b57}
+.mvm-note{font-size:12.5px;color:var(--wbg-muted);line-height:1.5;margin-top:8px;text-align:justify}
+.mvpane-head{position:absolute;top:0;left:0;right:0;z-index:6;pointer-events:none;
+  display:flex;align-items:center;justify-content:space-between;padding:4px 10px;
+  border-bottom:1px solid var(--wbg-border);border-radius:8px 8px 0 0;
+  font-size:12.5px;color:var(--wbg-ink);background:#fbfcfdf2}
 #incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:90;
   background:#fff;border:1px solid var(--wbg-border);border-radius:12px;padding:20px 24px;
   max-width:640px;width:88%;box-shadow:0 20px 60px rgba(10,25,50,.35)}
@@ -341,21 +362,27 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
     <span style="font-size:16px;color:var(--wbg-accent)" id="mvm-title">relaxation movie</span>
     <span style="margin-left:auto"><button class="cpill" onclick="closeMovie()">✕ close</button></span>
   </div>
-  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
-    <span style="color:var(--wbg-muted)">engine / charge</span>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+    <span id="mvm-sellabel" style="color:var(--wbg-muted)">engine / charge</span>
     <select id="mvm-sel"></select>
+    <span id="mvm-chips"></span>
     <span id="mvm-meta" style="color:var(--wbg-muted)"></span>
   </div>
-  <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:14px">
-    <div id="mvm-grid" style="height:520px"></div>
+  <div id="mvm-body">
+    <div id="mvm-grid"></div>
     <div>
       <div id="mvm-frame" style="width:100%;height:380px"></div>
-      <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
+      <div id="mvm-controls">
+        <button class="cpill" id="mvm-prev" onclick="mvmStep(-1)">⏮</button>
         <button class="cpill" id="mvm-play" onclick="mvmPlay()">⏸ Pause</button>
-        <input type="range" id="mvm-slider" min="0" max="1" value="0" style="flex:1"
-               oninput="mvmShow(+this.value)">
+        <button class="cpill" id="mvm-next" onclick="mvmStep(1)">⏭</button>
+        <input type="range" id="mvm-slider" min="0" max="1" value="0" oninput="mvmShow(+this.value)">
         <span id="mvm-count" style="color:var(--wbg-muted);white-space:nowrap"></span>
+        <select id="mvm-speed" onchange="mvmSpeed(this.value)">
+          <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option>
+        </select>
       </div>
+      <div class="mvm-card" id="mvm-card" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -686,7 +713,7 @@ function cOpenDetail(r,ord){
     : (()=>{const sk=structKeyOf(r,cOrd), v=r.o[cOrd];
         return sk&&HAVE_STRUCT.has(sk)
         ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
-             onclick='openStaticMovie(${JSON.stringify(sk)},${JSON.stringify(subHTML(r.n))},${v[5]},${v.length>10&&v[10]!==null&&v[10]!==undefined?v[10]:null})'>▶ relaxation movie</button>
+             onclick='openStaticMovie(${JSON.stringify(sk)},${JSON.stringify(subHTML(r.n))},${v[5]},${v.length>10&&v[10]!==null&&v[10]!==undefined?v[10]:null},${JSON.stringify({kmesh:v.length>17?v[17]:null,theory:r.f})})'>▶ relaxation movie</button>
            <button class="cpill" id="incarbtn">calculation inputs</button>`
         : `<button class="cpill" id="incarbtn">calculation inputs</button>`;})();
   const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.rk||r.f,r,cOrd);
@@ -828,13 +855,13 @@ function renderGrid(st, el){
   el.appendChild(grid);
   MV_VIEWS.forEach(([label,dir])=>{
     const cell=document.createElement("div");
-    cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:6px;overflow:visible;background:#fff";
+    cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:8px;overflow:visible;background:#fff";
     const tag=document.createElement("div");
-    tag.textContent=label;
-    tag.style.cssText="position:absolute;top:5px;left:9px;z-index:5;font-size:13px;color:var(--wbg-ink);pointer-events:none";
+    tag.className="mvpane-head";
+    tag.innerHTML=`<span>${label}</span><span style="color:var(--wbg-muted)">${st.sites.length} sites</span>`;
     const host=document.createElement("div");
     host.className="mvhost";
-    host.style.height=Math.floor((h-6)/2*1.22)+"px";   // compensate .mvhost zoom 1/1.22
+    host.style.height=Math.floor((h-6)/2*1.22)+"px";   // unchanged mount geometry (.mvhost zoom 1/1.22)
     cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
     const props = dir ? {scene_props:{camera_position:dir.map(x=>x*dist)}} : {};
     try{ window.renderMatterViz(st, host, props); }catch(e){}
@@ -981,39 +1008,55 @@ async function openMovie(key,options,label){
   const sel=document.getElementById("mvm-sel");
   sel.innerHTML=MVM.opts.map((o,i)=>`<option value="${o.sub}">${o.name} (${data[o.sub].nframes} steps)</option>`).join("");
   sel.onchange=()=>mvmLoad(sel.value);
+  const one=MVM.opts.length<=1;
+  sel.style.display=one?"none":"";
+  document.getElementById("mvm-sellabel").style.display=one?"none":"";
   if(!MVM.opts.length){ document.getElementById("mvm-meta").textContent="no multi-step relaxation archived"; return; }
   mvmLoad(MVM.opts[0].sub);
 }
-async function openStaticMovie(key,label,E,fmax){
+const EDIFFG=0.05;   // |F| convergence criterion of these campaigns (eV/Å)
+async function openStaticMovie(key,label,E,fmax,info){
   closeMovie();
   document.getElementById("moviemodal").classList.add("on");
   document.getElementById("modalback").classList.add("on");
-  document.getElementById("mvm-title").innerHTML="relaxation movie — "+label;
+  document.getElementById("mvm-title").innerHTML="relaxed geometry — "+label;
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
   MVM.cur=null; MVM.data=null;
-  document.getElementById("mvm-sel").innerHTML=`<option>static run (1 configuration)</option>`;
-  document.getElementById("mvm-meta").textContent=
-    `static run (NSW = 0) — one archived configuration · E = ${E!==null&&E!==undefined?E.toFixed(2)+" eV":"—"}`+
-    (fmax!==null&&fmax!==undefined?` · F max = ${fmax.toFixed(3)} eV/Å`:"");
+  // one configuration: nothing to animate, so the chart and transport controls stand down
+  document.getElementById("mvm-body").classList.add("static");
+  document.getElementById("mvm-frame").style.display="none";
+  document.getElementById("mvm-controls").style.display="none";
+  document.getElementById("mvm-sel").style.display="none";
+  document.getElementById("mvm-sellabel").style.display="none";
+  document.getElementById("mvm-meta").textContent="";
+  const conv=fmax!==null&&fmax!==undefined&&fmax<=EDIFFG;
+  document.getElementById("mvm-chips").innerHTML=
+    `<span class="mvm-chip">static run · NSW = 0</span><span class="mvm-chip">1 configuration</span>`+
+    (fmax!==null&&fmax!==undefined?`<span class="mvm-chip ${conv?"ok":"warn"}">F max ${fmax.toFixed(3)} eV/Å ${conv?"≤":">"} ${EDIFFG}</span>`:"");
   let st=null;
   try{
     const r=await fetch(`structures/${encodeURIComponent(key)}.json`);
     if(r.ok&&(r.headers.get("content-type")||"").includes("json")) st=await r.json();
   }catch(e){}
   if(!st){ document.getElementById("mvm-meta").textContent="structure payload unavailable"; return; }
-  const sl=document.getElementById("mvm-slider"); sl.max="0"; sl.value="0";
-  document.getElementById("mvm-count").textContent="frame 1 / 1";
-  document.getElementById("mvm-play").textContent="▶ Play";
-  await loadPlotly();
-  const lay={margin:{l:58,r:58,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
-    xaxis:{dtick:1,range:[-0.5,0.5],title:{text:"Frame",font:{size:13}}},
-    yaxis:{title:{text:"E (eV)",font:{size:13},standoff:12},color:"#3b82c4",tickformat:".2f"},
-    yaxis2:{title:{text:"F max (eV/Å)",font:{size:13}},overlaying:"y",side:"right",color:"#2e8b57",rangemode:"tozero"},
-    plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"};
-  Plotly.react("mvm-frame",[{x:[0],y:[E],mode:"markers",marker:{size:11,color:"#3b82c4"}},
-    {x:[0],y:[fmax],yaxis:"y2",mode:"markers",marker:{size:11,color:"#2e8b57"}}],lay,
-    {responsive:true,displaylogo:false,displayModeBar:false});
-  const hst=hydrate(st);
+  const hst=hydrate(st), L=hst.lattice;
+  const nfo=info||{};
+  const pct=fmax!==null&&fmax!==undefined?Math.min(100,100*fmax/(EDIFFG*2)):null;
+  const card=document.getElementById("mvm-card");
+  card.style.display="";
+  card.innerHTML=`<h5>Run summary</h5>
+    <div class="row"><span>Total energy F</span><span class="mono">${E!==null&&E!==undefined?E.toFixed(4)+" eV":"—"}</span></div>
+    <div class="row"><span>Max force on any atom</span><span class="mono">${fmax!==null&&fmax!==undefined?fmax.toFixed(3)+" eV/Å":"not archived"}</span></div>
+    ${pct!==null?`<div class="mvm-bar"><i style="width:${pct.toFixed(0)}%;background:${conv?"#2e8b57":"#a5541a"}"></i></div>
+      <div style="font-size:12px;color:var(--wbg-muted)">0 ————— EDIFFG = ${EDIFFG} eV/Å ————— ${(EDIFFG*2).toFixed(2)}</div>`:""}
+    <div class="row"><span>Atoms</span><span class="mono">${hst.sites.length}</span></div>
+    <div class="row"><span>Lattice a × b × c</span><span class="mono">${L.a.toFixed(2)} × ${L.b.toFixed(2)} × ${L.c.toFixed(2)} Å</span></div>
+    <div class="row"><span>Cell volume</span><span class="mono">${L.volume?L.volume.toFixed(1)+" Å³":"—"}</span></div>
+    ${nfo.kmesh?`<div class="row"><span>k-mesh</span><span class="mono">Γ-centred ${nfo.kmesh}</span></div>`:""}
+    ${nfo.theory?`<div class="row"><span>Level of theory</span><span>${nfo.theory}</span></div>`:""}
+    <div class="mvm-note">This run is a single point (NSW = 0) on the geometry produced by its parent
+      relaxation, so there are no ionic steps to animate — the four views show that relaxed geometry and
+      the force above is the residual on it, read from the OUTCAR TOTAL-FORCE block.</div>`;
   await loadMV(hst);
   renderGrid(hst, document.getElementById("mvm-grid"));
 }
@@ -1024,10 +1067,19 @@ function closeMovie(){
 async function mvmLoad(sub){
   await loadPlotly();
   const t=MVM.data[sub]; MVM.cur=t; MVM.frame=0;
+  document.getElementById("mvm-body").classList.remove("static");
+  document.getElementById("mvm-frame").style.display="";
+  document.getElementById("mvm-controls").style.display="";
+  document.getElementById("mvm-card").style.display="none";
+  document.getElementById("mvm-meta").textContent="";
   const fr=t.frames, eL=fr[fr.length-1].e;
   const de=fr.map(f=>f.e!==null&&eL!==null?f.e-eL:null);
-  document.getElementById("mvm-meta").textContent=
-    `${t.nframes} steps · ΔE ${de[0]!==null?(-de[0]).toFixed(2):"—"} eV`;
+  const fLast=fr[fr.length-1].f, conv=fLast!==null&&fLast!==undefined&&fLast<=EDIFFG;
+  document.getElementById("mvm-chips").innerHTML=
+    `<span class="mvm-chip">${t.nframes} ionic steps</span>`+
+    (de[0]!==null?`<span class="mvm-chip">ΔE ${(-de[0]).toFixed(2)} eV</span>`:"")+
+    (fLast!==null&&fLast!==undefined?`<span class="mvm-chip ${conv?"ok":"warn"}">final F max ${fLast.toFixed(3)} eV/Å ${conv?"≤":">"} ${EDIFFG}</span>`:"")+
+    (fr.length<t.nframes?`<span class="mvm-chip">${fr.length} frames stored</span>`:"");
   // subsampled frame chart
   const es=fr.map(f=>f.e);
   Plotly.react("mvm-frame",[
@@ -1035,16 +1087,19 @@ async function mvmLoad(sub){
     {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"F max (eV/Å)",yaxis:"y2",line:{color:"#2e8b57"},marker:{size:6}},
     {x:[0],y:[es[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
     {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false}],
-    {margin:{l:80,r:64,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
+    {margin:{l:80,r:64,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},hovermode:"x unified",
      xaxis:{title:{text:"Ionic step",font:{size:13}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
      yaxis:{title:{text:"E (eV)",font:{size:13},standoff:12},color:"#3b82c4",nticks:6,tickformat:".2f"},
-     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13},standoff:10},overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g"},
+     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13},standoff:10},overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g",rangemode:"tozero"},
+     shapes:[{type:"line",xref:"paper",x0:0,x1:1,yref:"y2",y0:EDIFFG,y1:EDIFFG,
+              line:{color:"#2e8b57",width:1,dash:"dot"}}],
+     annotations:[{xref:"paper",x:1,yref:"y2",y:EDIFFG,text:`EDIFFG ${EDIFFG}`,showarrow:false,
+              font:{size:11,color:"#2e8b57"},xanchor:"right",yanchor:"bottom"}],
      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
   const sl=document.getElementById("mvm-slider");
   sl.max=String(fr.length-1); sl.value="0";
   mvmShow(0);
-  if(MVM.timer) clearInterval(MVM.timer);
-  MVM.timer=setInterval(()=>{ mvmShow(MVM.frame>=fr.length-1?0:MVM.frame+1); },900);
+  mvmTick();
   document.getElementById("mvm-play").textContent="⏸ Pause";
 }
 function mvmStructure(f){
@@ -1071,11 +1126,25 @@ async function mvmShow(i){
     Plotly.restyle("mvm-frame",{x:[[MVM.frame],[MVM.frame]],y:[[f.e],[f.f]]},[2,3]);
   MVBUSY=false;
 }
+let MVSPEED=1;
+function mvmTick(){
+  if(MVM.timer) clearInterval(MVM.timer);
+  MVM.timer=setInterval(()=>{const t=MVM.cur;if(!t)return;
+    mvmShow(MVM.frame>=t.frames.length-1?0:MVM.frame+1);},Math.round(900/MVSPEED));
+}
 function mvmPlay(){
   const b=document.getElementById("mvm-play");
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;b.textContent="▶ Play";}
-  else{MVM.timer=setInterval(()=>{const t=MVM.cur;if(!t)return;
-    mvmShow(MVM.frame>=t.frames.length-1?0:MVM.frame+1);},900);b.textContent="⏸ Pause";}
+  else{mvmTick();b.textContent="⏸ Pause";}
+}
+function mvmStep(d){
+  const t=MVM.cur; if(!t) return;
+  if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;document.getElementById("mvm-play").textContent="▶ Play";}
+  mvmShow(Math.max(0,Math.min(t.frames.length-1,MVM.frame+d)));
+}
+function mvmSpeed(v){
+  MVSPEED=parseFloat(v)||1;
+  if(MVM.timer) mvmTick();
 }
 
 
