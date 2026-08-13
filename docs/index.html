@@ -206,6 +206,9 @@ sub{font-size:.72em}
           <h4>Per-charge-state raw data</h4>
           <table class="minitbl" id="dqtbl"></table>
           <div class="notebox" id="dnote"></div>
+          <h4 style="margin-top:16px">Relaxation movie</h4>
+          <div id="dqsel" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+          <div id="trajbox2"></div>
         </div>
       </div>
     </div>
@@ -231,9 +234,22 @@ sub{font-size:.72em}
     </div>
     <div id="cdetail"><button class="mclose" onclick="closeModals()">✕ close</button>
       <div class="dhead">Compound detail <span class="sub" id="ctitle"></span></div>
-      <div class="dgrid" style="grid-template-columns:1fr 1fr">
-        <div class="dcol"><div class="kv" id="ckv"></div></div>
-        <div class="dcol"><div class="notebox" id="cnote"></div></div>
+      <div class="dgrid" style="grid-template-columns:minmax(320px,1fr) minmax(420px,1.15fr)">
+        <div class="dcol">
+          <h4>Computed properties</h4>
+          <div class="kv" id="ckv"></div>
+          <h4 style="margin-top:16px">How these numbers are computed</h4>
+          <div class="notebox" id="cnote"></div>
+        </div>
+        <div class="dcol">
+          <h4>DFT-optimized structure — MatterViz</h4>
+          <div id="cstruct" style="width:100%;height:460px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
+          <div id="cdl" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></div>
+          <h4 style="margin-top:16px">Relaxation movie — energies and forces</h4>
+          <div id="trajbox"></div>
+          <h4 style="margin-top:16px">Calculation inputs</h4>
+          <div class="notebox" id="cincar"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -446,15 +462,15 @@ function dOpenDetail(r){
      <div><span>Class</span><span>${r.cls} (${[...r.clset].join(", ")})</span></div>
      <div><span>Level of theory</span><span>${THEORY[r.f]}</span></div>
      <div><span>Band gap</span><span>${fmt(r.g)} eV</span></div>
-     <div><span>VBM reference</span><span>${fmt(r.v,3)} eV</span></div>
+     <div><span>VBM reference</span><span>${fmt(r.v)} eV</span></div>
      <div><span>Charge states</span><span>${QS.filter(q=>q in r.e).map(q=>+q>0?"+"+q:q).join(", ")}</span></div>`;
   document.getElementById("dqtbl").innerHTML=
     `<tr><th>q</th><th>ΔE + E<sub>corr</sub> (eV)</th></tr>`+
-    QS.filter(q=>q in r.e).map(q=>`<tr><td>${+q>0?"+"+q:q}</td><td>${r.e[q].toFixed(4)}</td></tr>`).join("");
+    QS.filter(q=>q in r.e).map(q=>`<tr><td>${+q>0?"+"+q:q}</td><td>${r.e[q].toFixed(2)}</td></tr>`).join("");
   document.getElementById("dnote").innerHTML=
     `ΔE = E<sub>defect,q</sub> + E<sub>corr</sub> − E<sub>pristine</sub> from the raw supercell totals.
      Add Σn<sub>i</sub>μ<sub>i</sub> and q(E<sub>VBM</sub>+E<sub>F</sub>) for the formation energy.
-     μ (Σnμ term): Cd-rich ${r.mc===null?"—":r.mc.toFixed(4)} · Te-rich ${r.mt===null?"—":r.mt.toFixed(4)} eV.`;
+     μ (Σnμ term): Cd-rich ${r.mc===null?"—":r.mc.toFixed(2)} · Te-rich ${r.mt===null?"—":r.mt.toFixed(2)} eV.`;
   // plot both conditions
   const traces=[];
   for(const [cond,name,dash] of [["mc","Cd-rich",""],["mt","Te-rich","dash"]]){
@@ -463,6 +479,15 @@ function dOpenDetail(r){
     for(let i=0;i<=60;i++){const x=r.g*i/60;xs.push(x);ys.push(envelope(r,cond,x)[0]);}
     traces.push({x:xs,y:ys,mode:"lines",name,line:{width:2.4,color:"#0e7490",dash}});
   }
+  const qs=QS.filter(q=>q in r.e);
+  document.getElementById("dqsel").innerHTML=qs.map((q,i)=>
+    `<button class="cpill${i===0?" on":""}" data-q="${q}">q = ${+q>0?"+"+q:q}</button>`).join("");
+  document.querySelectorAll("#dqsel .cpill").forEach(b=>b.onclick=()=>{
+    document.querySelectorAll("#dqsel .cpill").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    mountTraj(`${r.f}__${r.h}__${r.d}`,b.dataset.q,`${defLabel(r.d)} in ${subHTML(r.h)}, q = ${b.dataset.q}`,"trajbox2");
+  });
+  if(qs.length) document.querySelector("#dqsel .cpill").click();
   Plotly.react("efdetailplot",traces,{
     xaxis:{title:{text:"E<sub>F</sub> − E<sub>VBM</sub> (eV)",font:{size:13}},range:[0,r.g],zeroline:false},
     yaxis:{title:{text:"E<sub>f</sub> (eV)",font:{size:13}},zeroline:true,zerolinecolor:"#d4d8e0"},
@@ -483,8 +508,8 @@ const CCOLS=[
   {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}</span>`,val:r=>r.n},
   {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
   {k:"cell",label:"Supercell",w:118,cell:(r,v)=>`<span class="c" style="width:118px">${v[7]||"—"}${v[6]?` (${v[6]} at.)`:""}</span>`,val:r=>r.o[r.b][6]||0},
-  {k:"eform",label:"Formation energy (eV/atom)",w:170,num:1,vi:0,d:3},
-  {k:"edec",label:"Decomposition energy (eV/f.u.)",w:190,num:1,vi:1,d:3},
+  {k:"eform",label:"Formation energy (eV/atom)",w:170,num:1,vi:0},
+  {k:"edec",label:"Decomposition energy (eV/f.u.)",w:190,num:1,vi:1},
   {k:"gap",label:"Band gap (eV)",w:116,num:1,vi:2},
   {k:"eps",label:"ε∞ (electronic)",w:120,num:1,vi:3},
   {k:"slme",label:"SLME (%)",w:92,num:1,vi:4},
@@ -565,18 +590,175 @@ function cOpenDetail(r,ord){
   document.querySelectorAll("#ctitle .cpill").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();cOpenDetail(r,b.dataset.o);});
   document.getElementById("ckv").innerHTML=
     `<div><span>Cation ordering</span><span>${cOrd}${cOrd===r.b?" — lowest energy":""}</span></div>
-     <div><span>Formation energy</span><span>${fmt(v[0],4)} eV/atom</span></div>
-     <div><span>Decomposition energy</span><span>${fmt(v[1],4)} eV/f.u.</span></div>
-     <div><span>Band gap</span><span>${fmt(v[2],3)} eV</span></div>
-     <div><span>ε<sub>∞</sub> (electronic)</span><span>${fmt(v[3],3)}</span></div>
-     <div><span>SLME</span><span>${fmt(v[4],2)} %</span></div>
+     <div><span>Formation energy</span><span>${fmt(v[0])} eV/atom</span></div>
+     <div><span>Decomposition energy</span><span>${fmt(v[1])} eV/f.u.</span></div>
+     <div><span>Band gap</span><span>${fmt(v[2])} eV</span></div>
+     <div><span>ε<sub>∞</sub> (electronic)</span><span>${fmt(v[3])}</span></div>
+     <div><span>SLME</span><span>${fmt(v[4])} %</span></div>
      <div><span>Supercell</span><span>${v[7]||"—"}${v[6]?`, ${v[6]} atoms`:""}</span></div>
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
+  document.getElementById("cincar").innerHTML =
+    `<pre style="margin:0;white-space:pre-wrap;font-family:'IBM Plex Mono',monospace;font-size:12.5px">${INCAR_TXT[r.f]||"—"}</pre>`;
+  mountStructure(r,cOrd);
+  const FKEY={"PBE (GGA)":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
+  mountTraj(`host__${FKEY}__${r.n}`,null,`${subHTML(r.n)} — ${r.f} relaxation`);
   cRenderRows();
 }
 document.getElementById("csearch").addEventListener("input",cApplyFilters);
 ["ck-stable","ck-gap1"].forEach(id=>document.getElementById(id).addEventListener("change",cApplyFilters));
+
+
+/* ---------- MatterViz structure viewer ---------- */
+const MV_BASE="https://cdn.jsdelivr.net/gh/defectdatabase/chalcogenide-defects@main/matterviz";
+let mvMod=null, CURSTRUCT=null, CURKEY=null;
+function loadMV(){
+  if(!mvMod){
+    if(!document.getElementById("mv-css")){
+      const l=document.createElement("link"); l.id="mv-css"; l.rel="stylesheet";
+      l.href=MV_BASE+"/mv-asset-index.css"; document.head.appendChild(l);
+    }
+    mvMod=import(MV_BASE+"/mv-app.js");
+  }
+  return mvMod;
+}
+function toCIF(name,st){
+  const L=st.lattice;
+  let s=`data_${name}\n_symmetry_space_group_name_H-M   'P 1'\n`+
+    `_cell_length_a   ${L.a}\n_cell_length_b   ${L.b}\n_cell_length_c   ${L.c}\n`+
+    `_cell_angle_alpha   ${L.alpha}\n_cell_angle_beta   ${L.beta}\n_cell_angle_gamma   ${L.gamma}\n`+
+    `_symmetry_Int_Tables_number   1\n_chemical_formula_structural   ${name}\n`+
+    `loop_\n _symmetry_equiv_pos_site_id\n _symmetry_equiv_pos_as_xyz\n  1  'x, y, z'\n`+
+    `loop_\n _atom_site_type_symbol\n _atom_site_label\n _atom_site_symmetry_multiplicity\n`+
+    ` _atom_site_fract_x\n _atom_site_fract_y\n _atom_site_fract_z\n _atom_site_occupancy\n`;
+  const cnt={};
+  st.sites.forEach(si=>{const el=si.species[0].element; cnt[el]=(cnt[el]||0)+1;
+    s+=`  ${el}  ${el}${cnt[el]}  1  ${si.abc[0].toFixed(8)}  ${si.abc[1].toFixed(8)}  ${si.abc[2].toFixed(8)}  1\n`;});
+  return s;
+}
+function dlText(txt,fname){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain"}));
+  a.download=fname; a.click(); URL.revokeObjectURL(a.href);
+}
+async function mountStructure(r,ord){
+  const el=document.getElementById("cstruct"), dl=document.getElementById("cdl");
+  const FK={"PBE (GGA)":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
+  const key = ord==="zinc blende" ? `${FK}__${r.n}`
+            : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
+            : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}` : null;
+  CURKEY=key; CURSTRUCT=null; dl.innerHTML="";
+  if(!key){
+    el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-geometry payload published for this level of theory yet.</div>';
+    return;
+  }
+  el.innerHTML='<div class="notebox" style="margin:12px">loading structure…</div>';
+  let st=null;
+  try{
+    const resp=await fetch(`structures/${encodeURIComponent(key)}.json`);
+    if(resp.ok && (resp.headers.get("content-type")||"").includes("json")) st=await resp.json();
+  }catch(e){ st=null; }
+  if(!st){ el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-structure payload for this ordering.</div>'; return; }
+  CURSTRUCT=st;
+  dl.innerHTML=`<button class="cpill" onclick="dlText(toCIF(CURKEY,CURSTRUCT),CURKEY+'.cif')">download CIF</button>`+
+    `<a class="cpill" style="text-decoration:none" href="structures/${encodeURIComponent(key)}.json" download>download structure (JSON)</a>`;
+  try{
+    await loadMV(); el.innerHTML="";
+    window.renderMatterViz(st, el, {});
+  }catch(e){
+    el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable offline; the CIF and JSON downloads above hold the same relaxed geometry.</div>';
+  }
+}
+const INCAR_TXT={
+ "HSE+SOC":`Static HSE06+SOC single point on the relaxed geometry (vasp_ncl):
+GGA = PS · LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · LSORBIT = .TRUE.
+ENCUT = 400 eV · NSW = 0 · IBRION = -1 · LOPTICS = .TRUE. · NEDOS = 2000 · ISMEAR = 0, SIGMA = 0.05
+KPOINTS: Γ-centred mesh from the parent PBEsol run · POTCAR: PBE PAW (VASP 5.4 recommended set)`,
+ "PBEsol":`Static PBEsol single point on the 2×2×1 polymorph screen:
+GGA = PS · PREC = Accurate · ENCUT = 500 eV · EDIFF = 1e-4 · NSW = 0 · IBRION = -1 · ISIF = 0
+ISPIN = 2 · ISMEAR = 0, SIGMA = 0.05 · LORBIT = 11 · NEDOS = 2000 · LVTOT = .TRUE.
+KPOINTS: Γ-centred 2×2×2 (1×1×1 for the largest cells)`,
+ "PBE (GGA)":`Static PBE single point on the relaxed host cell:
+GGA = PE · ENCUT = 500 eV · EDIFF = 1e-6 · ISMEAR = 0, SIGMA = 0.05 · KSPACING ≈ 0.03 2π/Å`,
+ "HSE06":`Static HSE06 single point on the relaxed host cell:
+LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · GGA = PS · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`,
+ "HSE06 (no PS)":`Static HSE06 single point (PBE exchange parent, GGA tag unset):
+LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`};
+
+
+/* ---------- relaxation movie: XDATCAR frames + energies + forces ---------- */
+let TRAJ=null, TFRAME=0, TTIMER=null, TSPECIES=null, TPFX="trajbox_";
+function trajStructure(fr){
+  const lat = fr.lat || TRAJ.lat;
+  return {"@module":"pymatgen.core.structure","@class":"Structure","charge":0,"properties":{},
+    "lattice":{"matrix":lat,"pbc":[true,true,true]},
+    "sites":fr.p.map((abc,i)=>({species:[{element:TSPECIES[i],occu:1}],abc,label:TSPECIES[i],properties:{}}))};
+}
+async function showFrame(i){
+  if(!TRAJ) return;
+  TFRAME=Math.max(0,Math.min(TRAJ.frames.length-1,i));
+  const fr=TRAJ.frames[TFRAME];
+  const el=document.getElementById(TPFX+"struct");
+  try{ await loadMV(); el.innerHTML=""; window.renderMatterViz(trajStructure(fr), el, {}); }catch(e){}
+  document.getElementById(TPFX+"info").innerHTML =
+    `step <b>${fr.i+1}</b> of ${TRAJ.nframes} &nbsp;·&nbsp; E = <b>${fr.e!==null&&fr.e!==undefined?fr.e.toFixed(2):"—"}</b> eV`+
+    `&nbsp;·&nbsp; F<sub>max</sub> = <b>${fr.f!==null&&fr.f!==undefined?fr.f.toFixed(2):"—"}</b> eV/Å`;
+  document.getElementById(TPFX+"slider").value=TFRAME;
+  if(window.Plotly&&document.getElementById(TPFX+"plot")&&document.getElementById(TPFX+"plot").data)
+    Plotly.restyle(TPFX+"plot",{x:[[fr.i],[fr.i]],y:[[fr.e],[fr.f]]},[2,3]);
+}
+function playTraj(){
+  const btn=document.getElementById(TPFX+"play");
+  if(TTIMER){clearInterval(TTIMER);TTIMER=null;btn.textContent="▶ play";return;}
+  btn.textContent="⏸ pause";
+  TTIMER=setInterval(()=>{
+    if(!TRAJ){clearInterval(TTIMER);TTIMER=null;return;}
+    showFrame(TFRAME>=TRAJ.frames.length-1?0:TFRAME+1);
+  },420);
+}
+function stopTraj(){ if(TTIMER){clearInterval(TTIMER);TTIMER=null;} TRAJ=null; }
+async function mountTraj(key,sub,label,boxId){
+  const box=document.getElementById(boxId||"trajbox");
+  stopTraj(); box.innerHTML='<div class="notebox">loading relaxation trajectory…</div>';
+  let data=null;
+  try{
+    const r=await fetch(`trajs/${encodeURIComponent(key)}.json`);
+    if(r.ok && (r.headers.get("content-type")||"").includes("json")) data=await r.json();
+  }catch(e){ data=null; }
+  const t=data&&(sub&&data[sub]?data[sub]:(data.bulk||data[Object.keys(data)[0]]));
+  if(!t||!t.frames||t.frames.length<2){
+    box.innerHTML='<div class="notebox">No multi-step relaxation archived for this run — the published '+
+      'calculation is a single-point static on the already-relaxed geometry (the 3D structure above is that geometry).</div>';
+    return;
+  }
+  TRAJ=t; TSPECIES=t.species; TFRAME=0;
+  const P=(boxId||"trajbox")+"_";
+  box.innerHTML=
+    `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+       <button class="cpill" id="${P}play" onclick="playTraj()">▶ play</button>
+       <input type="range" id="${P}slider" min="0" max="${t.frames.length-1}" value="0" style="flex:1 1 180px"
+              oninput="showFrame(+this.value)">
+       <span id="${P}info" style="font-size:13.5px;color:var(--wbg-muted)"></span>
+     </div>
+     <div id="${P}struct" style="width:100%;height:340px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
+     <div id="${P}plot" style="width:100%;height:210px;margin-top:8px"></div>
+     <div class="notebox">${label} — ${t.nframes} ionic steps from XDATCAR; energies from OSZICAR (F),
+       forces are max |F| per step from OUTCAR. ${t.frames.length<t.nframes?`Showing ${t.frames.length} evenly sampled frames.`:""}</div>`;
+  const xs=t.frames.map(f=>f.i), es=t.frames.map(f=>f.e), fs=t.frames.map(f=>f.f);
+  Plotly.newPlot(P+"plot",[
+    {x:xs,y:es,name:"energy",mode:"lines+markers",line:{width:2,color:"#0e7490"},marker:{size:4}},
+    {x:xs,y:fs,name:"max force",yaxis:"y2",mode:"lines+markers",line:{width:2,color:"#de9e3a"},marker:{size:4}},
+    {x:[xs[0]],y:[es[0]],mode:"markers",marker:{size:11,color:"#0e7490"},showlegend:false},
+    {x:[xs[0]],y:[fs[0]],yaxis:"y2",mode:"markers",marker:{size:11,color:"#de9e3a"},showlegend:false}],
+    {margin:{l:52,r:48,t:6,b:36},font:{family:"Arial Narrow",size:12},
+     xaxis:{title:{text:"ionic step",font:{size:12}}},
+     yaxis:{title:{text:"E (eV)",font:{size:12}}},
+     yaxis2:{title:{text:"F<sub>max</sub> (eV/Å)",font:{size:12}},overlaying:"y",side:"right"},
+     legend:{orientation:"h",y:1.18},plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},
+    {responsive:true,displaylogo:false});
+  TPFX=P;
+  showFrame(0);
+}
 
 /* ---------- provenance arithmetic ---------- */
 const REFS = {"HSE+SOC":{"el":{"Ag":-3.33,"Al":-4.32,"Ba":-2.18,"Ca":-1.97,"Cd":-1.27,"Cs":-1.15,"Cu":-4.05,"Ga":-3.64,"Ge":-5.62,"In":-3.25,"K":-1.2,"Mg":-1.63,"Na":-1.51,"Rb":-1.13,"S":-5.4,"Se":-4.67,"Sn":-4.84,"Sr":-1.81,"Te":-4.33,"Zn":-1.51,"Zr":-10.27},"bin":{"Ag2S":-12.27,"Ag2Se":-11.73,"Ag2Te":-11.32,"Al2S3":-30.86,"Al2Se3":-27.62,"Al2Te3":-24.3,"BaS":-12.14,"BaSe":-11.41,"BaTe":-10.51,"CaS":-12.1,"CaSe":-11.16,"CaTe":-9.99,"CdS":-8.12,"CdSe":-7.37,"CdTe":-6.63,"Cs2S":-11.09,"Cs2Se":-10.64,"Cs2Te":-10.09,"Cu2S":-14.25,"Cu2Se":-13.25,"Cu2Te":-12.38,"Ga2S3":-27.45,"Ga2Se3":-24.81,"Ga2Te3":-22.2,"GeS2":-17.64,"GeSe2":-15.92,"GeTe2":-14.37,"In2S3":-26.04,"In2Se3":-23.7,"In2Te3":-21.06,"K2S":-11.22,"K2Se":-10.65,"K2Te":-10.05,"MgS":-10.31,"MgSe":-9.17,"MgTe":-7.99,"Na2S":-11.83,"Na2Se":-11.14,"Na2Te":-10.36,"Rb2S":-10.93,"Rb2Se":-10.41,"Rb2Te":-9.86,"SnS2":-16.99,"SnSe2":-15.4,"SnTe2":-13.83,"SrS":-11.93,"SrSe":-11.07,"SrTe":-10.03,"ZnS":-8.88,"ZnSe":-7.96,"ZnTe":-7.02,"ZrS2":-26.34,"ZrSe2":-24.33,"ZrTe2":-22.07}},"PBEsol":{"el":{"Ag":-3.301289,"Al":-4.07203,"Ba":-2.145418,"Ca":-2.138571,"Cd":-1.207057,"Cs":-0.946812,"Cu":-4.315301,"Ga":-3.35249,"Ge":-4.927172,"In":-2.996075,"K":-1.143918,"Mg":-1.721122,"Na":-1.39946,"Rb":-1.045515,"S":-4.383092,"Se":-3.797483,"Sn":-4.214864,"Sr":-1.822062,"Te":-3.524774,"Zn":-1.583691,"Zr":-9.082905},"bin":{"Ag2S":-11.095802,"Ag2Se":-10.656869,"Ag2Te":-10.253477,"Al2S3":-26.55903,"Al2Se3":-23.749516,"Al2Te3":-20.642369,"BaS":-10.718507,"BaSe":-10.062367,"BaTe":-9.189222,"CaS":-10.915877,"CaSe":-10.073578,"CaTe":-8.964967,"CdS":-6.815954,"CdSe":-6.172898,"CdTe":-5.482982,"Cs2S":-9.41035,"Cs2Se":-9.01559,"Cs2Te":-8.480155,"Cu2S":-13.480206,"Cu2Se":-12.612094,"Cu2Te":-11.730952,"Ga2S3":-23.241028,"Ga2Se3":-21.042518,"Ga2Te3":-18.587314,"GeS2":-14.704275,"GeSe2":-13.312072,"GeTe":-8.656836,"In2S3":-22.001331,"In2Se3":-19.982247,"In2Te3":-17.783788,"K2S":-9.863517,"K2Se":-9.378929,"K2Te":-8.787884,"MgS":-9.074887,"MgSe":-8.01681,"MgTe":-6.890785,"Na2S":-10.374771,"Na2Se":-9.776342,"Na2Te":-9.022224,"Rb2S":-9.50393,"Rb2Se":-9.056053,"Rb2Te":-8.516015,"SnS2":-14.267865,"SnSe2":-12.976291,"SnTe":-8.341342,"SrS":-10.587803,"SrSe":-9.832651,"SrTe":-8.832672,"ZnS":-7.587209,"ZnSe":-6.770046,"ZnTe":-5.910293,"ZrS2":-22.555312,"ZrSe2":-20.800349,"ZrTe2":-18.791059}}};
@@ -591,34 +773,34 @@ function provenanceHTML(r,ord){
   const nfu = nat/apfu, epfu = F/nfu;
   let terms=[], refsum=0;
   for(const el in comp){ const mu=R.el[el]; refsum+=comp[el]*nfu*mu;
-    terms.push(`${comp[el]*nfu}·μ<sub>${el}</sub> = ${(comp[el]*nfu*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(3)} eV/atom)`); }
+    terms.push(`${comp[el]*nfu}·μ<sub>${el}</sub> = ${(comp[el]*nfu*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(2)} eV/atom)`); }
   const eform=(F-refsum)/nat;
   // decomposition
   const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
   const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
   let sc=0, ent=0, bins=[], kes=Math.abs(xsum-4)<.01;
   const add=(f,key)=>{ const E=R.bin[key]; if(E===undefined||f<=0) return false;
-    sc+=f*E; ent+=f*Math.log(f); bins.push(`${f.toFixed(3)} · E(${subHTML(key)}) = ${(f*E).toFixed(3)} eV  [E(${subHTML(key)}) = ${E.toFixed(3)} eV/f.u.]`); return true; };
+    sc+=f*E; ent+=f*Math.log(f); bins.push(`${f.toFixed(2)} · E(${subHTML(key)}) = ${(f*E).toFixed(2)} eV  [E(${subHTML(key)}) = ${E.toFixed(2)} eV/f.u.]`); return true; };
   if(kes){ for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add((comp[a]/2)*(comp[x]/4),`${a}2${x}`);
     for(const b of BK) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/4),`${b}${x}`);
     for(const c of CK) if(comp[c]) for(const x of XS) if(comp[x]) add(comp[c]*(comp[x]/4),`${c}${x}2`); }
   else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add(comp[a]*(comp[x]/2),`${a}2${x}`);
     for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/2),`${b}2${x}3`); }
   const edec = kes? epfu-sc+0.0257*ent : epfu-0.5*sc+0.0257*ent;
-  return `<b>How these numbers are computed (${th}).</b><br>
-    Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(5):"—"}</span> eV
+  return `<b>Level of theory: ${th}.</b><br>
+    Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom ${ord} supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
-    <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F!==null?F.toFixed(3):"—"} − (${refsum.toFixed(3)}))/${nat}
-    = <span class="mono">${eform.toFixed(4)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F!==null?F.toFixed(2):"—"} − (${refsum.toFixed(2)}))/${nat}
+    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> = E<sub>f.u.</sub> − ${kes?"":"½"}Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
-    = ${epfu.toFixed(3)} − ${(kes?sc:0.5*sc).toFixed(3)} + ${(0.0257*ent).toFixed(4)}
-    = <span class="mono">${edec.toFixed(4)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
+    = ${epfu.toFixed(2)} − ${(kes?sc:0.5*sc).toFixed(2)} + ${(0.0257*ent).toFixed(2)}
+    = <span class="mono">${edec.toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
     ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
     Band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness.
     Raw outputs on Purdue Anvil, mirrored on ALCF Eagle.`;
 }
 
-function closeModals(){dSel=null;cSel=null;
+function closeModals(){dSel=null;cSel=null;stopTraj();
   document.getElementById("detail").classList.remove("on");
   document.getElementById("cdetail").classList.remove("on");
   document.getElementById("modalback").classList.remove("on");
