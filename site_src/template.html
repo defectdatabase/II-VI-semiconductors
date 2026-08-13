@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DefectDB — Chalcogenide Semiconductor Library</title>
+<meta name="description" content="Open DFT library for chalcogenide semiconductors: 6763 I–III–VI2 / I2–II–IV–VI4 compounds with computed properties, plus charged-defect formation energies for II–VI hosts.">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root{
+  --bg:#ffffff; --panel:#ffffff; --surface:#f7f8fa; --border:#d4d8e0;
+  --ink:#1a1e2e; --muted:#6b7280; --accent:#0e7490; --accent2:#06b6d4;
+}
+*,*::before,*::after{box-sizing:border-box;font-family:'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.45}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:50;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:22px;padding:10px 26px;flex-wrap:wrap}
+header .brand{font-size:21px;font-weight:800;color:var(--ink)}
+header .brand span{color:var(--accent)}
+header nav{display:flex;gap:16px;flex-wrap:wrap}
+header nav a{font-size:14.5px;font-weight:700;color:var(--muted)}
+header nav a:hover{color:var(--accent);text-decoration:none}
+header .gh{margin-left:auto;font-size:14px;font-weight:700;border:1px solid var(--border);
+  border-radius:8px;padding:5px 12px;color:var(--ink)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px}
+.hero{padding:52px 0 30px}
+.hero h1{margin:0 0 10px;font-size:40px;line-height:1.12;letter-spacing:.2px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p.lead{max-width:880px;font-size:18.5px;color:var(--muted);margin:0 0 22px}
+.btnrow{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-block;border-radius:9px;padding:10px 18px;font-size:15.5px;font-weight:700;border:1px solid var(--border)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#0b5c73;text-decoration:none}
+.btn:hover{text-decoration:none;border-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:34px 0 8px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:center}
+.stat b{display:block;font-size:27px;color:var(--accent)}
+.stat span{font-size:13.5px;color:var(--muted);font-weight:700}
+section{padding:34px 0 8px}
+h2{font-size:26px;margin:0 0 6px}
+h2 .tag{font-size:13px;color:var(--accent);font-weight:800;display:block;margin-bottom:2px}
+p.sub{color:var(--muted);margin:0 0 18px;max-width:900px;font-size:15.5px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:0 1px 4px rgba(20,30,60,.05)}
+.controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+.ctrl{display:flex;flex-direction:column;gap:4px}
+.ctrl>span{font-size:12.5px;font-weight:800;color:var(--muted)}
+select,input[type=text]{font-size:14.5px;padding:7px 9px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--ink)}
+.seg{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:#fff;color:var(--muted);font-size:14px;font-weight:700;padding:8px 15px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.seg button:disabled{opacity:.35;cursor:not-allowed}
+.compound-tabs{display:flex;gap:2px;margin-bottom:14px;flex-wrap:wrap;border-bottom:2px solid var(--border)}
+.compound-tabs button{border:0;background:0;border-bottom:3px solid transparent;color:var(--muted);
+  font-size:15px;font-weight:700;padding:10px 16px;cursor:pointer;margin-bottom:-2px}
+.compound-tabs button:hover{color:var(--ink)}
+.compound-tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+#defect-picker{position:relative}
+#defect-btn{min-width:230px;text-align:left;background:#fff;border:1px solid var(--border);border-radius:8px;
+  padding:7px 9px;font-size:14.5px;cursor:pointer;color:var(--ink)}
+#defect-menu{display:none;position:absolute;top:104%;left:0;z-index:40;width:290px;max-height:330px;overflow:auto;
+  background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.15);padding:9px}
+#defect-menu.open{display:block}
+#defect-menu label{display:flex;gap:8px;align-items:center;font-size:14.5px;padding:3.5px 4px;border-radius:6px;cursor:pointer}
+#defect-menu label:hover{background:var(--surface)}
+#defect-search{width:100%;margin-bottom:7px}
+#efplot{width:100%;height:430px;max-width:820px;margin:0 auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{border-bottom:1px solid var(--border);padding:7px 10px;text-align:left;white-space:nowrap}
+th{background:var(--surface);font-size:13px;color:var(--muted);cursor:pointer;position:sticky;top:0}
+th .arr{color:var(--accent)}
+tbody tr:hover{background:var(--surface)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablebox{max-height:520px;overflow:auto;border:1px solid var(--border);border-radius:10px}
+p.note{font-size:13.5px;color:var(--muted);margin:10px 2px 0}
+.cite{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;
+  font-size:15px;font-family:Georgia,serif;font-style:italic}
+footer{margin-top:52px;border-top:1px solid var(--border);padding:22px 26px;font-size:14px;color:var(--muted);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+sub{font-size:.72em}
+.showmore{margin:12px auto 0;display:block;cursor:pointer;background:#fff}
+@media(max-width:720px){.hero h1{font-size:30px}#efplot{height:340px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Defect<span>DB</span></div>
+  <nav>
+    <a href="#explorer">Defect explorer</a>
+    <a href="#compounds">Compound explorer</a>
+    <a href="#library">Defect table</a>
+    <a href="#tool">Tool</a>
+    <a href="#cite">Citation</a>
+  </nav>
+  <a class="gh" href="https://github.com/defectdatabase/II-VI-semiconductors">GitHub</a>
+</header>
+
+<div class="wrap">
+
+<div class="hero">
+  <h1>An open DFT library for <em>chalcogenide semiconductors</em></h1>
+  <p class="lead">DefectDB combines a 6763-compound DFT dataset of I–III–VI<sub>2</sub> chalcopyrites and
+    I<sub>2</sub>–II–IV–VI<sub>4</sub> kesterites/stannites with charged-defect formation energies for
+    II–VI hosts (CdTe and CdSe<sub>x</sub>Te<sub>1−x</sub> alloys, PBEsol and HSE+SOC). Everything on this
+    page is pure DFT — machine-learning force fields live in the nanoHUB simulation tool.</p>
+  <div class="btnrow">
+    <a class="btn primary" href="https://nanohub.org/tools/defectdatabase">Launch the tool on nanoHUB</a>
+    <a class="btn" href="#explorer">Explore defects</a>
+    <a class="btn" href="#compounds">Browse compounds</a>
+  </div>
+  <div class="stats" id="stats"></div>
+</div>
+
+<section id="explorer">
+  <h2><span class="tag">Interactive · DFT</span>Defect formation-energy diagrams</h2>
+  <p class="sub">Formation energy E<sub>f</sub>(q, E<sub>F</sub>) = E<sub>defect,q</sub> − E<sub>pristine</sub> +
+    Σn<sub>i</sub>μ<sub>i</sub> + q(E<sub>VBM</sub> + E<sub>F</sub>) + E<sub>corr</sub>, drawn as the lower
+    envelope over charge states q = −2 … +2. Kinks are charge-transition levels. Pick a functional, a host,
+    a chemical condition, and any set of defects. Only defects actually simulated for a host are listed.</p>
+  <div class="panel">
+    <div class="controls">
+      <div class="ctrl"><span>Functional</span>
+        <div class="seg" id="func-seg">
+          <button data-f="pbesol" class="on">PBEsol</button><button data-f="hsesoc">HSE+SOC</button>
+        </div></div>
+      <div class="ctrl"><span>Chemical condition</span>
+        <div class="seg" id="cond-seg">
+          <button data-c="mc" class="on">Cd-rich</button><button data-c="mt">Te-rich</button>
+        </div></div>
+      <div class="ctrl"><span>Defects</span>
+        <div id="defect-picker">
+          <button id="defect-btn">Select defects ▾</button>
+          <div id="defect-menu"><input type="text" id="defect-search" placeholder="filter, e.g. V_Cd"><div id="defect-list"></div></div>
+        </div></div>
+      <div class="ctrl"><span>&nbsp;</span><button class="btn" id="reset-btn" style="cursor:pointer;background:#fff">Lowest-five preset</button></div>
+    </div>
+    <div class="compound-tabs" id="compound-tabs"></div>
+    <div id="efplot"></div>
+  </div>
+</section>
+
+<section id="compounds">
+  <h2><span class="tag">Tabular · DFT</span>Compound explorer</h2>
+  <p class="sub">All 6763 unique I–III–VI<sub>2</sub> and I<sub>2</sub>–II–IV–VI<sub>4</sub> chalcogenide
+    compounds computed with PBEsol: formation energy, decomposition energy, band gap, electronic dielectric
+    constant, and SLME. Type to search; click headers to sort.</p>
+  <div class="panel">
+    <div class="controls">
+      <div class="ctrl"><span>Search compound</span><input type="text" id="comp-search" placeholder="e.g. AgAlS, Cu2Zn, kesterite" style="min-width:280px"></div>
+      <div class="ctrl"><span>&nbsp;</span><span id="comp-count" style="font-size:14px;color:var(--muted);font-weight:700"></span></div>
+    </div>
+    <div class="tablebox"><table id="ctbl"><thead><tr>
+      <th data-k="0">Compound <span class="arr"></span></th>
+      <th data-k="1">Structure <span class="arr"></span></th>
+      <th class="num" data-k="2">E<sub>form</sub> (eV/atom) <span class="arr"></span></th>
+      <th class="num" data-k="3">E<sub>decomp</sub> (eV/f.u.) <span class="arr"></span></th>
+      <th class="num" data-k="4">Gap (eV) <span class="arr"></span></th>
+      <th class="num" data-k="5">ε<sub>el</sub> <span class="arr"></span></th>
+      <th class="num" data-k="6">SLME (%) <span class="arr"></span></th>
+    </tr></thead><tbody></tbody></table></div>
+    <button class="btn showmore" id="comp-more">Show 100 more</button>
+  </div>
+</section>
+
+<section id="library">
+  <h2><span class="tag">Tabular · DFT</span>Defect library table</h2>
+  <p class="sub">Every charged-defect entry for the selected host, functional, and condition from the
+    defect explorer above. ΔE(q=0) is the corrected neutral defect energy relative to the pristine cell;
+    q@VBM and q@mid are the stable charge states at the band edges.</p>
+  <div class="tablebox"><table id="tbl"><thead><tr>
+    <th data-k="0">Defect <span class="arr"></span></th>
+    <th data-k="1">Type <span class="arr"></span></th>
+    <th class="num" data-k="2">ΔE(q=0) (eV) <span class="arr"></span></th>
+    <th class="num" data-k="3">E<sub>f</sub>@VBM (eV) <span class="arr"></span></th>
+    <th class="num" data-k="4">q@VBM <span class="arr"></span></th>
+    <th class="num" data-k="5">E<sub>f</sub>@mid-gap (eV) <span class="arr"></span></th>
+    <th class="num" data-k="6">q@mid-gap <span class="arr"></span></th>
+  </tr></thead><tbody></tbody></table></div>
+  <p class="note" id="lib-note"></p>
+</section>
+
+<section id="tool">
+  <h2><span class="tag">Simulate</span>MLFF simulation tool on nanoHUB</h2>
+  <p class="sub">The DefectDB tool builds any defect in any II–VI supercell and relaxes it with our
+    fine-tuned M3GNet force fields — ten models, one per charge state q = −2 … +2 at PBE and HSE fidelity —
+    then computes formation energies, migration barriers (CI-NEB), and finite-temperature MD.
+    MLFF results stay in the tool; this page reports DFT only.</p>
+  <div style="text-align:center;margin:26px 0">
+    <a class="btn primary" href="https://nanohub.org/tools/defectdatabase">Launch the tool</a>
+  </div>
+</section>
+
+<section id="cite">
+  <h2>Citation</h2>
+  <div class="cite">M. H. Rahman, Y. Yang, and A. Mannodi-Kanakkithodi, <em>DefectDB: An Open-Source Infrastructure for Defect Thermodynamics in II–VI Semiconductors</em> (2026, in preparation).</div>
+</section>
+
+</div>
+
+<footer>
+  <span>© 2026 · Mannodi research group, Purdue University</span>
+  <span><a href="https://github.com/defectdatabase/II-VI-semiconductors">GitHub</a> · <a href="https://nanohub.org/tools/defectdatabase">nanoHUB</a></span>
+</footer>
+
+<script>
+const DATA = /*__DATA__*/;
+const COMPOUNDS = /*__COMPOUNDS__*/;
+const QS = ["-2","-1","0","1","2"];
+const SUBD = {"0":"₀","1":"₁","2":"₂","3":"₃","4":"₄","5":"₅","6":"₆","7":"₇","8":"₈","9":"₉",".":"."};
+const hostUni = h => h.replace(/([A-Za-z\)])([\d.]+)/g, (m,el,n)=>el+[...n].map(c=>SUBD[c]||c).join(""));
+const defLabel = d => d.split("+").map(p=>{
+  const i = p.indexOf("_");
+  return i<0 ? p : p.slice(0,i)+"<sub>"+p.slice(i+1)+"</sub>";
+}).join("+");
+const compHTML = c => c.replace(/([A-Za-z\)])([\d.]+)/g,(m,el,n)=>el+"<sub>"+n+"</sub>");
+
+let curFunc="pbesol", curHost=null, curCond="mc", selDefects=new Set();
+
+const fData = () => DATA.filter(r=>r.f===curFunc);
+const hosts = () => [...new Set(fData().map(r=>r.h))];
+const hostRows = () => fData().filter(r=>r.h===curHost);
+const muOf = r => curCond==="mc" ? r.mc : r.mt;
+const condAvail = c => hostRows().some(r=>(c==="mc"?r.mc:r.mt)!==null);
+
+// Ef(q,EF) = dE(q) + mu + q*(VBM + EF); envelope = min over q. EF in [0, gap].
+function envelope(r, x){          // x = EF in eV from VBM
+  const mu = muOf(r); if(mu===null) return [null,null];
+  let best=null, bq=null;
+  for(const q of QS){ if(!(q in r.e)) continue;
+    const v = r.e[q] + mu + (+q)*(r.v + x);
+    if(best===null||v<best){best=v;bq=+q;} }
+  return [best,bq];
+}
+
+function updateStats(){
+  const defs=[...new Set(DATA.map(r=>r.d))];
+  document.getElementById("stats").innerHTML =
+    `<div class="stat"><b>${COMPOUNDS.length}</b><span>DFT compounds</span></div>
+     <div class="stat"><b>${DATA.length}</b><span>Defect entries</span></div>
+     <div class="stat"><b>${defs.length}</b><span>Unique defects</span></div>
+     <div class="stat"><b>2</b><span>Functionals</span></div>
+     <div class="stat"><b>5</b><span>Charge states</span></div>`;
+}
+
+function buildTabs(){
+  const t=document.getElementById("compound-tabs"); t.innerHTML="";
+  hosts().forEach(h=>{
+    const b=document.createElement("button");
+    b.textContent=hostUni(h); b.dataset.h=h;
+    if(h===curHost) b.classList.add("on");
+    b.onclick=()=>{curHost=h; selDefects.clear(); refresh();};
+    t.appendChild(b);
+  });
+}
+
+function updateCond(){
+  const mc=condAvail("mc"), mt=condAvail("mt");
+  if(curCond==="mc"&&!mc) curCond="mt";
+  if(curCond==="mt"&&!mt) curCond="mc";
+  document.querySelectorAll("#cond-seg button").forEach(b=>{
+    b.disabled = b.dataset.c==="mc" ? !mc : !mt;
+    b.classList.toggle("on", b.dataset.c===curCond);
+  });
+}
+
+function buildDefectList(){
+  const list=document.getElementById("defect-list"); list.innerHTML="";
+  hostRows().forEach(r=>{
+    const lab=document.createElement("label");
+    const c=document.createElement("input"); c.type="checkbox"; c.checked=selDefects.has(r.d);
+    c.onchange=()=>{c.checked?selDefects.add(r.d):selDefects.delete(r.d); updateBtn(); plot();};
+    lab.appendChild(c);
+    const s=document.createElement("span"); s.innerHTML=defLabel(r.d); lab.appendChild(s);
+    list.appendChild(lab);
+  });
+  updateBtn();
+}
+const updateBtn=()=>{document.getElementById("defect-btn").innerHTML =
+  selDefects.size?`${selDefects.size} defect${selDefects.size>1?"s":""} selected ▾`:"Select defects ▾";};
+
+function preset(){
+  const g = hostRows()[0]?.g ?? 1.5;
+  const ranked = hostRows().map(r=>({d:r.d, ef:envelope(r,g/2)[0]}))
+    .filter(o=>o.ef!==null).sort((a,b)=>a.ef-b.ef).slice(0,5).map(o=>o.d);
+  selDefects=new Set(ranked);
+}
+
+function plot(){
+  const rows=hostRows().filter(r=>selDefects.has(r.d));
+  const g=hostRows()[0]?.g ?? 1.5;
+  const traces=rows.map(r=>{
+    const xs=[],ys=[];
+    for(let i=0;i<=60;i++){const x=g*i/60; const [ef]=envelope(r,x); xs.push(x); ys.push(ef);}
+    return {x:xs,y:ys,mode:"lines",line:{width:2.4},name:defLabel(r.d),
+      hovertemplate:"%{fullData.name}: E<sub>F</sub>=%{x:.3f} eV, E<sub>f</sub>=%{y:.3f} eV<extra></extra>"};
+  });
+  Plotly.react("efplot",traces,{
+    title:{text:`${hostUni(curHost)} — ${curFunc==="pbesol"?"PBEsol":"HSE+SOC"}, ${curCond==="mc"?"Cd-rich":"Te-rich"}`,
+      font:{size:15.5},x:0.5,xanchor:"center"},
+    xaxis:{title:{text:"Fermi level E<sub>F</sub> − E<sub>VBM</sub> (eV)",font:{size:13.5}},range:[0,g],zeroline:false},
+    yaxis:{title:{text:"Formation energy E<sub>f</sub> (eV)",font:{size:13.5}},zeroline:false},
+    margin:{l:54,r:14,t:32,b:46},legend:{orientation:"v",font:{size:12.5}},
+    plot_bgcolor:"#fff",paper_bgcolor:"#fff"},{responsive:true,displaylogo:false});
+}
+
+/* ---- defect library table ---- */
+let dSort={k:3,asc:true}, dRows=[];
+function buildLibrary(){
+  const g=hostRows()[0]?.g ?? 1.5;
+  dRows=hostRows().map(r=>{
+    const de0 = "0" in r.e ? r.e["0"] : null;
+    const mu=muOf(r);
+    const [e0,q0]=envelope(r,0), [em,qm]=envelope(r,g/2);
+    return [r.d, r.t, de0!==null&&mu!==null?de0+mu:null, e0, q0, em, qm];
+  });
+  renderLib();
+  document.getElementById("lib-note").innerHTML =
+    `${dRows.length} defects for ${hostUni(curHost)} (${curFunc==="pbesol"?"PBEsol":"HSE+SOC"}, ${curCond==="mc"?"Cd-rich":"Te-rich"}). "—" = not available at this condition.`;
+}
+function renderLib(){
+  const tb=document.querySelector("#tbl tbody"); tb.innerHTML="";
+  const s=[...dRows].sort((a,b)=>{
+    const va=a[dSort.k],vb=b[dSort.k];
+    if(va===null) return 1; if(vb===null) return -1;
+    const c = typeof va==="number"? va-vb : String(va).localeCompare(String(vb));
+    return dSort.asc?c:-c;});
+  s.forEach(row=>{
+    const tr=document.createElement("tr");
+    row.forEach((v,i)=>{
+      const td=document.createElement("td"); if(i>1)td.className="num";
+      td.innerHTML = i===0?defLabel(v) : v===null?"—" : typeof v==="number"&&i!==4&&i!==6 ? v.toFixed(2) : (i===4||i===6)&&v>0?"+"+v:v;
+      tr.appendChild(td);});
+    tb.appendChild(tr);});
+  document.querySelectorAll("#tbl th").forEach(th=>{
+    th.querySelector(".arr").textContent = +th.dataset.k===dSort.k ? (dSort.asc?"▲":"▼") : "";});
+}
+document.querySelectorAll("#tbl th").forEach(th=>th.onclick=()=>{
+  const k=+th.dataset.k; dSort = dSort.k===k?{k,asc:!dSort.asc}:{k,asc:true}; renderLib();});
+
+/* ---- compound explorer ---- */
+let cSort={k:2,asc:true}, cShown=100, cFiltered=COMPOUNDS;
+function filterComp(){
+  const q=document.getElementById("comp-search").value.trim().toLowerCase();
+  cFiltered = q? COMPOUNDS.filter(c=>c[0].toLowerCase().includes(q)||c[1].toLowerCase().includes(q)) : COMPOUNDS;
+  cShown=100; renderComp();
+}
+function renderComp(){
+  const s=[...cFiltered].sort((a,b)=>{
+    const va=a[cSort.k],vb=b[cSort.k];
+    if(va===null||va==="") return 1; if(vb===null||vb==="") return -1;
+    const c = typeof va==="number"? va-vb : String(va).localeCompare(String(vb));
+    return cSort.asc?c:-c;});
+  const tb=document.querySelector("#ctbl tbody"); tb.innerHTML="";
+  s.slice(0,cShown).forEach(c=>{
+    const tr=document.createElement("tr");
+    c.forEach((v,i)=>{
+      const td=document.createElement("td"); if(i>1)td.className="num";
+      td.innerHTML = i===0?compHTML(v) : v===null?"—" : typeof v==="number"?(i===2||i===3?v.toFixed(3):v.toFixed(2)):v;
+      tr.appendChild(td);});
+    tb.appendChild(tr);});
+  document.getElementById("comp-count").textContent =
+    `${Math.min(cShown,cFiltered.length)} of ${cFiltered.length} shown`;
+  document.getElementById("comp-more").style.display = cShown<cFiltered.length?"block":"none";
+  document.querySelectorAll("#ctbl th").forEach(th=>{
+    th.querySelector(".arr").textContent = +th.dataset.k===cSort.k ? (cSort.asc?"▲":"▼") : "";});
+}
+document.querySelectorAll("#ctbl th").forEach(th=>th.onclick=()=>{
+  const k=+th.dataset.k; cSort = cSort.k===k?{k,asc:!cSort.asc}:{k,asc:true}; renderComp();});
+document.getElementById("comp-search").addEventListener("input",filterComp);
+document.getElementById("comp-more").onclick=()=>{cShown+=100; renderComp();};
+
+/* ---- wiring ---- */
+document.getElementById("func-seg").addEventListener("click",e=>{
+  const f=e.target.dataset.f; if(!f||f===curFunc) return;
+  curFunc=f; document.querySelectorAll("#func-seg button").forEach(b=>b.classList.toggle("on",b.dataset.f===f));
+  if(!hosts().includes(curHost)) curHost=hosts()[0];
+  selDefects.clear(); refresh();
+});
+document.getElementById("cond-seg").addEventListener("click",e=>{
+  const c=e.target.dataset.c; if(!c||e.target.disabled) return;
+  curCond=c; updateCond(); plot(); buildLibrary();
+});
+document.getElementById("defect-btn").onclick=()=>document.getElementById("defect-menu").classList.toggle("open");
+document.addEventListener("click",e=>{
+  if(!document.getElementById("defect-picker").contains(e.target))
+    document.getElementById("defect-menu").classList.remove("open");});
+document.getElementById("defect-search").addEventListener("input",e=>{
+  const q=e.target.value.toLowerCase();
+  document.querySelectorAll("#defect-menu label").forEach(l=>{
+    l.style.display=l.textContent.toLowerCase().includes(q)?"":"none";});});
+document.getElementById("reset-btn").onclick=()=>{preset(); buildDefectList(); plot();};
+
+function refresh(){
+  buildTabs(); updateCond();
+  if(selDefects.size===0) preset();
+  buildDefectList(); plot(); buildLibrary();
+}
+
+curHost=hosts()[0];
+updateStats(); refresh(); renderComp();
+</script>
+</body>
+</html>
