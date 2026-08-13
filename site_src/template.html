@@ -490,14 +490,12 @@ const DCOLS=[
   {k:"d",label:"Defect",w:190,cell:r=>`<span class="c defc" style="width:190px">${defHTML(r.d)}</span>`,val:r=>r.d},
   {k:"cls",label:"Class",w:94,cell:r=>`<span class="c ${["vacancy","interstitial"].some(x=>r.clset.has(x))&&r.cls!=="complex"?"cls-teal":"cls-amber"}" style="width:94px">${r.cls}</span>`,val:r=>r.cls},
   {k:"f",label:"Theory",w:92,cell:r=>`<span class="c" style="width:92px">${THEORY[r.f]}</span>`,val:r=>r.f},
-  {k:"de0",label:"Eᶠ(q=0) Te-rich",w:118,num:1,val:r=>r.de0===null||r.mt===null?null:r.de0+r.mt},
-  {k:"efVc",label:"Eᶠ@VBM Cd-rich",w:128,num:1,val:r=>r.efVc},
-  {k:"efVt",label:"Eᶠ@VBM Te-rich",w:128,num:1,val:r=>r.efVt},
-  {k:"efMc",label:"Eᶠ@mid Cd-rich",w:126,num:1,val:r=>r.efMc},
-  {k:"efMt",label:"Eᶠ@mid Te-rich",w:126,num:1,val:r=>r.efMt},
-  {k:"qMt",label:"q@mid",w:70,num:1,val:r=>r.qMt,fmt:fq},
-  {k:"g",label:"Gap (eV)",w:84,num:1,val:r=>r.g},
-  {k:"nq",label:"q states",w:78,num:1,val:r=>r.nq,fmt:v=>String(v)},
+  {k:"efVc",label:"Eᶠ@VBM Cd-rich",w:124,num:1,val:r=>r.efVc},
+  {k:"efVt",label:"Eᶠ@VBM Te-rich",w:124,num:1,val:r=>r.efVt},
+  {k:"efMc",label:"Eᶠ@mid Cd-rich",w:124,num:1,val:r=>r.efMc},
+  {k:"efMt",label:"Eᶠ@mid Te-rich",w:124,num:1,val:r=>r.efMt},
+  {k:"efCc",label:"Eᶠ@CBM Cd-rich",w:124,num:1,val:r=>r.efCc},
+  {k:"efCt",label:"Eᶠ@CBM Te-rich",w:124,num:1,val:r=>r.efCt},
 ];
 let dSort={k:"efMt",asc:true},dSel=null,dFiltered=[];
 let dClass="all";
@@ -559,9 +557,9 @@ document.getElementById("dtview").addEventListener("scroll",dRenderRows);
 function dRenderMeta(){
   const n=DEFECTS.length;
   document.getElementById("dfoot").innerHTML=
-    `One row per defect and level of theory. E<sup>f</sup>(q=0) is the Fermi-level-independent neutral
-     formation energy at the Te-rich limit; the other E<sup>f</sup> columns are
-     lower-envelope formation energies at the band edges. Formation energies and gaps are in eV. Red
+    `One row per defect and level of theory. Each E<sup>f</sup> column is the lower-envelope formation
+     energy over q = −2 … +2 with the Fermi level at the VBM, mid-gap, or CBM, at the stated
+     chemical-potential limit. Formation energies are in eV. Red
      values are spontaneous (E<sup>f</sup> &lt; 0). "—" = not available (chemical potential not published
      for that condition, or charge state not simulated). Click any row to see the full formation-energy
      diagram and per-charge-state raw data. <span class="showing">Showing ${dFiltered.length.toLocaleString()} of ${n.toLocaleString()} defect entries.</span>`;
@@ -576,10 +574,10 @@ async function dOpenDetail(r){
   dSel=r;
   const panel=document.getElementById("detail");panel.classList.add("on");document.getElementById("modalback").classList.add("on");
   document.getElementById("dtitle").innerHTML=`${defHTML(r.d)} in ${subHTML(r.h)} — ${THEORY[r.f]}`;
-  const rows=[["Cd-rich",r.efVc,r.qVc,r.efMc,r.qMc],["Te-rich",r.efVt,r.qVt,r.efMt,r.qMt]];
+  const rows=[["Cd-rich",r.efVc,r.qVc,r.efMc,r.qMc,r.efCc,r.qCc],["Te-rich",r.efVt,r.qVt,r.efMt,r.qMt,r.efCt,r.qCt]];
   document.getElementById("dcondtbl").innerHTML=
-    `<tr><th>Condition</th><th>Eᶠ@VBM</th><th>q</th><th>Eᶠ@mid</th><th>q</th></tr>`+
-    rows.map(x=>`<tr><td>${x[0]}</td><td>${fmt(x[1])}</td><td>${fq(x[2])}</td><td>${fmt(x[3])}</td><td>${fq(x[4])}</td></tr>`).join("");
+    `<tr><th>Condition</th><th>Eᶠ@VBM</th><th>q</th><th>Eᶠ@mid</th><th>q</th><th>Eᶠ@CBM</th><th>q</th></tr>`+
+    rows.map(x=>`<tr><td>${x[0]}</td><td>${fmt(x[1])}</td><td>${fq(x[2])}</td><td>${fmt(x[3])}</td><td>${fq(x[4])}</td><td>${fmt(x[5])}</td><td>${fq(x[6])}</td></tr>`).join("");
   document.getElementById("dkv").innerHTML=
     `<div><span>Host</span><span>${subHTML(r.h)}</span></div>
      <div><span>Class</span><span>${r.cls} (${[...r.clset].join(", ")})</span></div>
@@ -1531,6 +1529,7 @@ async function boot(){
     const mid = r.g/2;
     [r.efVc,r.qVc]=envelope(r,"mc",0); [r.efVt,r.qVt]=envelope(r,"mt",0);
     [r.efMc,r.qMc]=envelope(r,"mc",mid); [r.efMt,r.qMt]=envelope(r,"mt",mid);
+    [r.efCc,r.qCc]=envelope(r,"mc",r.g); [r.efCt,r.qCt]=envelope(r,"mt",r.g);
     r.spont = (r.efMc!==null&&r.efMc<0)||(r.efMt!==null&&r.efMt<0);
     r.de0 = "0" in r.e ? r.e["0"] : null;
   });
