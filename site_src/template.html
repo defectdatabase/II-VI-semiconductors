@@ -595,11 +595,16 @@ function cRenderMeta(){
      entropy (red = unstable); band gap from occupied-band counting on EIGENVAL (PBEsol rows use a
      2×2×2-k static screen — treat as approximate); ε<sub>∞</sub> is the electronic LOPTICS dielectric;
      SLME at optimal thickness. <span class="showing">Showing ${cFiltered.length.toLocaleString()} of ${COMPOUNDS.length.toLocaleString()} compounds.</span>`;
-  const nH=COMPOUNDS.filter(r=>r.f==="HSE+SOC").length,nP=COMPOUNDS.filter(r=>r.f==="PBEsol").length;
+  const byTh={};
+  COMPOUNDS.forEach(r=>{byTh[r.f]=(byTh[r.f]||0)+1;});
+  const order=["PBE","PBEsol","HSE06","HSE06 (no PS)","HSE+SOC"];
+  const parts=order.filter(k=>byTh[k]).map(k=>`${k} ${byTh[k].toLocaleString()}`);
+  const uniq=new Set(COMPOUNDS.map(r=>r.n)).size;
   document.getElementById("ccov").innerHTML=
-    `Coverage — <b>${COMPOUNDS.length.toLocaleString()}</b> compound rows (HSE+SOC <b>${nH.toLocaleString()}</b> ·
-     PBEsol <b>${nP.toLocaleString()}</b>) · cation orderings selectable per row ·
-     ground-state configurations from a 21,242-calculation PBEsol polymorph screen · all pure DFT`;
+    `Coverage — ${COMPOUNDS.length.toLocaleString()} rows over ${uniq.toLocaleString()} unique compounds ·
+     ${parts.join(" · ")} · cation orderings selectable per row ·
+     ground-state configurations from a 21,242-calculation PBEsol polymorph screen · all pure DFT.
+     The A2BCX4/ABX2 HSE06 campaign is being restored from archive and is not in this table yet.`;
 }
 function cOpenDetail(r,ord){
   if(cSel===r&&!ord){cSel=null;document.getElementById("cdetail").classList.remove("on");cRenderRows();return;}
