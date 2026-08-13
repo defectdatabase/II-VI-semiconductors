@@ -485,7 +485,7 @@ function dOpenDetail(r){
   document.querySelectorAll("#dqsel .cpill").forEach(b=>b.onclick=()=>{
     document.querySelectorAll("#dqsel .cpill").forEach(x=>x.classList.remove("on"));
     b.classList.add("on");
-    mountTraj(`${r.f}__${r.h}__${r.d}`,b.dataset.q,`${defLabel(r.d)} in ${subHTML(r.h)}, q = ${b.dataset.q}`,"trajbox2");
+    mountTraj(`${r.f}__${r.h}__${r.d}`,b.dataset.q,`${defHTML(r.d)} in ${subHTML(r.h)}, q = ${b.dataset.q}`,"trajbox2");
   });
   if(qs.length) document.querySelector("#dqsel .cpill").click();
   Plotly.react("efdetailplot",traces,{
@@ -618,6 +618,18 @@ function loadMV(){
       const l=document.createElement("link"); l.id="mv-css"; l.rel="stylesheet";
       l.href=MV_BASE+"/mv-asset-index.css"; document.head.appendChild(l);
     }
+    // the bundle's bootstrap renders window.MV_STRUCTURE into #viz, else fetches /structure.json (404).
+    // Give it a hidden target and a minimal structure so it never issues that request.
+    if(!document.getElementById("viz")){
+      const v=document.createElement("div"); v.id="viz";
+      v.style.cssText="position:absolute;left:-99999px;top:0;width:240px;height:240px;overflow:hidden";
+      document.body.appendChild(v);
+    }
+    window.MV_STRUCTURE=window.MV_STRUCTURE||{"@module":"pymatgen.core.structure","@class":"Structure",
+      charge:0,properties:{},
+      lattice:{matrix:[[3,0,0],[0,3,0],[0,0,3]],pbc:[true,true,true],
+               a:3,b:3,c:3,alpha:90,beta:90,gamma:90,volume:27},
+      sites:[{species:[{element:"Cd",occu:1}],abc:[0,0,0],xyz:[0,0,0],label:"Cd",properties:{}}]};
     mvMod=import(MV_BASE+"/mv-app.js");
   }
   return mvMod;
@@ -688,27 +700,52 @@ LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · ENCUT = 500 eV · ISMEAR = 
 
 /* ---------- relaxation movie: XDATCAR frames + energies + forces ---------- */
 let TRAJ=null, TFRAME=0, TTIMER=null, TSPECIES=null, TPFX="trajbox_";
+function latParams(m){
+  const n=v=>Math.hypot(v[0],v[1],v[2]);
+  const ang=(u,v)=>{const c=(u[0]*v[0]+u[1]*v[1]+u[2]*v[2])/(n(u)*n(v));
+    return Math.acos(Math.max(-1,Math.min(1,c)))*180/Math.PI;};
+  const vol=Math.abs(m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])
+                    -m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])
+                    +m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]));
+  return {a:n(m[0]),b:n(m[1]),c:n(m[2]),
+          alpha:ang(m[1],m[2]),beta:ang(m[0],m[2]),gamma:ang(m[0],m[1]),volume:vol};
+}
 function trajStructure(fr){
   const lat = fr.lat || TRAJ.lat;
+  const lp = latParams(lat);
   return {"@module":"pymatgen.core.structure","@class":"Structure","charge":0,"properties":{},
-    "lattice":{"matrix":lat,"pbc":[true,true,true]},
-    "sites":fr.p.map((abc,i)=>({species:[{element:TSPECIES[i],occu:1}],abc,label:TSPECIES[i],properties:{}}))};
+    "lattice":Object.assign({"matrix":lat,"pbc":[true,true,true]},lp),
+    "sites":fr.p.map((abc,i)=>({species:[{element:TSPECIES[i],occu:1}],abc,
+      xyz:[abc[0]*lat[0][0]+abc[1]*lat[1][0]+abc[2]*lat[2][0],
+           abc[0]*lat[0][1]+abc[1]*lat[1][1]+abc[2]*lat[2][1],
+           abc[0]*lat[0][2]+abc[1]*lat[1][2]+abc[2]*lat[2][2]],
+      label:TSPECIES[i],properties:{}}))};
 }
 async function showFrame(i){
-  if(!TRAJ) return;
+  if(!TRAJ||!TRAJ.frames) return;
   TFRAME=Math.max(0,Math.min(TRAJ.frames.length-1,i));
   const fr=TRAJ.frames[TFRAME];
-  const el=document.getElementById(TPFX+"struct");
-  try{ await loadMV(); el.innerHTML=""; window.renderMatterViz(trajStructure(fr), el, {}); }catch(e){}
-  document.getElementById(TPFX+"info").innerHTML =
+  const host=document.getElementById(TPFX+"struct");
+  const info=document.getElementById(TPFX+"info");
+  if(!host||!info){ stopTraj(); return; }
+  try{
+    await loadMV();
+    if(document.getElementById(TPFX+"struct")!==host) return;   // panel changed under us
+    const fresh=document.createElement("div");
+    fresh.style.cssText="width:100%;height:100%";
+    host.replaceChildren(fresh);
+    window.renderMatterViz(trajStructure(fr), fresh, {});
+  }catch(e){}
+  info.innerHTML =
     `step <b>${fr.i+1}</b> of ${TRAJ.nframes} &nbsp;·&nbsp; E = <b>${fr.e!==null&&fr.e!==undefined?fr.e.toFixed(2):"—"}</b> eV`+
     `&nbsp;·&nbsp; F<sub>max</sub> = <b>${fr.f!==null&&fr.f!==undefined?fr.f.toFixed(2):"—"}</b> eV/Å`;
-  document.getElementById(TPFX+"slider").value=TFRAME;
-  if(window.Plotly&&document.getElementById(TPFX+"plot")&&document.getElementById(TPFX+"plot").data)
+  const sl=document.getElementById(TPFX+"slider"); if(sl) sl.value=TFRAME;
+  const pl=document.getElementById(TPFX+"plot");
+  if(window.Plotly&&pl&&pl.data&&pl.data.length>=4)
     Plotly.restyle(TPFX+"plot",{x:[[fr.i],[fr.i]],y:[[fr.e],[fr.f]]},[2,3]);
 }
 function playTraj(){
-  const btn=document.getElementById(TPFX+"play");
+  const btn=document.getElementById(TPFX+"play"); if(!btn) return;
   if(TTIMER){clearInterval(TTIMER);TTIMER=null;btn.textContent="▶ play";return;}
   btn.textContent="⏸ pause";
   TTIMER=setInterval(()=>{
@@ -722,13 +759,23 @@ async function mountTraj(key,sub,label,boxId){
   stopTraj(); box.innerHTML='<div class="notebox">loading relaxation trajectory…</div>';
   let data=null;
   try{
-    const r=await fetch(`trajs/${encodeURIComponent(key)}.json`);
-    if(r.ok && (r.headers.get("content-type")||"").includes("json")) data=await r.json();
+    const r=await fetch(`trajs/${encodeURIComponent(key)}.json.gz`);
+    if(r.ok){
+      if(typeof DecompressionStream!=="undefined"){
+        const ds=new DecompressionStream("gzip");
+        data=JSON.parse(await new Response(r.body.pipeThrough(ds)).text());
+      }else{
+        box.innerHTML='<div class="notebox">This browser cannot inflate the trajectory payload '+
+          '(needs DecompressionStream). Use a recent Chrome, Edge, Safari 16.4+ or Firefox 113+.</div>';
+        return;
+      }
+    }
   }catch(e){ data=null; }
   const t=data&&(sub&&data[sub]?data[sub]:(data.bulk||data[Object.keys(data)[0]]));
   if(!t||!t.frames||t.frames.length<2){
-    box.innerHTML='<div class="notebox">No multi-step relaxation archived for this run — the published '+
-      'calculation is a single-point static on the already-relaxed geometry (the 3D structure above is that geometry).</div>';
+    box.innerHTML='<div class="notebox">No ionic steps archived for this run — only the final '+
+      'single-point calculation on the relaxed geometry was kept, so there is no movie to play. '+
+      'The relaxed structure itself is shown above.</div>';
     return;
   }
   TRAJ=t; TSPECIES=t.species; TFRAME=0;
