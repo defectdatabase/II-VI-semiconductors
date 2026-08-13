@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DefectDB — II–VI Semiconductor Defect Library</title>
-<meta name="description" content="Open DFT charged-defect library for Cd/Zn–S/Se/Te semiconductors: 385 defect entries across CdSeTe hosts, charge states −2 to +2, interactive formation-energy diagrams, MLFF tool on nanoHUB.">
+<meta name="description" content="Open-source defect-thermodynamics library for II–VI semiconductors: interactive formation-energy diagrams, DFT+MLFF datasets, simulation tools.">
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
 :root{
@@ -52,6 +52,11 @@ select,input[type=text]{font-size:14.5px;padding:7px 9px;border-radius:8px;borde
 .seg button{border:0;background:#fff;color:var(--muted);font-size:14px;font-weight:700;padding:8px 15px;cursor:pointer}
 .seg button.on{background:var(--accent);color:#fff}
 .seg button:disabled{opacity:.35;cursor:not-allowed}
+.compound-tabs{display:flex;gap:2px;margin-bottom:14px;flex-wrap:wrap;border-bottom:2px solid var(--border);padding-bottom:0}
+.compound-tabs button{border:0;background:0;border-bottom:3px solid transparent;color:var(--muted);
+  font-size:15px;font-weight:700;padding:10px 16px;cursor:pointer;transition:all .2s}
+.compound-tabs button:hover{color:var(--ink)}
+.compound-tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
 #defect-picker{position:relative}
 #defect-btn{min-width:230px;text-align:left;background:#fff;border:1px solid var(--border);border-radius:8px;
   padding:7px 9px;font-size:14.5px;cursor:pointer;color:var(--ink)}
@@ -87,7 +92,7 @@ p.note{font-size:13.5px;color:var(--muted);margin:10px 2px 0}
 footer{margin-top:52px;border-top:1px solid var(--border);padding:22px 26px;font-size:14px;color:var(--muted);
   display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 sub{font-size:.72em}
-@media(max-width:720px){.hero h1{font-size:30px}#efplot{height:340px}}
+@media(max-width:720px){.hero h1{font-size:30px}#efplot{height:340px}.compound-tabs{margin-bottom:10px}}
 </style>
 </head>
 <body>
@@ -95,11 +100,10 @@ sub{font-size:.72em}
 <header>
   <div class="brand">Defect<span>DB</span> · II–VI</div>
   <nav>
-    <a href="#explorer">Formation energies</a>
-    <a href="#library">Defect library</a>
-    <a href="#tool">Simulation tool</a>
-    <a href="#dataset">Dataset</a>
-    <a href="#cite">Cite</a>
+    <a href="#explorer">Defect explorer</a>
+    <a href="#library">Library</a>
+    <a href="#tool">Tool</a>
+    <a href="#cite">Citation</a>
   </nav>
   <a class="gh" href="https://github.com/defectdatabase/II-VI-semiconductors">GitHub</a>
 </header>
@@ -107,31 +111,25 @@ sub{font-size:.72em}
 <div class="wrap">
 
 <div class="hero">
-  <h1>An open defect-thermodynamics library for <em>II–VI semiconductors</em></h1>
-  <p class="lead">DefectDB combines a high-throughput DFT charged-defect dataset for Cd/Zn–S/Se/Te
-    compounds and alloys with machine-learning force fields and an interactive simulation tool.
-    Every formation-energy diagram on this page is computed live in your browser from the published
-    PBEsol dataset — supercell total energies, finite-size corrections, chemical potentials, and
-    band edges included.</p>
+  <h1>Defect thermodynamics for <em>II–VI semiconductors</em></h1>
+  <p class="lead">DefectDB is a DFT+MLFF defect-informatics platform for Cd/Zn–S/Se/Te semiconductors.
+    This page hosts an interactive formation-energy explorer and a downloadable dataset. The simulation tool
+    runs live on nanoHUB — no installation required.</p>
   <div class="btnrow">
-    <a class="btn primary" href="https://nanohub.org/tools/defectdatabase">Launch the tool on nanoHUB</a>
-    <a class="btn" href="#explorer">Explore formation energies</a>
-    <a class="btn" href="#dataset">Download the dataset</a>
+    <a class="btn primary" href="https://nanohub.org/tools/defectdatabase">Launch tool on nanoHUB</a>
+    <a class="btn" href="#explorer">Explore defects</a>
+    <a class="btn" href="#library">Download dataset</a>
   </div>
   <div class="stats" id="stats"></div>
 </div>
 
 <section id="explorer">
   <h2><span class="tag">Interactive</span>Defect formation-energy diagrams</h2>
-  <p class="sub">Formation energy versus Fermi level, E<sub>f</sub>(q, E<sub>F</sub>) = E<sub>defect,q</sub> −
-    E<sub>pristine</sub> + Σn<sub>i</sub>μ<sub>i</sub> + q(E<sub>VBM</sub> + E<sub>F</sub>) + E<sub>corr</sub>,
-    drawn as the lower envelope over charge states q = −2 … +2. Kinks are thermodynamic charge-transition
-    levels. Pick a host, a chemical condition, and any set of defects. The dataset publishes chemical
-    potentials under both Cd-rich and Te-rich conditions for CdTe, and under Te-rich conditions for the
-    CdSe<sub>x</sub>Te<sub>1−x</sub> alloy hosts.</p>
+  <p class="sub">Formation energy E<sub>f</sub>(q, E<sub>F</sub>) = E<sub>defect</sub> − E<sub>pristine</sub> + Σμ + q(E<sub>VBM</sub> + E<sub>F</sub>) + E<sub>corr</sub>,
+    plotted as the lower envelope over charge states −2 to +2. Pick a compound, set the chemical condition, select defects.</p>
   <div class="panel">
+    <div class="compound-tabs" id="compound-tabs"></div>
     <div class="controls">
-      <div class="ctrl"><span>Host</span><select id="host-sel"></select></div>
       <div class="ctrl"><span>Chemical condition</span>
         <div class="seg" id="cond-seg">
           <button data-c="mc" class="on">Cd-rich</button><button data-c="mt">Te-rich</button>
@@ -139,7 +137,7 @@ sub{font-size:.72em}
       <div class="ctrl"><span>Defects</span>
         <div id="defect-picker">
           <button id="defect-btn">Select defects ▾</button>
-          <div id="defect-menu"><input type="text" id="defect-search" placeholder="filter, e.g. As_Te"><div id="defect-list"></div></div>
+          <div id="defect-menu"><input type="text" id="defect-search" placeholder="filter, e.g. V_Cd"><div id="defect-list"></div></div>
         </div></div>
       <div class="ctrl"><span>&nbsp;</span><button class="btn" id="reset-btn" style="cursor:pointer;background:#fff">Lowest-five preset</button></div>
     </div>
@@ -148,259 +146,263 @@ sub{font-size:.72em}
 </section>
 
 <section id="library">
-  <h2><span class="tag">Browse</span>Defect library</h2>
-  <p class="sub">Every entry in the PBEsol library. ΔE(q=0) is the raw energy difference
-    E<sub>defect</sub> − E<sub>pristine</sub> for the neutral supercell. Formation energies at the
-    valence-band maximum and at mid-gap use the most stable charge state; they are shown where the
-    dataset publishes chemical potentials for the selected condition. Click a column header to sort;
-    type to filter.</p>
-  <div class="panel">
-    <div class="controls">
-      <div class="ctrl"><span>Host</span><select id="tbl-host"></select></div>
-      <div class="ctrl"><span>Chemical condition</span>
-        <div class="seg" id="tbl-cond">
-          <button data-c="mc" class="on">Cd-rich</button><button data-c="mt">Te-rich</button>
-        </div></div>
-      <div class="ctrl"><span>Filter defects</span><input type="text" id="tbl-search" placeholder="e.g. Cl, V_Cd, As_Te+"></div>
-      <div class="ctrl"><span>Type</span><select id="tbl-type"><option value="">All</option>
-        <option>Native</option><option>Extrinsic</option></select></div>
-      <div class="ctrl"><span>&nbsp;</span><span id="tbl-count" style="font-size:14px;color:var(--muted)"></span></div>
-    </div>
-    <div class="tablebox"><table id="tbl">
-      <thead><tr>
-        <th data-k="l">Defect</th><th data-k="t">Type</th>
-        <th class="num" data-k="de0">ΔE(q=0) (eV)</th>
-        <th class="num" data-k="efv">E<sub>f</sub> @ VBM (eV)</th>
-        <th class="num" data-k="qv">q @ VBM</th>
-        <th class="num" data-k="efm">E<sub>f</sub> @ mid-gap (eV)</th>
-        <th class="num" data-k="qm">q @ mid-gap</th>
-      </tr></thead><tbody></tbody>
-    </table></div>
-    <p class="note">Charge states with unconverged or missing calculations are excluded from the
-      stable-charge search for that entry. “—” marks quantities the published dataset does not define:
-      Cd-rich chemical potentials are provided for the CdTe host only.</p>
-  </div>
+  <h2><span class="tag">Tabular</span>Defect library</h2>
+  <p class="sub">All 385 defect entries from the PBEsol DFT dataset. Columns show formation energy at VBM, mid-gap, charge transition levels (q<sub>VBM</sub>, q<sub>mid</sub>).
+    Click column headers to sort.</p>
+  <div class="tablebox"><table id="tbl"><thead><tr>
+    <th onclick="sortTbl(0)">Defect <span class="arr">▼</span></th>
+    <th onclick="sortTbl(1)">Type <span class="arr">▼</span></th>
+    <th class="num" onclick="sortTbl(2)">ΔE(q=0) <span class="arr">▼</span></th>
+    <th class="num" onclick="sortTbl(3)">E<sub>f</sub>@VBM <span class="arr">▼</span></th>
+    <th class="num" onclick="sortTbl(4)">q@VBM <span class="arr">▼</span></th>
+    <th class="num" onclick="sortTbl(5)">E<sub>f</sub>@mid <span class="arr">▼</span></th>
+    <th class="num" onclick="sortTbl(6)">q@mid <span class="arr">▼</span></th>
+  </tr></thead><tbody></tbody></table></div>
+  <p class="note">Dataset contains CdTe and CdSe<sub>x</sub>Te<sub>1−x</sub> alloys (x = 0.06, 0.12, 0.20, 0.25, 0.50, 0.75).
+    Chemical potentials: Cd-rich available for CdTe only; Te-rich for all hosts. Charge states q ∈ {−2, −1, 0, +1, +2}.</p>
 </section>
 
 <section id="tool">
-  <h2><span class="tag">Simulate</span>The DefectDB tool</h2>
-  <p class="sub">The companion Jupyter tool runs free in the browser on
-    <a href="https://nanohub.org/tools/defectdatabase">nanoHUB</a>. It bundles PBE- and HSE-fidelity
-    machine-learning force fields (charge states −2 … +2) so you can build and relax your own defects,
-    run molecular dynamics and nudged-elastic-band migration barriers, and construct grain boundaries,
-    dislocation cores, and heterointerfaces — in minutes instead of DFT-days.</p>
-  <div class="modrow">
-    <div class="mod"><b>1 · Access DFT dataset</b><span>Query the charged-defect library, plot formation-energy diagrams, view structures in an interactive 3D MatterViz grid.</span></div>
-    <div class="mod"><b>2 · Simulate with MLFF</b><span>Build any defect in any II–VI supercell, relax with ML force fields, compute formation energies, run finite-temperature MD.</span></div>
-    <div class="mod"><b>3 · Defect diffusion</b><span>Automated migration-path construction and CI-NEB barrier calculations.</span></div>
-    <div class="mod"><b>4 · GB &amp; dislocations</b><span>Grain-boundary and dislocation-core construction and energetics.</span></div>
-    <div class="mod"><b>5 · CdTe–ZnTe interface</b><span>Heterointerface construction and defect energetics across the junction.</span></div>
-  </div>
-  <div style="height:16px"></div>
-  <div class="figgrid">
-    <figure class="fig"><a href="figures/Figure_1.png"><img src="figures/Figure_1.png" alt="Module 1 screenshot" loading="lazy"></a>
-      <figcaption>Module 1 — dataset access, formation-energy diagram, and the four-view MatterViz structure viewer (defect site in black).</figcaption></figure>
-    <figure class="fig"><a href="figures/Figure_2.png"><img src="figures/Figure_2.png" alt="Module 2 screenshot" loading="lazy"></a>
-      <figcaption>Module 2 — defect construction and MLFF site sampling for V<sub>Cd</sub>, As<sub>Te</sub>, Cu<sub>i</sub>, and a Cl<sub>Te</sub>+V<sub>Cd</sub> complex in CdTe.</figcaption></figure>
-    <figure class="fig"><a href="figures/Figure_3.png"><img src="figures/Figure_3.png" alt="Module 2 trajectories" loading="lazy"></a>
-      <figcaption>Module 2 — relaxation trajectories and per-charge-state energies.</figcaption></figure>
-    <figure class="fig"><a href="figures/Figure_4.png"><img src="figures/Figure_4.png" alt="Module 2 MD" loading="lazy"></a>
-      <figcaption>Module 2 — staged molecular dynamics (NPT, 300 → 500 K).</figcaption></figure>
-    <figure class="fig"><a href="figures/Figure_5.png"><img src="figures/Figure_5.png" alt="Module 3 NEB" loading="lazy"></a>
-      <figcaption>Module 3 — CI-NEB migration barrier for V<sub>Cd</sub> in CdTe (7 images, converged).</figcaption></figure>
-  </div>
-</section>
-
-<section id="dataset">
-  <h2><span class="tag">Data</span>Downloads</h2>
-  <p class="sub">All data are released openly. The library CSV powering this page contains supercell
-    total energies for q = −2 … +2, finite-size corrections, chemical-potential sums for Cd-rich and
-    Te-rich conditions, and host band edges.</p>
-  <div class="dl">
-    <a href="data/cdsete_defect_library_generation_pbesol.csv">Defect library CSV (PBEsol) <small>385 entries · energies, corrections, chemical potentials</small></a>
-    <a href="https://github.com/msehabibur/DefectDB/releases/download/DefectDB/DefectDB.zip">DefectDB.zip — full DFT defect library <small>relaxed supercells and energies · ~640 MB</small></a>
-    <a href="https://github.com/msehabibur/DefectDB/releases/tag/competing_phases_pbe">Competing phases (PBE) <small>chemical-potential limits</small></a>
-    <a href="https://github.com/msehabibur/DefectDB/releases/tag/competing_phases_hse">Competing phases (HSE) <small>chemical-potential limits</small></a>
-    <a href="https://github.com/defectdatabase/II-VI-semiconductors">Source repository <small>tool notebooks, ML force fields, MatterViz viewer</small></a>
+  <h2><span class="tag">Interactive</span>Simulation tool on nanoHUB</h2>
+  <p class="sub">Launch <strong>DefectDB</strong> — build defects in any II–VI supercell, relax with PBE/HSE MLFFs, compute formation energies and MD.
+    Five consolidated modules: dataset access, MLFF simulations, NEB migration barriers, grain-boundary and dislocation cores, heterointerfaces.</p>
+  <div style="text-align:center;margin:26px 0">
+    <a class="btn primary" href="https://nanohub.org/tools/defectdatabase">Launch the tool</a>
   </div>
 </section>
 
 <section id="cite">
-  <h2><span class="tag">Reference</span>How to cite</h2>
-  <div class="cite">M. H. Rahman, Y. Yang, and A. Mannodi-Kanakkithodi,
-    “DefectDB: An Open-Source Infrastructure for Defect Thermodynamics in II–VI Semiconductors,”
-    2026 (in preparation).</div>
+  <h2>Citation</h2>
+  <div class="cite">M. H. Rahman, Y. Yang, and A. Mannodi-Kanakkithodi, <em>DefectDB: An Open-Source Infrastructure for Defect Thermodynamics in II–VI Semiconductors</em> (2026, in preparation).</div>
 </section>
 
 </div>
 
 <footer>
-  <div>DefectDB · Mannodi research group, Purdue University</div>
-  <div><a href="https://nanohub.org/tools/defectdatabase">nanoHUB tool</a> ·
-       <a href="https://github.com/defectdatabase/II-VI-semiconductors">GitHub</a> · MIT license</div>
+  <span>© 2026 · Mannodi research group, Purdue University</span>
+  <span><a href="https://github.com/defectdatabase/II-VI-semiconductors">GitHub</a> · <a href="https://nanohub.org/tools/defectdatabase">nanoHUB</a></span>
 </footer>
 
 <script>
 const DATA = [{"h":"CdTe","d":"As_Te+As_i","t":"Extrinsic","l":"As$_{Te}$+As$_{i}$","g":0.64,"v":2.14,"e":{"2":-8.98,"1":-6.54,"0":-4.04,"-1":-1.21,"-2":1.78},"mc":6.16,"mt":6.75},{"h":"CdTe","d":"As_Te+Cl_Te","t":"Extrinsic","l":"As$_{Te}$+Cl$_{Te}$","g":0.64,"v":2.14,"e":{"2":-3.74,"1":-1.78,"0":0.33,"-1":3.12,"-2":6.03},"mc":0.25,"mt":1.32},{"h":"CdTe","d":"As_Te+Cl_i","t":"Extrinsic","l":"As$_{Te}$+Cl$_{i}$","g":0.64,"v":2.14,"e":{"2":-7.07,"1":-5.16,"0":-2.98,"-1":0.7,"-2":3.22},"mc":4.55,"mt":4.84},{"h":"CdTe","d":"As_Te+O_Te","t":"Extrinsic","l":"As$_{Te}$+O$_{Te}$","g":0.64,"v":2.14,"e":{"2":-6.04,"1":-4.18,"0":-2.09,"-1":0.16,"-2":2.89},"mc":3.92,"mt":4.87},{"h":"CdTe","d":"As_Te+O_i","t":"Extrinsic","l":"As$_{Te}$+O$_{i}$","g":0.64,"v":2.14,"e":{"2":-10.76,"1":-8.74,"0":-6.48,"-1":-3.78,"-2":-0.81},"mc":8.22,"mt":8.4},{"h":"CdTe","d":"As_i+As_i","t":"Extrinsic","l":"As$_{i}$+As$_{i}$","g":0.64,"v":2.14,"e":{"2":-12.44,"1":-9.88,"0":-7.41,"-1":-4.46,"-2":-1.38},"mc":10.46,"mt":10.28},{"h":"CdTe","d":"As_i+Te_i","t":"Extrinsic","l":"As$_{i}$+Te$_{i}$","g":0.64,"v":2.14,"e":{"2":-10.61,"1":-8.59,"0":-5.88,"-1":-2.99,"-2":0.68},"mc":9.53,"mt":8.67},{"h":"CdTe","d":"Bi_Te+Bi_i","t":"Extrinsic","l":"Bi$_{Te}$+Bi$_{i}$","g":0.64,"v":2.14,"e":{"2":-7.34,"1":-4.84,"0":-2.09,"-1":1.21,"-2":4.39},"mc":4.33,"mt":6.14},{"h":"CdTe","d":"Bi_Te+Cl_Te","t":"Extrinsic","l":"Bi$_{Te}$+Cl$_{Te}$","g":0.64,"v":2.14,"e":{"2":-2.31,"1":-0.42,"0":1.77,"-1":4.55,"-2":7.52},"mc":-0.67,"mt":1.01},{"h":"CdTe","d":"Bi_Te+Cl_i","t":"Extrinsic","l":"Bi$_{Te}$+Cl$_{i}$","g":0.64,"v":2.14,"e":{"2":-6.46,"1":-4.11,"0":-1.84,"-1":1.02,"-2":4.72},"mc":3.63,"mt":4.54},{"h":"CdTe","d":"Bi_Te+O_Te","t":"Extrinsic","l":"Bi$_{Te}$+O$_{Te}$","g":0.64,"v":2.14,"e":{"2":-5.03,"1":-3.07,"0":-0.92,"-1":1.51,"-2":4.29},"mc":3.01,"mt":4.57},{"h":"CdTe","d":"Bi_Te+O_i","t":"Extrinsic","l":"Bi$_{Te}$+O$_{i}$","g":0.64,"v":2.14,"e":{"2":-10.0,"1":-7.87,"0":-5.11,"-1":-2.23,"-2":1.0},"mc":7.31,"mt":8.09},{"h":"CdTe","d":"Bi_i+Bi_i","t":"Extrinsic","l":"Bi$_{i}$+Bi$_{i}$","g":0.64,"v":2.14,"e":{"2":-10.72,"1":-8.27,"0":-5.51,"-1":-2.42,"-2":0.91},"mc":8.63,"mt":9.67},{"h":"CdTe","d":"Bi_i+Te_i","t":"Extrinsic","l":"Bi$_{i}$+Te$_{i}$","g":0.64,"v":2.14,"e":{"2":-9.59,"1":-7.67,"0":-4.94,"-1":-2.01,"-2":1.97},"mc":8.61,"mt":8.36},{"h":"CdTe","d":"N_Te+Cl_Te","t":"Extrinsic","l":"N$_{Te}$+Cl$_{Te}$","g":0.64,"v":2.14,"e":{"2":-5.42,"1":-3.65,"0":-1.57,"-1":1.18,"-2":4.06},"mc":3.56,"mt":4.71},{"h":"CdTe","d":"N_Te+Cl_i","t":"Extrinsic","l":"N$_{Te}$+Cl$_{i}$","g":0.64,"v":2.14,"e":{"2":-8.15,"1":-6.39,"0":-4.51,"-1":-1.29,"-2":1.31},"mc":7.86,"mt":8.24},{"h":"CdTe","d":"N_Te+N_i","t":"Extrinsic","l":"N$_{Te}$+N$_{i}$","g":0.64,"v":2.14,"e":{"2":-16.44,"1":-14.01,"0":-11.28,"-1":-7.82,"-2":-4.21},"mc":12.78,"mt":13.55},{"h":"CdTe","d":"N_Te+O_Te","t":"Extrinsic","l":"N$_{Te}$+O$_{Te}$","g":0.64,"v":2.14,"e":{"2":-7.57,"1":-5.9,"0":-3.7,"-1":-1.47,"-2":1.22},"mc":7.23,"mt":8.27},{"h":"CdTe","d":"N_Te+O_i","t":"Extrinsic","l":"N$_{Te}$+O$_{i}$","g":0.64,"v":2.14,"e":{"2":-12.55,"1":-10.74,"0":-8.19,"-1":-5.36,"-2":-2.36},"mc":11.53,"mt":11.8},{"h":"CdTe","d":"N_i+N_i","t":"Extrinsic","l":"N$_{i}$+N$_{i}$","g":0.64,"v":2.14,"e":{"2":-18.99,"1":-17.02,"0":-14.81,"-1":-11.98,"-2":-8.96},"mc":17.08,"mt":17.08},{"h":"CdTe","d":"N_i+Te_i","t":"Extrinsic","l":"N$_{i}$+Te$_{i}$","g":0.64,"v":2.14,"e":{"2":-12.77,"1":-10.62,"0":-7.92,"-1":-5.0,"-2":-1.82},"mc":12.84,"mt":12.07},{"h":"CdTe","d":"P_Te+Cl_Te","t":"Extrinsic","l":"P$_{Te}$+Cl$_{Te}$","g":0.64,"v":2.14,"e":{"2":-4.37,"1":-2.41,"0":-0.3,"-1":2.49,"-2":5.43},"mc":0.96,"mt":1.94},{"h":"CdTe","d":"P_Te+Cl_i","t":"Extrinsic","l":"P$_{Te}$+Cl$_{i}$","g":0.64,"v":2.14,"e":{"2":-7.69,"1":-5.76,"0":-3.58,"-1":0.28,"-2":2.61},"mc":5.26,"mt":5.46},{"h":"CdTe","d":"P_Te+O_Te","t":"Extrinsic","l":"P$_{Te}$+O$_{Te}$","g":0.64,"v":2.14,"e":{"2":-6.65,"1":-4.65,"0":-2.66,"-1":-0.42,"-2":2.33},"mc":4.63,"mt":5.49},{"h":"CdTe","d":"P_Te+O_i","t":"Extrinsic","l":"P$_{Te}$+O$_{i}$","g":0.64,"v":2.14,"e":{"2":-11.95,"1":-9.92,"0":-7.68,"-1":-5.07,"-2":-2.13},"mc":8.93,"mt":9.02},{"h":"CdTe","d":"P_Te+P_i","t":"Extrinsic","l":"P$_{Te}$+P$_{i}$","g":0.64,"v":2.14,"e":{"2":-9.76,"1":-7.69,"0":-5.27,"-1":-2.41,"-2":0.58},"mc":7.58,"mt":7.99},{"h":"CdTe","d":"P_i+P_i","t":"Extrinsic","l":"P$_{i}$+P$_{i}$","g":0.64,"v":2.14,"e":{"2":-13.5,"1":-11.18,"0":-8.62,"-1":-5.77},"mc":11.88,"mt":11.52},{"h":"CdTe","d":"P_i+Te_i","t":"Extrinsic","l":"P$_{i}$+Te$_{i}$","g":0.64,"v":2.14,"e":{"2":-10.98,"1":-9.02,"0":-6.32,"-1":-3.39,"-2":0.16},"mc":10.24,"mt":9.29},{"h":"CdTe","d":"Sb_Te+Cl_Te","t":"Extrinsic","l":"Sb$_{Te}$+Cl$_{Te}$","g":0.64,"v":2.14,"e":{"2":-3.05,"1":-1.03,"0":1.11,"-1":3.92,"-2":6.83},"mc":-0.4,"mt":1.04},{"h":"CdTe","d":"Sb_Te+Cl_i","t":"Extrinsic","l":"Sb$_{Te}$+Cl$_{i}$","g":0.64,"v":2.14,"e":{"2":-6.55,"1":-4.51,"0":-2.31,"-1":1.31,"-2":4.01},"mc":3.9,"mt":4.57},{"h":"CdTe","d":"Sb_Te+O_Te","t":"Extrinsic","l":"Sb$_{Te}$+O$_{Te}$","g":0.64,"v":2.14,"e":{"2":-5.53,"1":-3.58,"0":-1.45,"-1":0.88,"-2":3.66},"mc":3.27,"mt":4.6},{"h":"CdTe","d":"Sb_Te+O_i","t":"Extrinsic","l":"Sb$_{Te}$+O$_{i}$","g":0.64,"v":2.14,"e":{"2":-10.54,"1":-8.48,"0":-5.75,"-1":-2.91,"-2":0.1},"mc":7.57,"mt":8.12},{"h":"CdTe","d":"Sb_Te+Sb_i","t":"Extrinsic","l":"Sb$_{Te}$+Sb$_{i}$","g":0.64,"v":2.14,"e":{"2":-7.85,"1":-5.33,"0":-2.45,"-1":0.44,"-2":3.49},"mc":4.86,"mt":6.21},{"h":"CdTe","d":"Sb_i+Sb_i","t":"Extrinsic","l":"Sb$_{i}$+Sb$_{i}$","g":0.64,"v":2.14,"e":{"2":-11.32,"1":-8.28,"0":-5.87,"-1":-3.04,"-2":0.18},"mc":9.16,"mt":9.73},{"h":"CdTe","d":"As_Te","t":"Extrinsic","l":"As$_{Te}$","g":0.64,"v":2.14,"e":{"2":-4.33,"1":-2.33,"0":-0.18,"-1":2.13,"-2":4.98},"mc":0.93,"mt":1.61},{"h":"CdTe","d":"As_i_Td_Cd2.81","t":"Extrinsic","l":"As$_{i,Td_Cd2.81}$","g":0.64,"v":2.14,"e":{"2":-7.33,"1":-4.82,"0":-2.81,"-1":-0.04,"-2":4.14},"mc":5.23,"mt":5.14},{"h":"CdTe","d":"Bi_Te","t":"Extrinsic","l":"Bi$_{Te}$","g":0.64,"v":2.14,"e":{"2":-3.07,"1":-1.04,"0":1.16,"-1":3.53,"-2":6.43},"mc":0.02,"mt":1.31},{"h":"CdTe","d":"Bi_i_Td_Cd2.81","t":"Extrinsic","l":"Bi$_{i,Td_Cd2.81}$","g":0.64,"v":2.14,"e":{"2":-6.76,"1":-4.31,"0":-1.64,"-1":1.17,"-2":5.27},"mc":4.32,"mt":4.84},{"h":"CdTe","d":"Cd_Te","t":"Native","l":"Cd$_{Te}$","g":0.64,"v":2.14,"e":{"2":-0.26,"1":2.26,"0":4.97,"-1":8.06,"-2":11.3},"mc":-3.11,"mt":-1.56},{"h":"CdTe","d":"Cd_i","t":"Native","l":"Cd$_{i,C3v}$","g":0.64,"v":2.14,"e":{"2":-5.3,"1":-2.83,"0":-0.18,"-1":3.07,"-2":6.45},"mc":1.19,"mt":1.96},{"h":"CdTe","d":"Cl_Te","t":"Extrinsic","l":"Cl$_{Te}$","g":0.64,"v":2.14,"e":{"2":-3.36,"1":-1.46,"0":1.16,"-1":3.89,"-2":7.78},"mc":-0.68,"mt":-0.3},{"h":"CdTe","d":"N_Te","t":"Extrinsic","l":"N$_{Te}$","g":0.64,"v":2.14,"e":{"2":-5.99,"1":-4.09,"0":-1.97,"-1":0.31,"-2":3.08},"mc":4.24,"mt":5.01},{"h":"CdTe","d":"N_i","t":"Extrinsic","l":"N$_{i,Td_Te2.81}$","g":0.64,"v":2.14,"e":{"2":-8.97,"1":-5.73,"0":-3.62,"-1":-0.81,"-2":2.19},"mc":8.54,"mt":8.54},{"h":"CdTe","d":"O_Te","t":"Extrinsic","l":"O$_{Te}$","g":0.64,"v":2.14,"e":{"2":-5.96,"1":-4.07,"0":-1.96,"-1":0.72,"-2":3.55},"mc":2.99,"mt":3.26},{"h":"CdTe","d":"P_Te","t":"Extrinsic","l":"P$_{Te}$","g":0.64,"v":2.14,"e":{"2":-4.93,"1":-2.93,"0":-0.79,"-1":1.5,"-2":4.42},"mc":1.64,"mt":2.23},{"h":"CdTe","d":"P_i","t":"Extrinsic","l":"P$_{i,Td_Cd2.81}$","g":0.64,"v":2.14,"e":{"2":-7.57,"1":-5.85,"0":-3.18,"-1":-0.57,"-2":3.8},"mc":5.94,"mt":5.76},{"h":"CdTe","d":"Sb_Te","t":"Extrinsic","l":"Sb$_{Te}$","g":0.64,"v":2.14,"e":{"2":-3.64,"1":-1.62,"0":0.55,"-1":2.92,"-2":5.82},"mc":0.28,"mt":1.34},{"h":"CdTe","d":"Sb_i","t":"Extrinsic","l":"Sb$_{i,Td_Cd2.81}$","g":0.64,"v":2.14,"e":{"2":-6.78,"1":-4.32,"0":-1.9,"-1":0.76,"-2":4.92},"mc":4.58,"mt":4.87},{"h":"CdTe","d":"V_Cd","t":"Native","l":"V$_{Cd}$","g":0.64,"v":2.14,"e":{"2":-0.57,"1":1.36,"0":3.52,"-1":5.84,"-2":8.34},"mc":-1.19,"mt":-1.96},{"h":"CdTe","d":"V_Te","t":"Native","l":"V$_{Te}$","g":0.64,"v":2.14,"e":{"2":0.65,"1":3.13,"0":5.79,"-1":8.98,"-2":11.96},"mc":-4.3,"mt":-3.53},{"h":"CdSe0.06Te0.94","d":"As_Se","t":"Extrinsic","l":"As$_{Se}$","g":0.6,"v":2.09,"e":{"2":-3.47,"1":-1.58,"0":0.45,"-1":2.73,"-2":5.52},"mc":null,"mt":1.0},{"h":"CdSe0.06Te0.94","d":"As_Te","t":"Extrinsic","l":"As$_{Te}$","g":0.6,"v":2.09,"e":{"2":-4.14,"1":-2.21,"0":-0.16,"-1":2.13,"-2":4.96},"mc":null,"mt":1.63},{"h":"CdSe0.06Te0.94","d":"As_Te+As_i","t":"Extrinsic","l":"As$_{Te}$+As$_{i}$","g":0.6,"v":2.09,"e":{"2":-8.94,"1":-6.54,"0":-3.98,"-1":-1.21,"-2":1.72},"mc":null,"mt":6.79},{"h":"CdSe0.06Te0.94","d":"As_Te+Cl_Te","t":"Extrinsic","l":"As$_{Te}$+Cl$_{Te}$","g":0.6,"v":2.09,"e":{"2":-3.57,"1":-1.75,"0":0.32,"-1":3.04,"-2":5.85},"mc":null,"mt":1.34},{"h":"CdSe0.06Te0.94","d":"As_Te+Cl_i","t":"Extrinsic","l":"As$_{Te}$+Cl$_{i}$","g":0.6,"v":2.09,"e":{"2":-7.26,"1":-5.07,"0":-2.19,"-1":0.62,"-2":2.84},"mc":null,"mt":4.87},{"h":"CdSe0.06Te0.94","d":"As_Te+O_Te","t":"Extrinsic","l":"As$_{Te}$+O$_{Te}$","g":0.6,"v":2.09,"e":{"2":-5.81,"1":-4.06,"0":-2.14,"-1":-0.02,"-2":2.72},"mc":null,"mt":4.91},{"h":"CdSe0.06Te0.94","d":"As_Te+O_i","t":"Extrinsic","l":"As$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-10.5,"1":-8.6,"0":-6.37,"-1":-3.9,"-2":-1.06},"mc":null,"mt":8.64},{"h":"CdSe0.06Te0.94","d":"As_i","t":"Extrinsic","l":"As$_{i}$","g":0.6,"v":2.09,"e":{"2":-7.43,"1":-5.44,"0":-2.7,"-1":0.02,"-2":2.9},"mc":null,"mt":5.16},{"h":"CdSe0.06Te0.94","d":"As_i+As_i","t":"Extrinsic","l":"As$_{i}$+As$_{i}$","g":0.6,"v":2.09,"e":{"2":-12.42,"1":-9.8,"0":-7.3,"-1":-4.42,"-2":-1.44},"mc":null,"mt":10.32},{"h":"CdSe0.06Te0.94","d":"As_i+Te_i","t":"Extrinsic","l":"As$_{i}$+Te$_{i}$","g":0.6,"v":2.09,"e":{"2":-10.37,"1":-8.24,"0":-5.68,"-1":-2.77,"-2":6.35},"mc":null,"mt":8.69},{"h":"CdSe0.06Te0.94","d":"Bi_Se","t":"Extrinsic","l":"Bi$_{Se}$","g":0.6,"v":2.09,"e":{"2":-2.35,"1":-0.36,"0":1.81,"-1":4.24,"-2":7.15},"mc":null,"mt":0.15},{"h":"CdSe0.06Te0.94","d":"Bi_Te","t":"Extrinsic","l":"Bi$_{Te}$","g":0.6,"v":2.09,"e":{"2":-2.97,"1":-0.95,"0":1.18,"-1":3.63,"-2":6.53},"mc":null,"mt":0.78},{"h":"CdSe0.06Te0.94","d":"Bi_Te+Bi_i","t":"Extrinsic","l":"Bi$_{Te}$+Bi$_{i}$","g":0.6,"v":2.09,"e":{"2":-7.09,"1":-4.78,"0":-2.16,"-1":1.15,"-2":4.07},"mc":null,"mt":5.09},{"h":"CdSe0.06Te0.94","d":"Bi_Te+Cl_Te","t":"Extrinsic","l":"Bi$_{Te}$+Cl$_{Te}$","g":0.6,"v":2.09,"e":{"2":-2.03,"1":-0.26,"0":1.79,"-1":4.44,"-2":7.28},"mc":null,"mt":0.49},{"h":"CdSe0.06Te0.94","d":"Bi_Te+Cl_i","t":"Extrinsic","l":"Bi$_{Te}$+Cl$_{i}$","g":0.6,"v":2.09,"e":{"2":-6.51,"1":-4.06,"0":-1.79,"-1":1.66,"-2":3.98},"mc":null,"mt":4.02},{"h":"CdSe0.06Te0.94","d":"Bi_Te+O_Te","t":"Extrinsic","l":"Bi$_{Te}$+O$_{Te}$","g":0.6,"v":2.09,"e":{"2":-4.82,"1":-3.13,"0":-0.94,"-1":1.45,"-2":4.17},"mc":null,"mt":4.06},{"h":"CdSe0.06Te0.94","d":"Bi_Te+O_i","t":"Extrinsic","l":"Bi$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-9.5,"1":-7.61,"0":595.91,"-1":-2.33,"-2":0.59},"mc":null,"mt":7.79},{"h":"CdSe0.06Te0.94","d":"Bi_i","t":"Extrinsic","l":"Bi$_{i}$","g":0.6,"v":2.09,"e":{"2":-6.86,"1":-4.43,"0":-1.76,"-1":1.22,"-2":5.25},"mc":null,"mt":4.31},{"h":"CdSe0.06Te0.94","d":"Bi_i+Bi_i","t":"Extrinsic","l":"Bi$_{i}$+Bi$_{i}$","g":0.6,"v":2.09,"e":{"2":-10.73,"1":-8.14,"0":-5.33,"-1":-1.72,"-2":1.35},"mc":null,"mt":8.62},{"h":"CdSe0.06Te0.94","d":"Bi_i+Te_i","t":"Extrinsic","l":"Bi$_{i}$+Te$_{i}$","g":0.6,"v":2.09,"e":{"2":-9.33,"1":-7.19,"0":-4.57,"-1":-1.64,"-2":7.48},"mc":null,"mt":7.84},{"h":"CdSe0.06Te0.94","d":"N_Se","t":"Extrinsic","l":"N$_{Se}$","g":0.6,"v":2.09,"e":{"2":-5.16,"1":-3.36,"0":-1.39,"-1":0.79,"-2":3.57},"mc":null,"mt":4.37},{"h":"CdSe0.06Te0.94","d":"N_Te","t":"Extrinsic","l":"N$_{Te}$","g":0.6,"v":2.09,"e":{"2":-5.91,"1":-4.0,"0":-1.98,"-1":0.25,"-2":3.04},"mc":null,"mt":5.01},{"h":"CdSe0.06Te0.94","d":"N_Te+Cl_Te","t":"Extrinsic","l":"N$_{Te}$+Cl$_{Te}$","g":0.6,"v":2.09,"e":{"2":-5.46,"1":-3.67,"0":-1.61,"-1":1.03,"-2":3.81},"mc":null,"mt":4.72},{"h":"CdSe0.06Te0.94","d":"N_Te+Cl_i","t":"Extrinsic","l":"N$_{Te}$+Cl$_{i}$","g":0.6,"v":2.09,"e":{"2":-8.73,"1":-6.62,"0":-4.16,"-1":-1.39,"-2":1.09},"mc":null,"mt":8.25},{"h":"CdSe0.06Te0.94","d":"N_Te+N_i","t":"Extrinsic","l":"N$_{Te}$+N$_{i}$","g":0.6,"v":2.09,"e":{"2":-16.57,"1":-14.04,"0":-11.37,"-1":-7.93,"-2":-4.3},"mc":null,"mt":14.55},{"h":"CdSe0.06Te0.94","d":"N_Te+O_Te","t":"Extrinsic","l":"N$_{Te}$+O$_{Te}$","g":0.6,"v":2.09,"e":{"2":-7.56,"1":-5.74,"0":-3.78,"-1":-1.64,"-2":0.98},"mc":null,"mt":8.29},{"h":"CdSe0.06Te0.94","d":"N_Te+O_i","t":"Extrinsic","l":"N$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-12.44,"1":-10.28,"0":-7.93,"-1":-5.24,"-2":-2.41},"mc":null,"mt":11.81},{"h":"CdSe0.06Te0.94","d":"N_i","t":"Extrinsic","l":"N$_{i}$","g":0.6,"v":2.09,"e":{"2":-8.84,"1":-7.26,"0":-4.54,"-1":-2.27,"-2":0.5},"mc":null,"mt":8.54},{"h":"CdSe0.06Te0.94","d":"N_i+N_i","t":"Extrinsic","l":"N$_{i}$+N$_{i}$","g":0.6,"v":2.09,"e":{"2":-19.39,"1":-17.39,"0":595.91,"-1":-7.77,"-2":-9.58},"mc":null,"mt":17.08},{"h":"CdSe0.06Te0.94","d":"N_i+Te_i","t":"Extrinsic","l":"N$_{i}$+Te$_{i}$","g":0.6,"v":2.09,"e":{"2":-12.82,"1":-10.71,"0":-7.86,"-1":-4.96,"-2":4.16},"mc":null,"mt":12.07},{"h":"CdSe0.06Te0.94","d":"O_i+As_Te+O_i","t":"Extrinsic","l":"O$_{i}$+As$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-14.69,"1":-12.72,"0":595.91,"-1":-8.29,"-2":-4.1},"mc":null,"mt":16.89},{"h":"CdSe0.06Te0.94","d":"O_i+As_i+O_i","t":"Extrinsic","l":"O$_{i}$+As$_{i}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-19.64,"1":-17.62,"0":-14.94,"-1":-12.06,"-2":-9.24},"mc":null,"mt":18.82},{"h":"CdSe0.06Te0.94","d":"O_i+Bi_Te+O_i","t":"Extrinsic","l":"O$_{i}$+Bi$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-13.42,"1":-11.51,"0":-8.94,"-1":-7.06,"-2":-3.73},"mc":null,"mt":14.89},{"h":"CdSe0.06Te0.94","d":"O_i+Bi_i+O_i","t":"Extrinsic","l":"O$_{i}$+Bi$_{i}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-19.23,"1":-17.2,"0":595.91,"-1":-11.8,"-2":-8.02},"mc":null,"mt":17.92},{"h":"CdSe0.06Te0.94","d":"O_i+N_Te+O_i","t":"Extrinsic","l":"O$_{i}$+N$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-18.02,"1":-15.97,"0":-13.45,"-1":-8.93,"-2":-6.89},"mc":null,"mt":17.42},{"h":"CdSe0.06Te0.94","d":"O_i+N_i+O_i","t":"Extrinsic","l":"O$_{i}$+N$_{i}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-21.24,"1":-19.41,"0":-16.85,"-1":-14.63,"-2":-11.69},"mc":null,"mt":22.42},{"h":"CdSe0.06Te0.94","d":"O_i+P_Te+O_i","t":"Extrinsic","l":"O$_{i}$+P$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-20.72,"1":-18.75,"0":-13.07,"-1":-8.35,"-2":-4.77},"mc":null,"mt":16.89},{"h":"CdSe0.06Te0.94","d":"O_i+P_i+O_i","t":"Extrinsic","l":"O$_{i}$+P$_{i}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-20.56,"1":-18.78,"0":-16.21,"-1":-13.36,"-2":-10.64},"mc":null,"mt":19.47},{"h":"CdSe0.06Te0.94","d":"O_i+Sb_Te+O_i","t":"Extrinsic","l":"O$_{i}$+Sb$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-14.01,"1":-12.06,"0":-9.5,"-1":-7.66,"-2":-4.8},"mc":null,"mt":16.89},{"h":"CdSe0.06Te0.94","d":"O_i+Sb_i+O_i","t":"Extrinsic","l":"O$_{i}$+Sb$_{i}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-19.5,"1":-17.56,"0":-14.96,"-1":-12.09,"-2":-8.52},"mc":null,"mt":18.17},{"h":"CdSe0.06Te0.94","d":"P_Se","t":"Extrinsic","l":"P$_{Se}$","g":0.6,"v":2.09,"e":{"2":-4.06,"1":-2.21,"0":595.91,"-1":2.0,"-2":4.85},"mc":null,"mt":1.6},{"h":"CdSe0.06Te0.94","d":"P_Te","t":"Extrinsic","l":"P$_{Te}$","g":0.6,"v":2.09,"e":{"2":-4.75,"1":-2.87,"0":-0.78,"-1":1.52,"-2":4.26},"mc":null,"mt":2.23},{"h":"CdSe0.06Te0.94","d":"P_Te+Cl_Te","t":"Extrinsic","l":"P$_{Te}$+Cl$_{Te}$","g":0.6,"v":2.09,"e":{"2":-4.14,"1":-2.3,"0":-0.32,"-1":2.35,"-2":5.22},"mc":null,"mt":1.94},{"h":"CdSe0.06Te0.94","d":"P_Te+Cl_i","t":"Extrinsic","l":"P$_{Te}$+Cl$_{i}$","g":0.6,"v":2.09,"e":{"2":-7.54,"1":-5.68,"0":-2.65,"-1":0.13,"-2":2.14},"mc":null,"mt":5.47},{"h":"CdSe0.06Te0.94","d":"P_Te+O_Te","t":"Extrinsic","l":"P$_{Te}$+O$_{Te}$","g":0.6,"v":2.09,"e":{"2":-6.66,"1":-4.75,"0":-2.71,"-1":-0.5,"-2":2.21},"mc":null,"mt":5.51},{"h":"CdSe0.06Te0.94","d":"P_Te+O_i","t":"Extrinsic","l":"P$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-11.57,"1":-9.69,"0":-7.63,"-1":-5.15,"-2":-2.32},"mc":null,"mt":9.24},{"h":"CdSe0.06Te0.94","d":"P_Te+P_i","t":"Extrinsic","l":"P$_{Te}$+P$_{i}$","g":0.6,"v":2.09,"e":{"2":-9.94,"1":-7.6,"0":-5.25,"-1":-2.46,"-2":0.46},"mc":null,"mt":7.99},{"h":"CdSe0.06Te0.94","d":"P_i","t":"Extrinsic","l":"P$_{i}$","g":0.6,"v":2.09,"e":{"2":-7.59,"1":-5.77,"0":-3.23,"-1":-0.72,"-2":2.18},"mc":null,"mt":5.76},{"h":"CdSe0.06Te0.94","d":"P_i+P_i","t":"Extrinsic","l":"P$_{i}$+P$_{i}$","g":0.6,"v":2.09,"e":{"2":-13.59,"1":-11.13,"0":-8.59,"-1":-5.71,"-2":-2.61},"mc":null,"mt":11.52},{"h":"CdSe0.06Te0.94","d":"P_i+Te_i","t":"Extrinsic","l":"P$_{i}$+Te$_{i}$","g":0.6,"v":2.09,"e":{"2":-10.84,"1":-8.83,"0":-6.25,"-1":-3.33,"-2":5.9},"mc":null,"mt":9.29},{"h":"CdSe0.06Te0.94","d":"Sb_Se","t":"Extrinsic","l":"Sb$_{Se}$","g":0.6,"v":2.09,"e":{"2":-2.85,"1":-0.91,"0":1.2,"-1":3.53,"-2":6.39},"mc":null,"mt":0.4},{"h":"CdSe0.06Te0.94","d":"Sb_Te","t":"Extrinsic","l":"Sb$_{Te}$","g":0.6,"v":2.09,"e":{"2":-3.51,"1":-1.52,"0":0.58,"-1":2.92,"-2":5.8},"mc":null,"mt":1.03},{"h":"CdSe0.06Te0.94","d":"Sb_Te+Cl_Te","t":"Extrinsic","l":"Sb$_{Te}$+Cl$_{Te}$","g":0.6,"v":2.09,"e":{"2":-2.9,"1":-1.0,"0":595.91,"-1":3.85,"-2":6.74},"mc":null,"mt":0.74},{"h":"CdSe0.06Te0.94","d":"Sb_Te+Cl_i","t":"Extrinsic","l":"Sb$_{Te}$+Cl$_{i}$","g":0.6,"v":2.09,"e":{"2":-6.75,"1":-4.44,"0":-1.59,"-1":1.22,"-2":3.45},"mc":null,"mt":4.27},{"h":"CdSe0.06Te0.94","d":"Sb_Te+O_Te","t":"Extrinsic","l":"Sb$_{Te}$+O$_{Te}$","g":0.6,"v":2.09,"e":{"2":-5.54,"1":-3.59,"0":-1.48,"-1":0.84,"-2":3.62},"mc":null,"mt":4.31},{"h":"CdSe0.06Te0.94","d":"Sb_Te+O_i","t":"Extrinsic","l":"Sb$_{Te}$+O$_{i}$","g":0.6,"v":2.09,"e":{"2":-10.2,"1":-8.03,"0":-5.75,"-1":-2.96,"-2":-0.09},"mc":null,"mt":8.04},{"h":"CdSe0.06Te0.94","d":"Sb_Te+Sb_i","t":"Extrinsic","l":"Sb$_{Te}$+Sb$_{i}$","g":0.6,"v":2.09,"e":{"2":-7.77,"1":-5.28,"0":-2.36,"-1":0.39,"-2":3.35},"mc":null,"mt":5.6},{"h":"CdSe0.06Te0.94","d":"Sb_i","t":"Extrinsic","l":"Sb$_{i}$","g":0.6,"v":2.09,"e":{"2":-6.81,"1":-4.56,"0":-1.93,"-1":0.85,"-2":3.8},"mc":null,"mt":4.56},{"h":"CdSe0.06Te0.94","d":"Sb_i+Sb_i","t":"Extrinsic","l":"Sb$_{i}$+Sb$_{i}$","g":0.6,"v":2.09,"e":{"2":-11.17,"1":-8.64,"0":-5.66,"-1":-2.68,"-2":0.42},"mc":null,"mt":9.13},{"h":"CdSe0.06Te0.94","d":"Sb_i+Te_i","t":"Extrinsic","l":"Sb$_{i}$+Te$_{i}$","g":0.6,"v":2.09,"e":{"2":-9.46,"1":-7.68,"0":-4.96,"-1":-2.03,"-2":7.16},"mc":null,"mt":8.09},{"h":"CdSe0.12Te0.88","d":"As_Se","t":"Extrinsic","l":"As$_{Se}$","g":0.58,"v":2.04,"e":{"2":-3.42,"1":-1.57,"0":0.48,"-1":2.71,"-2":5.48},"mc":null,"mt":1.0},{"h":"CdSe0.12Te0.88","d":"As_Se+As_i","t":"Extrinsic","l":"As$_{Se}$+As$_{i}$","g":0.58,"v":2.04,"e":{"2":-8.34,"1":-5.87,"0":-3.4,"-1":-0.63,"-2":2.33},"mc":null,"mt":6.16},{"h":"CdSe0.12Te0.88","d":"As_Se+Cl_Se","t":"Extrinsic","l":"As$_{Se}$+Cl$_{Se}$","g":0.58,"v":2.04,"e":{"2":-1.93,"1":-0.26,"0":1.71,"-1":4.4,"-2":7.17},"mc":null,"mt":0.07},{"h":"CdSe0.12Te0.88","d":"As_Se+Cl_i","t":"Extrinsic","l":"As$_{Se}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-6.01,"1":-4.3,"0":-2.32,"-1":0.32,"-2":3.13},"mc":null,"mt":4.23},{"h":"CdSe0.12Te0.88","d":"As_Se+O_Se","t":"Extrinsic","l":"As$_{Se}$+O$_{Se}$","g":0.58,"v":2.04,"e":{"2":-4.7,"1":-2.99,"0":-0.96,"-1":1.27,"-2":3.97},"mc":null,"mt":3.64},{"h":"CdSe0.12Te0.88","d":"As_Se+O_i","t":"Extrinsic","l":"As$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-8.8,"1":-7.08,"0":-5.87,"-1":-3.23,"-2":-0.42},"mc":null,"mt":7.8},{"h":"CdSe0.12Te0.88","d":"As_Te","t":"Extrinsic","l":"As$_{Te}$","g":0.58,"v":2.04,"e":{"2":-3.88,"1":-2.15,"0":-0.14,"-1":2.05,"-2":4.78},"mc":null,"mt":1.63},{"h":"CdSe0.12Te0.88","d":"As_Te+As_i","t":"Extrinsic","l":"As$_{Te}$+As$_{i}$","g":0.58,"v":2.04,"e":{"2":-8.59,"1":-6.42,"0":-3.94,"-1":-1.2,"-2":1.66},"mc":null,"mt":6.79},{"h":"CdSe0.12Te0.88","d":"As_Te+Cl_Te","t":"Extrinsic","l":"As$_{Te}$+Cl$_{Te}$","g":0.58,"v":2.04,"e":{"2":-3.4,"1":-1.74,"0":0.31,"-1":2.95,"-2":5.77},"mc":null,"mt":1.34},{"h":"CdSe0.12Te0.88","d":"As_Te+Cl_i","t":"Extrinsic","l":"As$_{Te}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-6.83,"1":-5.02,"0":-3.03,"-1":-0.38,"-2":2.47},"mc":null,"mt":4.87},{"h":"CdSe0.12Te0.88","d":"As_Te+O_Te","t":"Extrinsic","l":"As$_{Te}$+O$_{Te}$","g":0.58,"v":2.04,"e":{"2":-5.71,"1":-4.01,"0":-2.13,"-1":-0.05,"-2":2.55},"mc":null,"mt":4.91},{"h":"CdSe0.12Te0.88","d":"As_Te+O_i","t":"Extrinsic","l":"As$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.54,"1":-8.63,"0":-6.46,"-1":-3.87,"-2":-1.08},"mc":null,"mt":8.64},{"h":"CdSe0.12Te0.88","d":"As_i","t":"Extrinsic","l":"As$_{i}$","g":0.58,"v":2.04,"e":{"2":-7.52,"1":-5.49,"0":-2.87,"-1":-0.13,"-2":2.8},"mc":null,"mt":5.16},{"h":"CdSe0.12Te0.88","d":"As_i+As_i","t":"Extrinsic","l":"As$_{i}$+As$_{i}$","g":0.58,"v":2.04,"e":{"2":-12.14,"1":-9.83,"0":-7.4,"-1":-4.62,"-2":-1.62},"mc":null,"mt":10.32},{"h":"CdSe0.12Te0.88","d":"As_i+Se_i","t":"Extrinsic","l":"As$_{i}$+Se$_{i}$","g":0.58,"v":2.04,"e":{"2":-11.13,"1":-9.11,"0":-6.48,"-1":-3.64,"-2":-0.71},"mc":null,"mt":9.32},{"h":"CdSe0.12Te0.88","d":"As_i+Te_i","t":"Extrinsic","l":"As$_{i}$+Te$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.4,"1":-8.39,"0":-5.87,"-1":-3.29,"-2":0.54},"mc":null,"mt":8.69},{"h":"CdSe0.12Te0.88","d":"Bi_Se","t":"Extrinsic","l":"Bi$_{Se}$","g":0.58,"v":2.04,"e":{"2":-2.14,"1":-0.25,"0":1.83,"-1":4.19,"-2":6.98},"mc":null,"mt":0.15},{"h":"CdSe0.12Te0.88","d":"Bi_Se+Bi_i","t":"Extrinsic","l":"Bi$_{Se}$+Bi$_{i}$","g":0.58,"v":2.04,"e":{"2":-6.52,"1":-4.14,"0":-1.54,"-1":1.65,"-2":4.78},"mc":null,"mt":4.46},{"h":"CdSe0.12Te0.88","d":"Bi_Se+Cl_Se","t":"Extrinsic","l":"Bi$_{Se}$+Cl$_{Se}$","g":0.58,"v":2.04,"e":{"2":-1.08,"1":0.98,"0":3.2,"-1":5.91,"-2":8.73},"mc":null,"mt":-0.78},{"h":"CdSe0.12Te0.88","d":"Bi_Se+Cl_i","t":"Extrinsic","l":"Bi$_{Se}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-5.8,"1":-3.38,"0":-1.17,"-1":1.57,"-2":4.4},"mc":null,"mt":3.38},{"h":"CdSe0.12Te0.88","d":"Bi_Se+O_Se","t":"Extrinsic","l":"Bi$_{Se}$+O$_{Se}$","g":0.58,"v":2.04,"e":{"2":-3.72,"1":-1.77,"0":0.37,"-1":2.75,"-2":5.44},"mc":null,"mt":2.79},{"h":"CdSe0.12Te0.88","d":"Bi_Se+O_i","t":"Extrinsic","l":"Bi$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-8.2,"1":-5.84,"0":-4.6,"-1":-1.43,"-2":1.48},"mc":null,"mt":6.95},{"h":"CdSe0.12Te0.88","d":"Bi_Te","t":"Extrinsic","l":"Bi$_{Te}$","g":0.58,"v":2.04,"e":{"2":-2.72,"1":-0.89,"0":1.18,"-1":3.48,"-2":6.19},"mc":null,"mt":0.78},{"h":"CdSe0.12Te0.88","d":"Bi_Te+Bi_i","t":"Extrinsic","l":"Bi$_{Te}$+Bi$_{i}$","g":0.58,"v":2.04,"e":{"2":-7.11,"1":-4.65,"0":-2.12,"-1":0.9,"-2":3.88},"mc":null,"mt":5.09},{"h":"CdSe0.12Te0.88","d":"Bi_Te+Cl_Te","t":"Extrinsic","l":"Bi$_{Te}$+Cl$_{Te}$","g":0.58,"v":2.04,"e":{"2":-2.32,"1":-0.38,"0":1.76,"-1":4.43,"-2":7.17},"mc":null,"mt":0.49},{"h":"CdSe0.12Te0.88","d":"Bi_Te+Cl_i","t":"Extrinsic","l":"Bi$_{Te}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-6.27,"1":-4.02,"0":-1.9,"-1":0.72,"-2":3.63},"mc":null,"mt":4.02},{"h":"CdSe0.12Te0.88","d":"Bi_Te+O_Te","t":"Extrinsic","l":"Bi$_{Te}$+O$_{Te}$","g":0.58,"v":2.04,"e":{"2":-4.89,"1":-3.04,"0":-0.98,"-1":1.3,"-2":3.91},"mc":null,"mt":4.06},{"h":"CdSe0.12Te0.88","d":"Bi_Te+O_i","t":"Extrinsic","l":"Bi$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-9.47,"1":-7.52,"0":-5.26,"-1":-2.53,"-2":0.49},"mc":null,"mt":7.79},{"h":"CdSe0.12Te0.88","d":"Bi_i","t":"Extrinsic","l":"Bi$_{i}$","g":0.58,"v":2.04,"e":{"2":-6.88,"1":-4.39,"0":-1.86,"-1":0.88,"-2":3.92},"mc":null,"mt":4.31},{"h":"CdSe0.12Te0.88","d":"Bi_i+Bi_i","t":"Extrinsic","l":"Bi$_{i}$+Bi$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.52,"1":-8.09,"0":-5.69,"-1":-2.6,"-2":0.59},"mc":null,"mt":8.62},{"h":"CdSe0.12Te0.88","d":"Bi_i+Se_i","t":"Extrinsic","l":"Bi$_{i}$+Se$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.36,"1":-8.36,"0":-5.76,"-1":-2.98,"-2":0.24},"mc":null,"mt":8.47},{"h":"CdSe0.12Te0.88","d":"Bi_i+Te_i","t":"Extrinsic","l":"Bi$_{i}$+Te$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.29,"1":-7.33,"0":-4.88,"-1":-1.81,"-2":1.8},"mc":null,"mt":7.84},{"h":"CdSe0.12Te0.88","d":"N_Se","t":"Extrinsic","l":"N$_{Se}$","g":0.58,"v":2.04,"e":{"2":-5.11,"1":-3.33,"0":-1.39,"-1":0.74,"-2":3.49},"mc":null,"mt":4.38},{"h":"CdSe0.12Te0.88","d":"N_Se+Cl_Se","t":"Extrinsic","l":"N$_{Se}$+Cl$_{Se}$","g":0.58,"v":2.04,"e":{"2":-4.04,"1":-2.24,"0":-0.19,"-1":2.44,"-2":5.22},"mc":null,"mt":3.45},{"h":"CdSe0.12Te0.88","d":"N_Se+Cl_i","t":"Extrinsic","l":"N$_{Se}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-7.91,"1":-5.65,"0":-3.91,"-1":-1.21,"-2":1.64},"mc":null,"mt":7.61},{"h":"CdSe0.12Te0.88","d":"N_Se+N_i","t":"Extrinsic","l":"N$_{Se}$+N$_{i}$","g":0.58,"v":2.04,"e":{"2":-15.61,"1":-13.25,"0":-10.72,"-1":-7.4,"-2":-4.47},"mc":null,"mt":12.91},{"h":"CdSe0.12Te0.88","d":"N_Se+O_Se","t":"Extrinsic","l":"N$_{Se}$+O$_{Se}$","g":0.58,"v":2.04,"e":{"2":-6.6,"1":-4.77,"0":-2.8,"-1":-0.64,"-2":1.95},"mc":null,"mt":7.02},{"h":"CdSe0.12Te0.88","d":"N_Se+O_i","t":"Extrinsic","l":"N$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-11.26,"1":-9.53,"0":-7.22,"-1":-4.75,"-2":-1.97},"mc":null,"mt":11.18},{"h":"CdSe0.12Te0.88","d":"N_Te","t":"Extrinsic","l":"N$_{Te}$","g":0.58,"v":2.04,"e":{"2":-5.76,"1":-3.96,"0":-1.94,"-1":0.25,"-2":3.04},"mc":null,"mt":5.01},{"h":"CdSe0.12Te0.88","d":"N_Te+Cl_Te","t":"Extrinsic","l":"N$_{Te}$+Cl$_{Te}$","g":0.58,"v":2.04,"e":{"2":-5.26,"1":-3.5,"0":-1.58,"-1":0.98,"-2":3.65},"mc":null,"mt":4.72},{"h":"CdSe0.12Te0.88","d":"N_Te+Cl_i","t":"Extrinsic","l":"N$_{Te}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-8.37,"1":-6.56,"0":-4.57,"-1":-1.95,"-2":0.83},"mc":null,"mt":8.25},{"h":"CdSe0.12Te0.88","d":"N_Te+N_i","t":"Extrinsic","l":"N$_{Te}$+N$_{i}$","g":0.58,"v":2.04,"e":{"2":-16.41,"1":-13.97,"0":-11.42,"-1":-8.02,"-2":-5.09},"mc":null,"mt":13.55},{"h":"CdSe0.12Te0.88","d":"N_Te+O_Te","t":"Extrinsic","l":"N$_{Te}$+O$_{Te}$","g":0.58,"v":2.04,"e":{"2":-7.59,"1":-5.89,"0":-3.94,"-1":-1.85,"-2":0.91},"mc":null,"mt":8.29},{"h":"CdSe0.12Te0.88","d":"N_Te+O_i","t":"Extrinsic","l":"N$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-12.14,"1":-10.28,"0":-7.88,"-1":-5.15,"-2":-2.5},"mc":null,"mt":11.81},{"h":"CdSe0.12Te0.88","d":"N_i","t":"Extrinsic","l":"N$_{i}$","g":0.58,"v":2.04,"e":{"2":-9.08,"1":-7.22,"0":-4.47,"-1":-1.6,"-2":0.43},"mc":null,"mt":8.54},{"h":"CdSe0.12Te0.88","d":"N_i+N_i","t":"Extrinsic","l":"N$_{i}$+N$_{i}$","g":0.58,"v":2.04,"e":{"2":-19.06,"1":-16.89,"0":-14.77,"-1":-12.15,"-2":-9.26},"mc":null,"mt":17.08},{"h":"CdSe0.12Te0.88","d":"N_i+Se_i","t":"Extrinsic","l":"N$_{i}$+Se$_{i}$","g":0.58,"v":2.04,"e":{"2":-11.75,"1":-9.83,"0":-9.0,"-1":-6.21,"-2":-3.16},"mc":null,"mt":12.7},{"h":"CdSe0.12Te0.88","d":"N_i+Te_i","t":"Extrinsic","l":"N$_{i}$+Te$_{i}$","g":0.58,"v":2.04,"e":{"2":-11.02,"1":-10.63,"0":-8.26,"-1":-5.25,"-2":-2.0},"mc":null,"mt":12.07},{"h":"CdSe0.12Te0.88","d":"O_i+As_Se+O_i","t":"Extrinsic","l":"O$_{i}$+As$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-14.26,"1":-13.39,"0":-11.09,"-1":-8.66,"-2":-5.65},"mc":null,"mt":14.42},{"h":"CdSe0.12Te0.88","d":"O_i+As_Te+O_i","t":"Extrinsic","l":"O$_{i}$+As$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-18.42,"1":-16.58,"0":-13.81,"-1":-11.16,"-2":-8.32},"mc":null,"mt":15.45},{"h":"CdSe0.12Te0.88","d":"O_i+As_i+O_i","t":"Extrinsic","l":"O$_{i}$+As$_{i}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":11.97,"1":-15.77,"0":-13.69,"-1":-11.41,"-2":-8.58},"mc":null,"mt":18.77},{"h":"CdSe0.12Te0.88","d":"O_i+Bi_Se+O_i","t":"Extrinsic","l":"O$_{i}$+Bi$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-13.46,"1":-12.43,"0":-9.79,"-1":-7.04,"-2":-4.15},"mc":null,"mt":13.46},{"h":"CdSe0.12Te0.88","d":"O_i+Bi_Te+O_i","t":"Extrinsic","l":"O$_{i}$+Bi$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-16.32,"1":-14.94,"0":-12.16,"-1":-9.41,"-2":-6.65},"mc":null,"mt":13.39},{"h":"CdSe0.12Te0.88","d":"O_i+Bi_i+O_i","t":"Extrinsic","l":"O$_{i}$+Bi$_{i}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":12.36,"1":-15.76,"0":-12.91,"-1":-10.46,"-2":-7.43},"mc":null,"mt":17.92},{"h":"CdSe0.12Te0.88","d":"O_i+N_Se+O_i","t":"Extrinsic","l":"O$_{i}$+N$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-15.83,"1":-15.04,"0":-12.52,"-1":-9.97,"-2":-7.36},"mc":null,"mt":17.99},{"h":"CdSe0.12Te0.88","d":"O_i+N_Te+O_i","t":"Extrinsic","l":"O$_{i}$+N$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-20.04,"1":-18.4,"0":-15.76,"-1":-13.03,"-2":-9.82},"mc":null,"mt":18.42},{"h":"CdSe0.12Te0.88","d":"O_i+N_i+O_i","t":"Extrinsic","l":"O$_{i}$+N$_{i}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":9.56,"1":-17.74,"0":-15.64,"-1":-13.33,"-2":-11.87},"mc":null,"mt":22.15},{"h":"CdSe0.12Te0.88","d":"O_i+P_Se+O_i","t":"Extrinsic","l":"O$_{i}$+P$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-15.48,"1":-14.53,"0":-12.43,"-1":-9.9,"-2":-7.05},"mc":null,"mt":15.97},{"h":"CdSe0.12Te0.88","d":"O_i+P_Te+O_i","t":"Extrinsic","l":"O$_{i}$+P$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-20.64,"1":-18.9,"0":-16.29,"-1":-13.51,"-2":-10.51},"mc":null,"mt":16.89},{"h":"CdSe0.12Te0.88","d":"O_i+P_i+O_i","t":"Extrinsic","l":"O$_{i}$+P$_{i}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":10.6,"1":-16.19,"0":-14.18,"-1":-11.94,"-2":-11.0},"mc":null,"mt":19.37},{"h":"CdSe0.12Te0.88","d":"O_i+Sb_Se+O_i","t":"Extrinsic","l":"O$_{i}$+Sb$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-13.7,"1":-13.05,"0":-10.26,"-1":-7.52,"-2":-4.93},"mc":null,"mt":15.87},{"h":"CdSe0.12Te0.88","d":"O_i+Sb_Te+O_i","t":"Extrinsic","l":"O$_{i}$+Sb$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-17.44,"1":-15.7,"0":-13.04,"-1":-10.02,"-2":-7.17},"mc":null,"mt":16.89},{"h":"CdSe0.12Te0.88","d":"O_i+Sb_i+O_i","t":"Extrinsic","l":"O$_{i}$+Sb$_{i}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":12.72,"1":-15.91,"0":-13.09,"-1":-10.68,"-2":-7.76},"mc":null,"mt":18.17},{"h":"CdSe0.12Te0.88","d":"P_Se","t":"Extrinsic","l":"P$_{Se}$","g":0.58,"v":2.04,"e":{"2":-4.09,"1":-2.21,"0":-0.15,"-1":2.08,"-2":4.85},"mc":null,"mt":1.6},{"h":"CdSe0.12Te0.88","d":"P_Se+Cl_Se","t":"Extrinsic","l":"P$_{Se}$+Cl$_{Se}$","g":0.58,"v":2.04,"e":{"2":-2.97,"1":-1.03,"0":1.07,"-1":3.78,"-2":6.61},"mc":null,"mt":0.67},{"h":"CdSe0.12Te0.88","d":"P_Se+Cl_i","t":"Extrinsic","l":"P$_{Se}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-6.89,"1":-4.99,"0":-2.94,"-1":0.52,"-2":2.63},"mc":null,"mt":4.84},{"h":"CdSe0.12Te0.88","d":"P_Se+O_Se","t":"Extrinsic","l":"P$_{Se}$+O$_{Se}$","g":0.58,"v":2.04,"e":{"2":-5.29,"1":-3.51,"0":-1.58,"-1":0.57,"-2":3.22},"mc":null,"mt":4.24},{"h":"CdSe0.12Te0.88","d":"P_Se+O_i","t":"Extrinsic","l":"P$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-9.66,"1":-7.82,"0":-6.98,"-1":-4.58,"-2":-1.8},"mc":null,"mt":8.41},{"h":"CdSe0.12Te0.88","d":"P_Se+P_i","t":"Extrinsic","l":"P$_{Se}$+P$_{i}$","g":0.58,"v":2.04,"e":{"2":-9.28,"1":-6.94,"0":-4.63,"-1":-1.88,"-2":0.97},"mc":null,"mt":7.36},{"h":"CdSe0.12Te0.88","d":"P_Te","t":"Extrinsic","l":"P$_{Te}$","g":0.58,"v":2.04,"e":{"2":-4.62,"1":-2.76,"0":-0.75,"-1":1.42,"-2":4.11},"mc":null,"mt":2.23},{"h":"CdSe0.12Te0.88","d":"P_Te+Cl_Te","t":"Extrinsic","l":"P$_{Te}$+Cl$_{Te}$","g":0.58,"v":2.04,"e":{"2":-4.16,"1":-2.33,"0":-0.32,"-1":2.31,"-2":5.06},"mc":null,"mt":1.94},{"h":"CdSe0.12Te0.88","d":"P_Te+Cl_i","t":"Extrinsic","l":"P$_{Te}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-7.59,"1":-5.68,"0":-3.63,"-1":-0.93,"-2":1.97},"mc":null,"mt":5.47},{"h":"CdSe0.12Te0.88","d":"P_Te+O_Te","t":"Extrinsic","l":"P$_{Te}$+O$_{Te}$","g":0.58,"v":2.04,"e":{"2":-6.3,"1":-4.6,"0":-2.7,"-1":-0.63,"-2":1.92},"mc":null,"mt":5.51},{"h":"CdSe0.12Te0.88","d":"P_Te+O_i","t":"Extrinsic","l":"P$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-11.46,"1":-9.61,"0":-7.66,"-1":-5.28,"-2":-2.51},"mc":null,"mt":9.24},{"h":"CdSe0.12Te0.88","d":"P_Te+P_i","t":"Extrinsic","l":"P$_{Te}$+P$_{i}$","g":0.58,"v":2.04,"e":{"2":-9.81,"1":-7.62,"0":-5.37,"-1":-2.63,"-2":0.18},"mc":null,"mt":7.99},{"h":"CdSe0.12Te0.88","d":"P_i","t":"Extrinsic","l":"P$_{i}$","g":0.58,"v":2.04,"e":{"2":-7.54,"1":-5.8,"0":-3.25,"-1":-0.71,"-2":2.23},"mc":null,"mt":5.76},{"h":"CdSe0.12Te0.88","d":"P_i+P_i","t":"Extrinsic","l":"P$_{i}$+P$_{i}$","g":0.58,"v":2.04,"e":{"2":-13.38,"1":-11.05,"0":-8.4,"-1":-5.89,"-2":-2.91},"mc":null,"mt":11.52},{"h":"CdSe0.12Te0.88","d":"P_i+Se_i","t":"Extrinsic","l":"P$_{i}$+Se$_{i}$","g":0.58,"v":2.04,"e":{"2":-11.25,"1":-9.49,"0":-7.01,"-1":-4.26,"-2":-1.35},"mc":null,"mt":9.92},{"h":"CdSe0.12Te0.88","d":"P_i+Te_i","t":"Extrinsic","l":"P$_{i}$+Te$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.84,"1":-8.94,"0":-6.41,"-1":-3.77,"-2":-0.05},"mc":null,"mt":9.29},{"h":"CdSe0.12Te0.88","d":"Sb_Se","t":"Extrinsic","l":"Sb$_{Se}$","g":0.58,"v":2.04,"e":{"2":-2.62,"1":-0.78,"0":1.23,"-1":3.49,"-2":6.25},"mc":null,"mt":0.4},{"h":"CdSe0.12Te0.88","d":"Sb_Se+Cl_Se","t":"Extrinsic","l":"Sb$_{Se}$+Cl$_{Se}$","g":0.58,"v":2.04,"e":{"2":-1.5,"1":0.39,"0":2.52,"-1":5.11,"-2":7.95},"mc":null,"mt":-0.52},{"h":"CdSe0.12Te0.88","d":"Sb_Se+Cl_i","t":"Extrinsic","l":"Sb$_{Se}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-5.76,"1":-3.83,"0":-1.64,"-1":1.13,"-2":3.96},"mc":null,"mt":3.64},{"h":"CdSe0.12Te0.88","d":"Sb_Se+O_Se","t":"Extrinsic","l":"Sb$_{Se}$+O$_{Se}$","g":0.58,"v":2.04,"e":{"2":-4.11,"1":-2.25,"0":-0.22,"-1":2.03,"-2":4.73},"mc":null,"mt":3.04},{"h":"CdSe0.12Te0.88","d":"Sb_Se+O_i","t":"Extrinsic","l":"Sb$_{Se}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-8.59,"1":-6.48,"0":-5.03,"-1":-2.34,"-2":0.5},"mc":null,"mt":7.21},{"h":"CdSe0.12Te0.88","d":"Sb_Se+Sb_i","t":"Extrinsic","l":"Sb$_{Se}$+Sb$_{i}$","g":0.58,"v":2.04,"e":{"2":-7.3,"1":-4.76,"0":-2.04,"-1":1.05,"-2":4.06},"mc":null,"mt":4.96},{"h":"CdSe0.12Te0.88","d":"Sb_Te","t":"Extrinsic","l":"Sb$_{Te}$","g":0.58,"v":2.04,"e":{"2":-3.23,"1":-1.4,"0":0.59,"-1":2.82,"-2":5.58},"mc":null,"mt":1.03},{"h":"CdSe0.12Te0.88","d":"Sb_Te+Cl_Te","t":"Extrinsic","l":"Sb$_{Te}$+Cl$_{Te}$","g":0.58,"v":2.04,"e":{"2":-2.84,"1":-0.95,"0":1.1,"-1":3.76,"-2":6.52},"mc":null,"mt":0.74},{"h":"CdSe0.12Te0.88","d":"Sb_Te+Cl_i","t":"Extrinsic","l":"Sb$_{Te}$+Cl$_{i}$","g":0.58,"v":2.04,"e":{"2":-6.07,"1":-4.36,"0":-2.37,"-1":0.23,"-2":3.09},"mc":null,"mt":4.27},{"h":"CdSe0.12Te0.88","d":"Sb_Te+O_Te","t":"Extrinsic","l":"Sb$_{Te}$+O$_{Te}$","g":0.58,"v":2.04,"e":{"2":-5.38,"1":-3.56,"0":-1.5,"-1":0.78,"-2":3.53},"mc":null,"mt":4.31},{"h":"CdSe0.12Te0.88","d":"Sb_Te+O_i","t":"Extrinsic","l":"Sb$_{Te}$+O$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.27,"1":-8.39,"0":-5.62,"-1":-3.02,"-2":-0.26},"mc":null,"mt":8.04},{"h":"CdSe0.12Te0.88","d":"Sb_Te+Sb_i","t":"Extrinsic","l":"Sb$_{Te}$+Sb$_{i}$","g":0.58,"v":2.04,"e":{"2":63.72,"1":67.43,"0":71.31,"-1":75.33,"-2":79.49},"mc":null,"mt":5.6},{"h":"CdSe0.12Te0.88","d":"Sb_i","t":"Extrinsic","l":"Sb$_{i}$","g":0.58,"v":2.04,"e":{"2":-7.05,"1":-4.64,"0":-1.95,"-1":0.87,"-2":3.77},"mc":null,"mt":4.56},{"h":"CdSe0.12Te0.88","d":"Sb_i+Sb_i","t":"Extrinsic","l":"Sb$_{i}$+Sb$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.7,"1":-8.31,"0":-6.09,"-1":-3.06,"-2":0.04},"mc":null,"mt":9.13},{"h":"CdSe0.12Te0.88","d":"Sb_i+Se_i","t":"Extrinsic","l":"Sb$_{i}$+Se$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.59,"1":-8.6,"0":-5.95,"-1":-3.05,"-2":0.08},"mc":null,"mt":8.72},{"h":"CdSe0.12Te0.88","d":"Sb_i+Te_i","t":"Extrinsic","l":"Sb$_{i}$+Te$_{i}$","g":0.58,"v":2.04,"e":{"2":-10.38,"1":-7.7,"0":-5.12,"-1":-1.97,"-2":1.54},"mc":null,"mt":8.09},{"h":"CdSe0.20Te0.80","d":"As_Se","t":"Extrinsic","l":"As$_{Se}$","g":0.53,"v":1.96,"e":{"2":-3.07,"1":-1.41,"0":0.48,"-1":2.53,"-2":5.23},"mc":null,"mt":1.0},{"h":"CdSe0.20Te0.80","d":"As_Se+As_i","t":"Extrinsic","l":"As$_{Se}$+As$_{i}$","g":0.53,"v":1.96,"e":{"2":-5.25,"1":-2.93,"0":-0.46,"-1":-0.96,"-2":5.26},"mc":null,"mt":6.16},{"h":"CdSe0.20Te0.80","d":"As_Se+Cl_Se","t":"Extrinsic","l":"As$_{Se}$+Cl$_{Se}$","g":0.53,"v":1.96,"e":{"2":-2.03,"1":-0.34,"0":605.47,"-1":4.14,"-2":6.84},"mc":null,"mt":0.08},{"h":"CdSe0.20Te0.80","d":"As_Se+Cl_i","t":"Extrinsic","l":"As$_{Se}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-2.99,"1":-0.85,"0":1.29,"-1":4.14,"-2":6.76},"mc":null,"mt":4.24},{"h":"CdSe0.20Te0.80","d":"As_Se+O_Se","t":"Extrinsic","l":"As$_{Se}$+O$_{Se}$","g":0.53,"v":1.96,"e":{"2":-4.58,"1":-2.87,"0":-0.95,"-1":1.15,"-2":3.73},"mc":null,"mt":3.65},{"h":"CdSe0.20Te0.80","d":"As_Se+O_i","t":"Extrinsic","l":"As$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-9.81,"1":-8.01,"0":-5.75,"-1":-3.17,"-2":-0.54},"mc":null,"mt":7.81},{"h":"CdSe0.20Te0.80","d":"As_Te+As_i","t":"Extrinsic","l":"As$_{Te}$+As$_{i}$","g":0.53,"v":1.96,"e":{"2":-8.65,"1":-6.4,"0":-4.08,"-1":-1.45,"-2":1.35},"mc":null,"mt":6.79},{"h":"CdSe0.20Te0.80","d":"As_Te+Cl_Te","t":"Extrinsic","l":"As$_{Te}$+Cl$_{Te}$","g":0.53,"v":1.96,"e":{"2":-3.08,"1":-1.55,"0":0.27,"-1":2.78,"-2":5.37},"mc":null,"mt":1.34},{"h":"CdSe0.20Te0.80","d":"As_Te+Cl_i","t":"Extrinsic","l":"As$_{Te}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-6.51,"1":-4.72,"0":-3.05,"-1":-0.36,"-2":2.12},"mc":null,"mt":4.87},{"h":"CdSe0.20Te0.80","d":"As_Te+O_Te","t":"Extrinsic","l":"As$_{Te}$+O$_{Te}$","g":0.53,"v":1.96,"e":{"2":-5.67,"1":-4.1,"0":-2.21,"-1":-0.11,"-2":2.41},"mc":null,"mt":4.91},{"h":"CdSe0.20Te0.80","d":"As_Te+O_i","t":"Extrinsic","l":"As$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-10.15,"1":-8.54,"0":-6.43,"-1":-4.04,"-2":-1.34},"mc":null,"mt":8.64},{"h":"CdSe0.20Te0.80","d":"As_i","t":"Extrinsic","l":"As$_{i}$","g":0.53,"v":1.96,"e":{"2":-7.02,"1":-5.26,"0":-2.69,"-1":-0.29,"-2":2.57},"mc":null,"mt":5.16},{"h":"CdSe0.20Te0.80","d":"As_i+As_i","t":"Extrinsic","l":"As$_{i}$+As$_{i}$","g":0.53,"v":1.96,"e":{"2":-12.19,"1":-9.71,"0":-7.49,"-1":-4.7,"-2":-1.78},"mc":null,"mt":10.32},{"h":"CdSe0.20Te0.80","d":"As_i+Se_i","t":"Extrinsic","l":"As$_{i}$+Se$_{i}$","g":0.53,"v":1.96,"e":{"2":-4.78,"1":-2.57,"0":-0.1,"-1":-3.91,"-2":6.04},"mc":null,"mt":9.32},{"h":"CdSe0.20Te0.80","d":"As_i+Te_i","t":"Extrinsic","l":"As$_{i}$+Te$_{i}$","g":0.53,"v":1.96,"e":{"2":-10.19,"1":-8.22,"0":-5.76,"-1":-2.82,"-2":0.45},"mc":null,"mt":8.69},{"h":"CdSe0.20Te0.80","d":"Bi_Se","t":"Extrinsic","l":"Bi$_{Se}$","g":0.53,"v":1.96,"e":{"2":-1.96,"1":-0.19,"0":1.8,"-1":4.12,"-2":6.79},"mc":null,"mt":0.15},{"h":"CdSe0.20Te0.80","d":"Bi_Se+Bi_i","t":"Extrinsic","l":"Bi$_{Se}$+Bi$_{i}$","g":0.53,"v":1.96,"e":{"2":-4.99,"1":-2.53,"0":0.08,"-1":1.44,"-2":5.07},"mc":null,"mt":4.46},{"h":"CdSe0.20Te0.80","d":"Bi_Se+Cl_Se","t":"Extrinsic","l":"Bi$_{Se}$+Cl$_{Se}$","g":0.53,"v":1.96,"e":{"2":-0.93,"1":0.92,"0":3.09,"-1":5.67,"-2":8.41},"mc":null,"mt":-0.77},{"h":"CdSe0.20Te0.80","d":"Bi_Se+Cl_i","t":"Extrinsic","l":"Bi$_{Se}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-2.65,"1":-0.12,"0":2.42,"-1":5.06,"-2":7.79},"mc":null,"mt":3.39},{"h":"CdSe0.20Te0.80","d":"Bi_Se+O_Se","t":"Extrinsic","l":"Bi$_{Se}$+O$_{Se}$","g":0.53,"v":1.96,"e":{"2":-3.73,"1":-1.84,"0":0.26,"-1":2.62,"-2":5.23},"mc":null,"mt":2.8},{"h":"CdSe0.20Te0.80","d":"Bi_Se+O_i","t":"Extrinsic","l":"Bi$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-8.9,"1":-7.03,"0":-4.65,"-1":-1.89,"-2":0.84},"mc":null,"mt":6.95},{"h":"CdSe0.20Te0.80","d":"Bi_Te+Bi_i","t":"Extrinsic","l":"Bi$_{Te}$+Bi$_{i}$","g":0.53,"v":1.96,"e":{"2":-7.29,"1":-4.99,"0":-2.56,"-1":0.77,"-2":3.85},"mc":null,"mt":5.09},{"h":"CdSe0.20Te0.80","d":"Bi_Te+Cl_Te","t":"Extrinsic","l":"Bi$_{Te}$+Cl$_{Te}$","g":0.53,"v":1.96,"e":{"2":-1.94,"1":-0.19,"0":1.76,"-1":4.24,"-2":6.88},"mc":null,"mt":0.49},{"h":"CdSe0.20Te0.80","d":"Bi_Te+Cl_i","t":"Extrinsic","l":"Bi$_{Te}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-6.31,"1":-3.85,"0":-1.9,"-1":0.9,"-2":3.43},"mc":null,"mt":4.02},{"h":"CdSe0.20Te0.80","d":"Bi_Te+O_Te","t":"Extrinsic","l":"Bi$_{Te}$+O$_{Te}$","g":0.53,"v":1.96,"e":{"2":-4.82,"1":-3.02,"0":-1.02,"-1":1.26,"-2":3.74},"mc":null,"mt":4.06},{"h":"CdSe0.20Te0.80","d":"Bi_Te+O_i","t":"Extrinsic","l":"Bi$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-9.59,"1":-7.06,"0":-5.19,"-1":-2.29,"-2":0.45},"mc":null,"mt":7.79},{"h":"CdSe0.20Te0.80","d":"Bi_i","t":"Extrinsic","l":"Bi$_{i}$","g":0.53,"v":1.96,"e":{"2":-6.59,"1":-4.46,"0":-1.85,"-1":0.88,"-2":3.8},"mc":null,"mt":4.31},{"h":"CdSe0.20Te0.80","d":"Bi_i+Bi_i","t":"Extrinsic","l":"Bi$_{i}$+Bi$_{i}$","g":0.53,"v":1.96,"e":{"2":-10.22,"1":-8.0,"0":-5.36,"-1":-2.74,"-2":0.26},"mc":null,"mt":8.62},{"h":"CdSe0.20Te0.80","d":"Bi_i+Se_i","t":"Extrinsic","l":"Bi$_{i}$+Se$_{i}$","g":0.53,"v":1.96,"e":{"2":-5.27,"1":-1.5,"0":-0.34,"-1":-2.62,"-2":5.22},"mc":null,"mt":8.47},{"h":"CdSe0.20Te0.80","d":"Bi_i+Te_i","t":"Extrinsic","l":"Bi$_{i}$+Te$_{i}$","g":0.53,"v":1.96,"e":{"2":-10.15,"1":-7.37,"0":-4.79,"-1":-1.75,"-2":1.68},"mc":null,"mt":7.84},{"h":"CdSe0.20Te0.80","d":"N_Se","t":"Extrinsic","l":"N$_{Se}$","g":0.53,"v":1.96,"e":{"2":-4.84,"1":-3.23,"0":-1.39,"-1":0.6,"-2":3.25},"mc":null,"mt":4.38},{"h":"CdSe0.20Te0.80","d":"N_Se+Cl_Se","t":"Extrinsic","l":"N$_{Se}$+Cl$_{Se}$","g":0.53,"v":1.96,"e":{"2":-4.13,"1":-2.36,"0":-0.44,"-1":2.02,"-2":4.63},"mc":null,"mt":3.45},{"h":"CdSe0.20Te0.80","d":"N_Se+Cl_i","t":"Extrinsic","l":"N$_{Se}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-4.26,"1":-2.63,"0":-0.38,"-1":2.25,"-2":5.03},"mc":null,"mt":7.61},{"h":"CdSe0.20Te0.80","d":"N_Se+N_i","t":"Extrinsic","l":"N$_{Se}$+N$_{i}$","g":0.53,"v":1.96,"e":{"2":-8.79,"1":-6.55,"0":-3.88,"-1":-7.51,"-2":1.11},"mc":null,"mt":12.92},{"h":"CdSe0.20Te0.80","d":"N_Se+O_Se","t":"Extrinsic","l":"N$_{Se}$+O$_{Se}$","g":0.53,"v":1.96,"e":{"2":-6.08,"1":-4.44,"0":-2.65,"-1":-0.64,"-2":1.82},"mc":null,"mt":7.02},{"h":"CdSe0.20Te0.80","d":"N_Se+O_i","t":"Extrinsic","l":"N$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-11.32,"1":-9.57,"0":-7.31,"-1":-4.86,"-2":-2.18},"mc":null,"mt":11.18},{"h":"CdSe0.20Te0.80","d":"N_Te+Cl_Te","t":"Extrinsic","l":"N$_{Te}$+Cl$_{Te}$","g":0.53,"v":1.96,"e":{"2":-5.32,"1":-3.62,"0":-1.67,"-1":0.8,"-2":3.32},"mc":null,"mt":4.72},{"h":"CdSe0.20Te0.80","d":"N_Te+Cl_i","t":"Extrinsic","l":"N$_{Te}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-8.21,"1":-6.32,"0":-4.63,"-1":-1.93,"-2":0.58},"mc":null,"mt":8.25},{"h":"CdSe0.20Te0.80","d":"N_Te+N_i","t":"Extrinsic","l":"N$_{Te}$+N$_{i}$","g":0.53,"v":1.96,"e":{"2":-16.17,"1":-13.92,"0":-11.49,"-1":-8.2,"-2":-4.72},"mc":null,"mt":13.55},{"h":"CdSe0.20Te0.80","d":"N_Te+O_Te","t":"Extrinsic","l":"N$_{Te}$+O$_{Te}$","g":0.53,"v":1.96,"e":{"2":-7.48,"1":-5.9,"0":-4.03,"-1":-2.01,"-2":0.59},"mc":null,"mt":8.29},{"h":"CdSe0.20Te0.80","d":"N_Te+O_i","t":"Extrinsic","l":"N$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-11.93,"1":-9.85,"0":-7.93,"-1":-5.5,"-2":-2.96},"mc":null,"mt":11.81},{"h":"CdSe0.20Te0.80","d":"N_i","t":"Extrinsic","l":"N$_{i}$","g":0.53,"v":1.96,"e":{"2":-9.21,"1":-7.03,"0":-4.87,"-1":-2.66,"-2":0.26},"mc":null,"mt":8.54},{"h":"CdSe0.20Te0.80","d":"N_i+N_i","t":"Extrinsic","l":"N$_{i}$+N$_{i}$","g":0.53,"v":1.96,"e":{"2":-18.61,"1":-16.59,"0":-14.53,"-1":-12.7,"-2":-9.97},"mc":null,"mt":17.08},{"h":"CdSe0.20Te0.80","d":"N_i+Se_i","t":"Extrinsic","l":"N$_{i}$+Se$_{i}$","g":0.53,"v":1.96,"e":{"2":-6.36,"1":-4.45,"0":-1.66,"-1":-5.29,"-2":4.51},"mc":null,"mt":12.7},{"h":"CdSe0.20Te0.80","d":"N_i+Te_i","t":"Extrinsic","l":"N$_{i}$+Te$_{i}$","g":0.53,"v":1.96,"e":{"2":-11.81,"1":-10.51,"0":-8.07,"-1":-5.58,"-2":-2.04},"mc":null,"mt":12.07},{"h":"CdSe0.20Te0.80","d":"O_i+As_Se+O_i","t":"Extrinsic","l":"O$_{i}$+As$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-17.38,"1":-15.6,"0":-13.2,"-1":-10.6,"-2":-7.92},"mc":null,"mt":14.61},{"h":"CdSe0.20Te0.80","d":"O_i+As_Te+O_i","t":"Extrinsic","l":"O$_{i}$+As$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-18.16,"1":-16.32,"0":-13.75,"-1":-11.16,"-2":-8.5},"mc":null,"mt":15.45},{"h":"CdSe0.20Te0.80","d":"O_i+As_i+O_i","t":"Extrinsic","l":"O$_{i}$+As$_{i}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":3.12,"1":-8.64,"0":10.2,"-1":-6.09,"-2":16.4},"mc":null,"mt":18.77},{"h":"CdSe0.20Te0.80","d":"O_i+Bi_Se+O_i","t":"Extrinsic","l":"O$_{i}$+Bi$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-15.74,"1":-13.93,"0":-11.43,"-1":-8.74,"-2":-5.98},"mc":null,"mt":13.76},{"h":"CdSe0.20Te0.80","d":"O_i+Bi_Te+O_i","t":"Extrinsic","l":"O$_{i}$+Bi$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-16.53,"1":-14.65,"0":-12.25,"-1":-9.59,"-2":-6.75},"mc":null,"mt":13.39},{"h":"CdSe0.20Te0.80","d":"O_i+Bi_i+O_i","t":"Extrinsic","l":"O$_{i}$+Bi$_{i}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":3.43,"1":-3.88,"0":11.06,"-1":-4.34,"-2":17.24},"mc":null,"mt":17.92},{"h":"CdSe0.20Te0.80","d":"O_i+N_Se+O_i","t":"Extrinsic","l":"O$_{i}$+N$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-19.25,"1":-17.52,"0":-15.12,"-1":-12.56,"-2":-9.35},"mc":null,"mt":17.99},{"h":"CdSe0.20Te0.80","d":"O_i+N_Te+O_i","t":"Extrinsic","l":"O$_{i}$+N$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-19.81,"1":-18.13,"0":-15.83,"-1":-13.22,"-2":-10.27},"mc":null,"mt":18.42},{"h":"CdSe0.20Te0.80","d":"O_i+N_i+O_i","t":"Extrinsic","l":"O$_{i}$+N$_{i}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":2.17,"1":-7.54,"0":7.98,"-1":-3.99,"-2":13.47},"mc":null,"mt":22.15},{"h":"CdSe0.20Te0.80","d":"O_i+P_Se+O_i","t":"Extrinsic","l":"O$_{i}$+P$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-19.74,"1":-17.97,"0":-15.63,"-1":-12.79,"-2":-9.8},"mc":null,"mt":15.97},{"h":"CdSe0.20Te0.80","d":"O_i+P_Te+O_i","t":"Extrinsic","l":"O$_{i}$+P$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-20.39,"1":-18.7,"0":-16.26,"-1":-13.47,"-2":-10.73},"mc":null,"mt":16.89},{"h":"CdSe0.20Te0.80","d":"O_i+P_i+O_i","t":"Extrinsic","l":"O$_{i}$+P$_{i}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":3.5,"1":-6.15,"0":9.63,"-1":-6.57,"-2":15.92},"mc":null,"mt":19.37},{"h":"CdSe0.20Te0.80","d":"O_i+Sb_Se+O_i","t":"Extrinsic","l":"O$_{i}$+Sb$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-16.15,"1":-14.53,"0":-12.18,"-1":-9.53,"-2":-6.86},"mc":null,"mt":15.87},{"h":"CdSe0.20Te0.80","d":"O_i+Sb_Te+O_i","t":"Extrinsic","l":"O$_{i}$+Sb$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-16.89,"1":-15.24,"0":-12.97,"-1":-10.22,"-2":-7.56},"mc":null,"mt":16.89},{"h":"CdSe0.20Te0.80","d":"O_i+Sb_i+O_i","t":"Extrinsic","l":"O$_{i}$+Sb$_{i}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":4.53,"1":-8.91,"0":10.59,"-1":-4.19,"-2":16.87},"mc":null,"mt":18.17},{"h":"CdSe0.20Te0.80","d":"P_Se","t":"Extrinsic","l":"P$_{Se}$","g":0.53,"v":1.96,"e":{"2":-3.72,"1":-2.15,"0":-0.14,"-1":1.99,"-2":4.67},"mc":null,"mt":1.6},{"h":"CdSe0.20Te0.80","d":"P_Se+Cl_Se","t":"Extrinsic","l":"P$_{Se}$+Cl$_{Se}$","g":0.53,"v":1.96,"e":{"2":-2.72,"1":-1.02,"0":0.92,"-1":3.52,"-2":6.2},"mc":null,"mt":0.68},{"h":"CdSe0.20Te0.80","d":"P_Se+Cl_i","t":"Extrinsic","l":"P$_{Se}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-3.35,"1":-1.34,"0":0.84,"-1":3.27,"-2":6.38},"mc":null,"mt":4.84},{"h":"CdSe0.20Te0.80","d":"P_Se+O_Se","t":"Extrinsic","l":"P$_{Se}$+O$_{Se}$","g":0.53,"v":1.96,"e":{"2":-5.1,"1":-3.5,"0":-1.53,"-1":0.6,"-2":3.22},"mc":null,"mt":4.25},{"h":"CdSe0.20Te0.80","d":"P_Se+O_i","t":"Extrinsic","l":"P$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-10.79,"1":-9.02,"0":-7.0,"-1":-4.64,"-2":-1.93},"mc":null,"mt":8.41},{"h":"CdSe0.20Te0.80","d":"P_Se+P_i","t":"Extrinsic","l":"P$_{Se}$+P$_{i}$","g":0.53,"v":1.96,"e":{"2":-6.03,"1":-3.73,"0":-1.39,"-1":-2.16,"-2":4.26},"mc":null,"mt":7.36},{"h":"CdSe0.20Te0.80","d":"P_Te+Cl_Te","t":"Extrinsic","l":"P$_{Te}$+Cl$_{Te}$","g":0.53,"v":1.96,"e":{"2":-4.08,"1":-2.3,"0":605.47,"-1":2.15,"-2":4.83},"mc":null,"mt":1.94},{"h":"CdSe0.20Te0.80","d":"P_Te+Cl_i","t":"Extrinsic","l":"P$_{Te}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-7.38,"1":-5.44,"0":-3.66,"-1":-0.85,"-2":1.65},"mc":null,"mt":5.47},{"h":"CdSe0.20Te0.80","d":"P_Te+O_Te","t":"Extrinsic","l":"P$_{Te}$+O$_{Te}$","g":0.53,"v":1.96,"e":{"2":-6.4,"1":-4.68,"0":-2.79,"-1":-0.73,"-2":1.77},"mc":null,"mt":5.51},{"h":"CdSe0.20Te0.80","d":"P_Te+O_i","t":"Extrinsic","l":"P$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-11.63,"1":-9.76,"0":-7.69,"-1":-5.32,"-2":-2.64},"mc":null,"mt":9.24},{"h":"CdSe0.20Te0.80","d":"P_Te+P_i","t":"Extrinsic","l":"P$_{Te}$+P$_{i}$","g":0.53,"v":1.96,"e":{"2":-9.48,"1":-7.45,"0":-5.33,"-1":-2.66,"-2":0.08},"mc":null,"mt":7.99},{"h":"CdSe0.20Te0.80","d":"P_i","t":"Extrinsic","l":"P$_{i}$","g":0.53,"v":1.96,"e":{"2":-7.52,"1":-5.54,"0":-3.2,"-1":-1.03,"-2":2.02},"mc":null,"mt":5.76},{"h":"CdSe0.20Te0.80","d":"P_i+P_i","t":"Extrinsic","l":"P$_{i}$+P$_{i}$","g":0.53,"v":1.96,"e":{"2":-13.42,"1":-10.85,"0":-8.73,"-1":-6.01,"-2":-3.13},"mc":null,"mt":11.52},{"h":"CdSe0.20Te0.80","d":"P_i+Se_i","t":"Extrinsic","l":"P$_{i}$+Se$_{i}$","g":0.53,"v":1.96,"e":{"2":-5.3,"1":-2.97,"0":-0.49,"-1":-4.51,"-2":5.6},"mc":null,"mt":9.92},{"h":"CdSe0.20Te0.80","d":"P_i+Te_i","t":"Extrinsic","l":"P$_{i}$+Te$_{i}$","g":0.53,"v":1.96,"e":{"2":-10.84,"1":-8.8,"0":-6.28,"-1":-3.41,"-2":-0.13},"mc":null,"mt":9.29},{"h":"CdSe0.20Te0.80","d":"Sb_Se","t":"Extrinsic","l":"Sb$_{Se}$","g":0.53,"v":1.96,"e":{"2":-2.68,"1":-0.82,"0":1.21,"-1":3.47,"-2":6.16},"mc":null,"mt":0.4},{"h":"CdSe0.20Te0.80","d":"Sb_Se+Cl_Se","t":"Extrinsic","l":"Sb$_{Se}$+Cl$_{Se}$","g":0.53,"v":1.96,"e":{"2":-1.52,"1":0.37,"0":2.41,"-1":5.03,"-2":7.83},"mc":null,"mt":-0.52},{"h":"CdSe0.20Te0.80","d":"Sb_Se+Cl_i","t":"Extrinsic","l":"Sb$_{Se}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-2.86,"1":-0.71,"0":1.96,"-1":4.6,"-2":7.31},"mc":null,"mt":3.64},{"h":"CdSe0.20Te0.80","d":"Sb_Se+O_Se","t":"Extrinsic","l":"Sb$_{Se}$+O$_{Se}$","g":0.53,"v":1.96,"e":{"2":-3.96,"1":-2.14,"0":-0.28,"-1":1.84,"-2":4.44},"mc":null,"mt":3.05},{"h":"CdSe0.20Te0.80","d":"Sb_Se+O_i","t":"Extrinsic","l":"Sb$_{Se}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-9.43,"1":-7.54,"0":-5.08,"-1":-2.41,"-2":0.26},"mc":null,"mt":7.21},{"h":"CdSe0.20Te0.80","d":"Sb_Se+Sb_i","t":"Extrinsic","l":"Sb$_{Se}$+Sb$_{i}$","g":0.53,"v":1.96,"e":{"2":-5.25,"1":-2.96,"0":-0.42,"-1":0.63,"-2":4.1},"mc":null,"mt":4.97},{"h":"CdSe0.20Te0.80","d":"Sb_Te+Cl_Te","t":"Extrinsic","l":"Sb$_{Te}$+Cl$_{Te}$","g":0.53,"v":1.96,"e":{"2":-2.68,"1":-0.89,"0":1.09,"-1":3.56,"-2":6.19},"mc":null,"mt":0.74},{"h":"CdSe0.20Te0.80","d":"Sb_Te+Cl_i","t":"Extrinsic","l":"Sb$_{Te}$+Cl$_{i}$","g":0.53,"v":1.96,"e":{"2":-5.89,"1":-4.09,"0":-2.37,"-1":0.41,"-2":2.92},"mc":null,"mt":4.27},{"h":"CdSe0.20Te0.80","d":"Sb_Te+O_Te","t":"Extrinsic","l":"Sb$_{Te}$+O$_{Te}$","g":0.53,"v":1.96,"e":{"2":-5.13,"1":-3.43,"0":-1.55,"-1":0.56,"-2":3.05},"mc":null,"mt":4.31},{"h":"CdSe0.20Te0.80","d":"Sb_Te+O_i","t":"Extrinsic","l":"Sb$_{Te}$+O$_{i}$","g":0.53,"v":1.96,"e":{"2":-9.92,"1":-8.22,"0":-5.81,"-1":-3.21,"-2":-0.57},"mc":null,"mt":8.04},{"h":"CdSe0.20Te0.80","d":"Sb_Te+Sb_i","t":"Extrinsic","l":"Sb$_{Te}$+Sb$_{i}$","g":0.53,"v":1.96,"e":{"2":62.33,"1":65.95,"0":69.83,"-1":73.8,"-2":77.85},"mc":null,"mt":5.6},{"h":"CdSe0.20Te0.80","d":"Sb_i","t":"Extrinsic","l":"Sb$_{i}$","g":0.53,"v":1.96,"e":{"2":-6.69,"1":-4.62,"0":-2.07,"-1":0.57,"-2":3.48},"mc":null,"mt":4.56},{"h":"CdSe0.20Te0.80","d":"Sb_i+Sb_i","t":"Extrinsic","l":"Sb$_{i}$+Sb$_{i}$","g":0.53,"v":1.96,"e":{"2":-10.79,"1":-8.11,"0":-5.91,"-1":-3.02,"-2":0.06},"mc":null,"mt":9.13},{"h":"CdSe0.20Te0.80","d":"Sb_i+Se_i","t":"Extrinsic","l":"Sb$_{i}$+Se$_{i}$","g":0.53,"v":1.96,"e":{"2":-4.67,"1":-1.88,"0":0.38,"-1":-3.13,"-2":5.02},"mc":null,"mt":8.72},{"h":"CdSe0.20Te0.80","d":"Sb_i+Te_i","t":"Extrinsic","l":"Sb$_{i}$+Te$_{i}$","g":0.53,"v":1.96,"e":{"2":-10.17,"1":-7.6,"0":-5.03,"-1":-1.96,"-2":1.44},"mc":null,"mt":8.09},{"h":"CdSe0.25Te0.75","d":"As_i","t":"Extrinsic","l":"As$_{i}$","g":0.51,"v":1.9,"e":{"2":-6.32,"1":-4.42,"0":-2.13,"-1":0.38,"-2":3.06},"mc":null,"mt":5.36},{"h":"CdSe0.25Te0.75","d":"As_i+As_i","t":"Extrinsic","l":"As$_{i}$ + As$_{i}$","g":0.51,"v":1.9,"e":{"2":-9.81,"1":-7.5,"0":-5.09,"-1":-2.79,"-2":2.25},"mc":null,"mt":10.71},{"h":"CdSe0.25Te0.75","d":"As_i+Se_i","t":"Extrinsic","l":"As$_{i}$ + Se$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.97,"1":-5.82,"0":-3.53,"-1":-1.05,"-2":0.39},"mc":null,"mt":9.21},{"h":"CdSe0.25Te0.75","d":"As_i+Te_i","t":"Extrinsic","l":"As$_{i}$ + Te$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.49,"1":-4.99,"0":-2.46,"-1":0.25,"-2":1.26},"mc":null,"mt":8.88},{"h":"CdSe0.25Te0.75","d":"As_Se","t":"Extrinsic","l":"As$_{Se}$","g":0.51,"v":1.9,"e":{"2":-2.32,"1":-0.62,"0":1.23,"-1":3.32,"-2":5.86},"mc":null,"mt":1.5},{"h":"CdSe0.25Te0.75","d":"As_Se+As_i","t":"Extrinsic","l":"As$_{Se}$ + As$_{i}$","g":0.51,"v":1.9,"e":{"2":-7.31,"1":-5.04,"0":-2.62,"-1":-0.08,"-2":2.65},"mc":null,"mt":6.86},{"h":"CdSe0.25Te0.75","d":"As_Se+Cl_i","t":"Extrinsic","l":"As$_{Se}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.17,"1":-3.53,"0":-1.57,"-1":0.93,"-2":4.89},"mc":null,"mt":4.7},{"h":"CdSe0.25Te0.75","d":"As_Se+Cl_Se","t":"Extrinsic","l":"As$_{Se}$ + Cl$_{Se}$","g":0.51,"v":1.9,"e":{"2":-1.21,"1":0.51,"0":2.47,"-1":4.95,"-2":7.53},"mc":null,"mt":0.85},{"h":"CdSe0.25Te0.75","d":"As_Se+O_i","t":"Extrinsic","l":"As$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.79,"1":-6.98,"0":-5.04,"-1":-2.51,"-2":0.13},"mc":null,"mt":8.31},{"h":"CdSe0.25Te0.75","d":"As_Se+O_Se","t":"Extrinsic","l":"As$_{Se}$ + O$_{Se}$","g":0.51,"v":1.9,"e":{"2":-3.56,"1":-1.97,"0":-0.18,"-1":1.79,"-2":4.28},"mc":null,"mt":4.45},{"h":"CdSe0.25Te0.75","d":"As_Te+As_i","t":"Extrinsic","l":"As$_{Te}$ + As$_{i}$","g":0.51,"v":1.9,"e":{"2":-6.89,"1":-4.72,"0":-2.67,"-1":-0.26,"-2":2.35},"mc":null,"mt":7.18},{"h":"CdSe0.25Te0.75","d":"As_Te+Cl_i","t":"Extrinsic","l":"As$_{Te}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-4.79,"1":-3.15,"0":-2.09,"-1":0.4,"-2":3.84},"mc":null,"mt":5.03},{"h":"CdSe0.25Te0.75","d":"As_Te+Cl_Te","t":"Extrinsic","l":"As$_{Te}$ + Cl$_{Te}$","g":0.51,"v":1.9,"e":{"2":-2.38,"1":-0.81,"0":1.03,"-1":3.4,"-2":5.97},"mc":null,"mt":1.5},{"h":"CdSe0.25Te0.75","d":"As_Te+O_i","t":"Extrinsic","l":"As$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.23,"1":-6.57,"0":609.99,"-1":-2.74,"-2":-0.17},"mc":null,"mt":8.63},{"h":"CdSe0.25Te0.75","d":"As_Te+O_Te","t":"Extrinsic","l":"As$_{Te}$ + O$_{Te}$","g":0.51,"v":1.9,"e":{"2":-4.88,"1":-3.25,"0":-1.44,"-1":0.56,"-2":2.96},"mc":null,"mt":5.1},{"h":"CdSe0.25Te0.75","d":"Bi_i","t":"Extrinsic","l":"Bi$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.97,"1":-3.63,"0":-1.0,"-1":1.51,"-2":5.3},"mc":null,"mt":4.31},{"h":"CdSe0.25Te0.75","d":"Bi_i+Bi_i","t":"Extrinsic","l":"Bi$_{i}$ + Bi$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.11,"1":-5.57,"0":-3.18,"-1":-0.04,"-2":2.54},"mc":null,"mt":8.62},{"h":"CdSe0.25Te0.75","d":"Bi_i+Se_i","t":"Extrinsic","l":"Bi$_{i}$ + Se$_{i}$","g":0.51,"v":1.9,"e":{"2":-7.13,"1":-6.22,"0":-2.63,"-1":0.11,"-2":2.72},"mc":null,"mt":8.16},{"h":"CdSe0.25Te0.75","d":"Bi_i+Te_i","t":"Extrinsic","l":"Bi$_{i}$ + Te$_{i}$","g":0.51,"v":1.9,"e":{"2":-6.23,"1":-6.0,"0":-2.84,"-1":-1.41,"-2":2.02},"mc":null,"mt":7.84},{"h":"CdSe0.25Te0.75","d":"Bi_Se","t":"Extrinsic","l":"Bi$_{Se}$","g":0.51,"v":1.9,"e":{"2":-1.1,"1":0.5,"0":2.56,"-1":4.82,"-2":7.42},"mc":null,"mt":0.46},{"h":"CdSe0.25Te0.75","d":"Bi_Se+Bi_i","t":"Extrinsic","l":"Bi$_{Se}$ + Bi$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.61,"1":-3.44,"0":-0.96,"-1":2.06,"-2":4.87},"mc":null,"mt":4.77},{"h":"CdSe0.25Te0.75","d":"Bi_Se+Cl_i","t":"Extrinsic","l":"Bi$_{Se}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.05,"1":-2.51,"0":-0.41,"-1":2.14,"-2":4.82},"mc":null,"mt":3.65},{"h":"CdSe0.25Te0.75","d":"Bi_Se+Cl_Se","t":"Extrinsic","l":"Bi$_{Se}$ + Cl$_{Se}$","g":0.51,"v":1.9,"e":{"2":0.08,"1":1.78,"0":3.95,"-1":6.46,"-2":9.15},"mc":null,"mt":-0.2},{"h":"CdSe0.25Te0.75","d":"Bi_Se+O_i","t":"Extrinsic","l":"Bi$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-7.91,"1":-5.88,"0":-3.86,"-1":-1.26,"-2":1.42},"mc":null,"mt":7.26},{"h":"CdSe0.25Te0.75","d":"Bi_Se+O_Se","t":"Extrinsic","l":"Bi$_{Se}$ + O$_{Se}$","g":0.51,"v":1.9,"e":{"2":-2.46,"1":-0.77,"0":1.14,"-1":3.31,"-2":5.78},"mc":null,"mt":3.41},{"h":"CdSe0.25Te0.75","d":"Bi_Te+Bi_i","t":"Extrinsic","l":"Bi$_{Te}$ + Bi$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.22,"1":-2.94,"0":-0.5,"-1":2.33,"-2":4.98},"mc":null,"mt":5.09},{"h":"CdSe0.25Te0.75","d":"Bi_Te+Cl_i","t":"Extrinsic","l":"Bi$_{Te}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-4.65,"1":-2.93,"0":-0.94,"-1":1.56,"-2":5.36},"mc":null,"mt":3.98},{"h":"CdSe0.25Te0.75","d":"Bi_Te+Cl_Te","t":"Extrinsic","l":"Bi$_{Te}$ + Cl$_{Te}$","g":0.51,"v":1.9,"e":{"2":-1.36,"1":0.42,"0":2.43,"-1":4.87,"-2":7.43},"mc":null,"mt":0.45},{"h":"CdSe0.25Te0.75","d":"Bi_Te+O_i","t":"Extrinsic","l":"Bi$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-7.24,"1":-5.41,"0":-3.41,"-1":-1.14,"-2":1.45},"mc":null,"mt":7.59},{"h":"CdSe0.25Te0.75","d":"Bi_Te+O_Te","t":"Extrinsic","l":"Bi$_{Te}$ + O$_{Te}$","g":0.51,"v":1.9,"e":{"2":-3.77,"1":-2.13,"0":-0.31,"-1":1.85,"-2":4.28},"mc":null,"mt":4.06},{"h":"CdSe0.25Te0.75","d":"N_i","t":"Extrinsic","l":"N$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.25,"1":-6.48,"0":-2.85,"-1":-0.37,"-2":2.23},"mc":null,"mt":8.54},{"h":"CdSe0.25Te0.75","d":"N_i+N_i","t":"Extrinsic","l":"N$_{i}$ + N$_{i}$","g":0.51,"v":1.9,"e":{"2":-11.43,"1":-10.16,"0":-6.68,"-1":-4.31,"-2":-1.68},"mc":null,"mt":17.08},{"h":"CdSe0.25Te0.75","d":"N_i+Se_i","t":"Extrinsic","l":"N$_{i}$ + Se$_{i}$","g":0.51,"v":1.9,"e":{"2":-9.25,"1":-6.52,"0":-4.28,"-1":-1.72,"-2":1.04},"mc":null,"mt":12.39},{"h":"CdSe0.25Te0.75","d":"N_i+Te_i","t":"Extrinsic","l":"N$_{i}$ + Te$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.76,"1":-7.03,"0":-3.27,"-1":-0.68,"-2":2.01},"mc":null,"mt":12.07},{"h":"CdSe0.25Te0.75","d":"N_Se","t":"Extrinsic","l":"N$_{Se}$","g":0.51,"v":1.9,"e":{"2":-4.23,"1":-2.51,"0":-0.66,"-1":1.39,"-2":3.9},"mc":null,"mt":4.68},{"h":"CdSe0.25Te0.75","d":"N_Se+Cl_i","t":"Extrinsic","l":"N$_{Se}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-6.68,"1":-5.02,"0":-3.21,"-1":-0.31,"-2":2.45},"mc":null,"mt":7.88},{"h":"CdSe0.25Te0.75","d":"N_Se+Cl_Se","t":"Extrinsic","l":"N$_{Se}$ + Cl$_{Se}$","g":0.51,"v":1.9,"e":{"2":-3.03,"1":-1.36,"0":0.54,"-1":2.96,"-2":5.48},"mc":null,"mt":4.03},{"h":"CdSe0.25Te0.75","d":"N_Se+N_i","t":"Extrinsic","l":"N$_{Se}$ + N$_{i}$","g":0.51,"v":1.9,"e":{"2":-10.27,"1":-8.03,"0":-4.43,"-1":-2.37,"-2":0.21},"mc":null,"mt":13.22},{"h":"CdSe0.25Te0.75","d":"N_Se+O_i","t":"Extrinsic","l":"N$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-9.53,"1":-7.96,"0":-6.13,"-1":-4.15,"-2":-1.58},"mc":null,"mt":11.49},{"h":"CdSe0.25Te0.75","d":"N_Se+O_Se","t":"Extrinsic","l":"N$_{Se}$ + O$_{Se}$","g":0.51,"v":1.9,"e":{"2":-5.41,"1":-3.78,"0":-2.04,"-1":-0.13,"-2":2.27},"mc":null,"mt":7.63},{"h":"CdSe0.25Te0.75","d":"N_Te+Cl_i","t":"Extrinsic","l":"N$_{Te}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-6.77,"1":-4.98,"0":-3.16,"-1":-0.63,"-2":1.83},"mc":null,"mt":8.21},{"h":"CdSe0.25Te0.75","d":"N_Te+Cl_Te","t":"Extrinsic","l":"N$_{Te}$ + Cl$_{Te}$","g":0.51,"v":1.9,"e":{"2":-4.15,"1":-2.61,"0":-0.8,"-1":1.5,"-2":4.0},"mc":null,"mt":4.68},{"h":"CdSe0.25Te0.75","d":"N_Te+N_i","t":"Extrinsic","l":"N$_{Te}$ + N$_{i}$","g":0.51,"v":1.9,"e":{"2":-9.73,"1":-8.28,"0":-4.79,"-1":-2.78,"-2":-0.32},"mc":null,"mt":13.55},{"h":"CdSe0.25Te0.75","d":"N_Te+O_i","t":"Extrinsic","l":"N$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-9.68,"1":-8.22,"0":-6.51,"-1":-3.2,"-2":-2.16},"mc":null,"mt":11.81},{"h":"CdSe0.25Te0.75","d":"N_Te+O_Te","t":"Extrinsic","l":"N$_{Te}$ + O$_{Te}$","g":0.51,"v":1.9,"e":{"2":-6.46,"1":-4.87,"0":-3.04,"-1":-1.05,"-2":1.38},"mc":null,"mt":8.29},{"h":"CdSe0.25Te0.75","d":"O_i+As_i+O_i","t":"Extrinsic","l":"O$_{i}$ + As$_{i}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-15.84,"1":-15.32,"0":609.99,"-1":610.09,"-2":-8.6},"mc":null,"mt":18.97},{"h":"CdSe0.25Te0.75","d":"O_i+As_Se+O_i","t":"Extrinsic","l":"O$_{i}$ + As$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-12.91,"1":-11.15,"0":-9.26,"-1":-7.15,"-2":-4.82},"mc":null,"mt":15.12},{"h":"CdSe0.25Te0.75","d":"O_i+As_Te+O_i","t":"Extrinsic","l":"O$_{i}$ + As$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-12.14,"1":-10.5,"0":-8.65,"-1":-6.64,"-2":-4.49},"mc":null,"mt":16.92},{"h":"CdSe0.25Te0.75","d":"O_i+Bi_i+O_i","t":"Extrinsic","l":"O$_{i}$ + Bi$_{i}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-17.71,"1":-15.73,"0":-12.64,"-1":-10.46,"-2":-7.12},"mc":null,"mt":17.92},{"h":"CdSe0.25Te0.75","d":"O_i+Bi_Se+O_i","t":"Extrinsic","l":"O$_{i}$ + Bi$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-12.87,"1":-11.02,"0":-8.62,"-1":-6.3,"-2":-3.62},"mc":null,"mt":14.37},{"h":"CdSe0.25Te0.75","d":"O_i+Bi_Te+O_i","t":"Extrinsic","l":"O$_{i}$ + Bi$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-11.26,"1":-9.64,"0":-7.49,"-1":609.99,"-2":-3.23},"mc":null,"mt":13.39},{"h":"CdSe0.25Te0.75","d":"O_i+N_i+O_i","t":"Extrinsic","l":"O$_{i}$ + N$_{i}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-19.56,"1":-13.74,"0":-12.37,"-1":-11.46,"-2":-8.75},"mc":null,"mt":22.15},{"h":"CdSe0.25Te0.75","d":"O_i+N_Se+O_i","t":"Extrinsic","l":"O$_{i}$ + N$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":610.38,"1":610.09,"0":-9.97,"-1":-7.98,"-2":-5.98},"mc":null,"mt":18.29},{"h":"CdSe0.25Te0.75","d":"O_i+N_Te+O_i","t":"Extrinsic","l":"O$_{i}$ + N$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-13.8,"1":-12.25,"0":-10.49,"-1":610.06,"-2":-6.41},"mc":null,"mt":18.42},{"h":"CdSe0.25Te0.75","d":"O_i+P_i+O_i","t":"Extrinsic","l":"O$_{i}$ + P$_{i}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-16.19,"1":-14.09,"0":-13.14,"-1":-10.64,"-2":-7.85},"mc":null,"mt":19.46},{"h":"CdSe0.25Te0.75","d":"O_i+P_Se+O_i","t":"Extrinsic","l":"O$_{i}$ + P$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-13.94,"1":-12.23,"0":-10.33,"-1":-8.25,"-2":-5.89},"mc":null,"mt":17.46},{"h":"CdSe0.25Te0.75","d":"O_i+P_Te+O_i","t":"Extrinsic","l":"O$_{i}$ + P$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-12.84,"1":-11.11,"0":-9.27,"-1":-7.98,"-2":-5.08},"mc":null,"mt":16.89},{"h":"CdSe0.25Te0.75","d":"O_i+Sb_i+O_i","t":"Extrinsic","l":"O$_{i}$ + Sb$_{i}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-15.52,"1":-13.82,"0":-12.6,"-1":-9.73,"-2":-6.84},"mc":null,"mt":18.17},{"h":"CdSe0.25Te0.75","d":"O_i+Sb_Se+O_i","t":"Extrinsic","l":"O$_{i}$ + Sb$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":610.5,"1":610.13,"0":-9.21,"-1":610.01,"-2":-4.25},"mc":null,"mt":17.32},{"h":"CdSe0.25Te0.75","d":"O_i+Sb_Te+O_i","t":"Extrinsic","l":"O$_{i}$ + Sb$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-11.46,"1":-9.86,"0":-7.96,"-1":-5.86,"-2":-3.68},"mc":null,"mt":16.89},{"h":"CdSe0.25Te0.75","d":"P_i","t":"Extrinsic","l":"P$_{i}$","g":0.51,"v":1.9,"e":{"2":-6.61,"1":-4.97,"0":-2.54,"-1":-0.15,"-2":3.73},"mc":null,"mt":5.85},{"h":"CdSe0.25Te0.75","d":"P_i+P_i","t":"Extrinsic","l":"P$_{i}$ + P$_{i}$","g":0.51,"v":1.9,"e":{"2":-10.05,"1":-8.35,"0":-6.07,"-1":-3.98,"-2":1.42},"mc":null,"mt":11.7},{"h":"CdSe0.25Te0.75","d":"P_i+Se_i","t":"Extrinsic","l":"P$_{i}$ + Se$_{i}$","g":0.51,"v":1.9,"e":{"2":-9.46,"1":-6.38,"0":-3.94,"-1":-1.32,"-2":-0.23},"mc":null,"mt":9.71},{"h":"CdSe0.25Te0.75","d":"P_i+Te_i","t":"Extrinsic","l":"P$_{i}$ + Te$_{i}$","g":0.51,"v":1.9,"e":{"2":-7.54,"1":-5.41,"0":-3.09,"-1":-1.96,"-2":3.53},"mc":null,"mt":9.38},{"h":"CdSe0.25Te0.75","d":"P_Se","t":"Extrinsic","l":"P$_{Se}$","g":0.51,"v":1.9,"e":{"2":-2.91,"1":-1.24,"0":0.59,"-1":2.62,"-2":5.19},"mc":null,"mt":2.0},{"h":"CdSe0.25Te0.75","d":"P_Se+Cl_i","t":"Extrinsic","l":"P$_{Se}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.89,"1":-4.09,"0":-2.13,"-1":1.09,"-2":4.25},"mc":null,"mt":5.2},{"h":"CdSe0.25Te0.75","d":"P_Se+Cl_Se","t":"Extrinsic","l":"P$_{Se}$ + Cl$_{Se}$","g":0.51,"v":1.9,"e":{"2":-1.63,"1":-0.03,"0":1.81,"-1":4.18,"-2":6.84},"mc":null,"mt":1.34},{"h":"CdSe0.25Te0.75","d":"P_Se+O_i","t":"Extrinsic","l":"P$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-9.84,"1":-8.13,"0":-6.26,"-1":-3.94,"-2":-1.34},"mc":null,"mt":8.8},{"h":"CdSe0.25Te0.75","d":"P_Se+O_Se","t":"Extrinsic","l":"P$_{Se}$ + O$_{Se}$","g":0.51,"v":1.9,"e":{"2":-4.21,"1":-2.62,"0":-0.81,"-1":1.23,"-2":3.69},"mc":null,"mt":4.95},{"h":"CdSe0.25Te0.75","d":"P_Se+P_i","t":"Extrinsic","l":"P$_{Se}$ + P$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.12,"1":-6.13,"0":-3.9,"-1":-1.39,"-2":1.48},"mc":null,"mt":7.85},{"h":"CdSe0.25Te0.75","d":"P_Te+Cl_i","t":"Extrinsic","l":"P$_{Te}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.51,"1":-3.83,"0":-1.93,"-1":0.99,"-2":3.19},"mc":null,"mt":5.52},{"h":"CdSe0.25Te0.75","d":"P_Te+Cl_Te","t":"Extrinsic","l":"P$_{Te}$ + Cl$_{Te}$","g":0.51,"v":1.9,"e":{"2":-3.1,"1":-1.45,"0":0.4,"-1":2.8,"-2":5.35},"mc":null,"mt":1.99},{"h":"CdSe0.25Te0.75","d":"P_Te+O_i","t":"Extrinsic","l":"P$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.87,"1":-7.13,"0":-5.28,"-1":-3.32,"-2":-0.72},"mc":null,"mt":9.13},{"h":"CdSe0.25Te0.75","d":"P_Te+O_Te","t":"Extrinsic","l":"P$_{Te}$ + O$_{Te}$","g":0.51,"v":1.9,"e":{"2":-5.12,"1":-3.71,"0":-2.02,"-1":-0.03,"-2":2.33},"mc":null,"mt":5.6},{"h":"CdSe0.25Te0.75","d":"P_Te+P_i","t":"Extrinsic","l":"P$_{Te}$ + P$_{i}$","g":0.51,"v":1.9,"e":{"2":-7.64,"1":-5.69,"0":-3.71,"-1":-1.29,"-2":1.11},"mc":null,"mt":8.18},{"h":"CdSe0.25Te0.75","d":"Sb_i","t":"Extrinsic","l":"Sb$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.81,"1":-3.67,"0":-1.22,"-1":1.3,"-2":4.99},"mc":null,"mt":4.56},{"h":"CdSe0.25Te0.75","d":"Sb_i+Sb_i","t":"Extrinsic","l":"Sb$_{i}$ + Sb$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.43,"1":-6.01,"0":-3.65,"-1":-1.06,"-2":1.96},"mc":null,"mt":9.13},{"h":"CdSe0.25Te0.75","d":"Sb_i+Se_i","t":"Extrinsic","l":"Sb$_{i}$ + Se$_{i}$","g":0.51,"v":1.9,"e":{"2":-7.31,"1":-6.34,"0":-3.88,"-1":-1.25,"-2":2.74},"mc":null,"mt":8.42},{"h":"CdSe0.25Te0.75","d":"Sb_i+Te_i","t":"Extrinsic","l":"Sb$_{i}$ + Te$_{i}$","g":0.51,"v":1.9,"e":{"2":-6.2,"1":-4.1,"0":-3.04,"-1":-0.37,"-2":2.18},"mc":null,"mt":8.09},{"h":"CdSe0.25Te0.75","d":"Sb_Se","t":"Extrinsic","l":"Sb$_{Se}$","g":0.51,"v":1.9,"e":{"2":-1.66,"1":-0.05,"0":1.96,"-1":4.15,"-2":6.81},"mc":null,"mt":0.71},{"h":"CdSe0.25Te0.75","d":"Sb_Se+Cl_i","t":"Extrinsic","l":"Sb$_{Se}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-4.53,"1":-2.79,"0":-0.87,"-1":1.62,"-2":4.32},"mc":null,"mt":3.91},{"h":"CdSe0.25Te0.75","d":"Sb_Se+Cl_Se","t":"Extrinsic","l":"Sb$_{Se}$ + Cl$_{Se}$","g":0.51,"v":1.9,"e":{"2":-0.39,"1":1.32,"0":3.26,"-1":5.7,"-2":8.32},"mc":null,"mt":0.05},{"h":"CdSe0.25Te0.75","d":"Sb_Se+O_i","t":"Extrinsic","l":"Sb$_{Se}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-8.66,"1":610.03,"0":-4.35,"-1":-1.7,"-2":0.96},"mc":null,"mt":7.51},{"h":"CdSe0.25Te0.75","d":"Sb_Se+O_Se","t":"Extrinsic","l":"Sb$_{Se}$ + O$_{Se}$","g":0.51,"v":1.9,"e":{"2":-3.12,"1":-1.42,"0":0.55,"-1":2.68,"-2":5.18},"mc":null,"mt":3.66},{"h":"CdSe0.25Te0.75","d":"Sb_Se+Sb_i","t":"Extrinsic","l":"Sb$_{Se}$ + Sb$_{i}$","g":0.51,"v":1.9,"e":{"2":-6.24,"1":-3.95,"0":-1.45,"-1":1.41,"-2":4.31},"mc":null,"mt":5.27},{"h":"CdSe0.25Te0.75","d":"Sb_Te+Cl_i","t":"Extrinsic","l":"Sb$_{Te}$ + Cl$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.23,"1":-3.43,"0":-1.47,"-1":1.07,"-2":4.73},"mc":null,"mt":4.89},{"h":"CdSe0.25Te0.75","d":"Sb_Te+Cl_Te","t":"Extrinsic","l":"Sb$_{Te}$ + Cl$_{Te}$","g":0.51,"v":1.9,"e":{"2":-1.83,"1":-0.1,"0":1.78,"-1":4.2,"-2":6.76},"mc":null,"mt":1.37},{"h":"CdSe0.25Te0.75","d":"Sb_Te+O_i","t":"Extrinsic","l":"Sb$_{Te}$ + O$_{i}$","g":0.51,"v":1.9,"e":{"2":-7.53,"1":-5.84,"0":-3.94,"-1":610.05,"-2":0.63},"mc":null,"mt":8.64},{"h":"CdSe0.25Te0.75","d":"Sb_Te+O_Te","t":"Extrinsic","l":"Sb$_{Te}$ + O$_{Te}$","g":0.51,"v":1.9,"e":{"2":-4.15,"1":-2.59,"0":-0.81,"-1":1.21,"-2":3.63},"mc":null,"mt":5.11},{"h":"CdSe0.25Te0.75","d":"Sb_Te+Sb_i","t":"Extrinsic","l":"Sb$_{Te}$ + Sb$_{i}$","g":0.51,"v":1.9,"e":{"2":-5.88,"1":-3.58,"0":-1.16,"-1":1.29,"-2":4.07},"mc":null,"mt":5.6}];
-const QS = ["2", "1", "0", "-1", "-2"];
-const hostLabel = h => h.replace(/([A-Z][a-z]?)(\d*\.?\d*)/g, (m, el, n) => n ? el + "<sub>" + n + "</sub>" : el);
 const SUBD = { "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉", ".": "." };
 const hostUni = h => h.replace(/([A-Z][a-z]?)(\d*\.?\d*)/g, (m, el, n) => el + [...n].map(c => SUBD[c] || c).join(""));
-const defLabel = l => l.replace(/\$_\{?([^}$]*)\}?\$/g, "<sub>$1</sub>").replace(/\s*\+\s*/g, "+");
-const plain = s => s.replace(/<\/?sub>/g, "");
-const allHosts = [...new Set(DATA.map(r => r.h))].sort((a, b) => a === "CdTe" ? -1 : b === "CdTe" ? 1 : a.localeCompare(b));
-const muHosts = allHosts.filter(h => DATA.some(r => r.h === h && (r.mc !== null || r.mt !== null)));
-const condAvail = (h, c) => DATA.some(r => r.h === h && (c === "mc" ? r.mc : r.mt) !== null);
+const defLabel = d => {
+  const m = d.match(/^(.+?)(_(.+))?$/);
+  if (!m) return d;
+  const [, site, , sub] = m;
+  return sub ? `${site}<sub>${sub}</sub>` : site;
+};
 
-let host = muHosts[0], cond = "mc", selected = new Set();
-let tblHost = allHosts[0], tblCond = "mc";
+let curHost = null, curCond = "mc", selDefects = new Set(), sortIdx = 3, sortAsc = false, tblRows = [];
 
-function refreshSeg(segSel, hostVal, cur) {
-  let c = condAvail(hostVal, cur) ? cur : (cur === "mc" ? "mt" : "mc");
-  document.querySelectorAll(segSel + " button").forEach(b => {
-    const av = condAvail(hostVal, b.dataset.c);
-    b.disabled = !av;
-    b.classList.toggle("on", b.dataset.c === c);
+function updateStats() {
+  const hosts = [...new Set(DATA.map(r => r.h))];
+  const defects = [...new Set(DATA.map(r => r.d))];
+  document.getElementById("stats").innerHTML =
+    `<div class="stat"><b>${DATA.length}</b><span>Defect entries</span></div>
+     <div class="stat"><b>${defects.length}</b><span>Unique defects</span></div>
+     <div class="stat"><b>${hosts.length}</b><span>Host compounds</span></div>
+     <div class="stat"><b>5</b><span>Charge states</span></div>`;
+}
+
+function buildCompoundTabs() {
+  const hosts = [...new Set(DATA.map(r => r.h))];
+  const tabs = document.getElementById("compound-tabs");
+  tabs.innerHTML = "";
+  hosts.forEach((h, i) => {
+    const btn = document.createElement("button");
+    btn.className = i === 0 ? "on" : "";
+    btn.innerText = hostUni(h);
+    btn.onclick = () => selectHost(h);
+    tabs.appendChild(btn);
   });
-  return c;
+  selectHost(hosts[0]);
 }
 
-function envelope(r, EF, condKey) {
-  const mu = condKey === "mc" ? r.mc : r.mt;
-  if (mu === null) return [null, null];
-  let best = Infinity, bq = null;
-  for (const q of QS) {
-    if (!(q in r.e)) continue;
-    const v = r.e[q] + mu + Number(q) * (r.v + EF);
-    if (v < best) { best = v; bq = q; }
-  }
-  return bq === null ? [null, null] : [best, Number(bq)];
+function selectHost(h) {
+  curHost = h;
+  document.querySelectorAll(".compound-tabs button").forEach(b => b.classList.remove("on"));
+  [...document.querySelectorAll(".compound-tabs button")].find(b => b.innerText === hostUni(h))?.classList.add("on");
+  condAvail(h, curCond) || (curCond = "mt", updateCondButtons());
+  buildDefectList();
+  plotEf();
+  updateLibraryTable();
 }
-const rowsFor = h => DATA.filter(r => r.h === h);
 
-// ---- stats band ----
-(function () {
-  const uniq = new Set(DATA.map(r => r.d)).size;
-  document.getElementById("stats").innerHTML = [
-    [DATA.length, "defect entries"], [uniq, "unique defects"],
-    [allHosts.length, "CdSe<sub>x</sub>Te<sub>1−x</sub> hosts"],
-    ["−2 … +2", "charge states"], [2, "chemical conditions"]
-  ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
-})();
-
-// ---- diagram controls ----
-const hostSel = document.getElementById("host-sel");
-hostSel.innerHTML = muHosts.map(h => `<option value="${h}">${hostUni(h)}</option>`).join("");
-hostSel.onchange = () => { host = hostSel.value; cond = refreshSeg("#cond-seg", host, cond); presetSelection(); renderDiagram(); };
-document.querySelectorAll("#cond-seg button").forEach(b => b.onclick = () => {
-  document.querySelectorAll("#cond-seg button").forEach(x => x.classList.remove("on"));
-  b.classList.add("on"); cond = b.dataset.c; renderDiagram();
-});
-const menu = document.getElementById("defect-menu"), btn = document.getElementById("defect-btn");
-btn.onclick = e => { e.stopPropagation(); menu.classList.toggle("open"); };
-document.addEventListener("click", e => { if (!menu.contains(e.target) && e.target !== btn) menu.classList.remove("open"); });
-document.getElementById("defect-search").oninput = renderMenu;
-document.getElementById("reset-btn").onclick = () => { presetSelection(); renderDiagram(); };
-
-function presetSelection() {
-  const rs = rowsFor(host), mid = rs[0] ? rs[0].g / 2 : 0;
-  selected = new Set(rs
-    .map(r => [r.d, envelope(r, mid, cond)[0]])
-    .filter(x => x[1] !== null)
-    .sort((a, b) => a[1] - b[1]).slice(0, 5).map(x => x[0]));
+function condAvail(h, c) {
+  const mu = c === "mc" ? r => r.mc : r => r.mt;
+  return DATA.filter(r => r.h === h && mu(r) !== null).length > 0;
 }
-function renderMenu() {
-  const f = document.getElementById("defect-search").value.toLowerCase();
-  const list = rowsFor(host).filter(r => (cond === "mc" ? r.mc : r.mt) !== null && r.d.toLowerCase().includes(f));
-  document.getElementById("defect-list").innerHTML = list.map(r =>
-    `<label><input type="checkbox" data-d="${r.d}" ${selected.has(r.d) ? "checked" : ""}> ${defLabel(r.l)}</label>`).join("");
-  document.querySelectorAll("#defect-list input").forEach(cb => cb.onchange = () => {
-    cb.checked ? selected.add(cb.dataset.d) : selected.delete(cb.dataset.d);
-    renderPlot(); updateBtn();
+
+function updateCondButtons() {
+  const mc = condAvail(curHost, "mc"), mt = condAvail(curHost, "mt");
+  document.querySelectorAll("#cond-seg button").forEach(b => {
+    b.disabled = (b.dataset.c === "mc" && !mc) || (b.dataset.c === "mt" && !mt);
+    if (b.dataset.c === curCond) b.classList.add("on");
+    else b.classList.remove("on");
   });
 }
-function updateBtn() { btn.innerHTML = selected.size + " defect" + (selected.size === 1 ? "" : "s") + " selected ▾"; }
 
-// ---- formation-energy plot ----
-function renderPlot() {
-  const rows = rowsFor(host).filter(r => selected.has(r.d));
-  const gap = rowsFor(host)[0] ? rowsFor(host)[0].g : 1;
-  const N = 220, traces = [];
-  for (const r of rows) {
-    const x = [], y = [], q = [];
-    for (let i = 0; i <= N; i++) {
-      const EF = gap * i / N, [v, bq] = envelope(r, EF, cond);
-      if (v === null) continue;
-      x.push(EF); y.push(v); q.push(bq > 0 ? "+" + bq : String(bq));
-    }
-    if (!x.length) continue;
-    traces.push({ x, y, customdata: q, mode: "lines", name: defLabel(r.l),
-      line: { width: 2.4 },
-      hovertemplate: defLabel(r.l) + " (q=%{customdata})<br>E<sub>F</sub>=%{x:.3f} eV, E<sub>f</sub>=%{y:.3f} eV<extra></extra>" });
-  }
-  Plotly.react("efplot", traces, {
-    font: { family: "Arial Narrow, Arial", size: 13.5, color: "#1a1e2e" },
-    margin: { l: 54, r: 14, t: 32, b: 46 },
-    title: { text: hostLabel(host) + " — " + (cond === "mc" ? "Cd-rich" : "Te-rich") + " (PBEsol)", font: { size: 15.5 } },
-    xaxis: { title: { text: "Fermi level relative to VBM (eV)" }, range: [0, gap], zeroline: false, gridcolor: "#e7eaf0" },
-    yaxis: { title: { text: "Formation energy (eV)" }, zeroline: false, gridcolor: "#e7eaf0" },
-    legend: { orientation: "h", y: -0.18 },
-    paper_bgcolor: "#ffffff", plot_bgcolor: "#ffffff"
-  }, { responsive: true, displaylogo: false });
-}
-function renderDiagram() { renderMenu(); updateBtn(); renderPlot(); }
-
-// ---- library table ----
-const tblHostSel = document.getElementById("tbl-host");
-tblHostSel.innerHTML = allHosts.map(h => `<option value="${h}">${hostUni(h)}</option>`).join("");
-tblHostSel.onchange = () => { tblHost = tblHostSel.value; tblCond = refreshSeg("#tbl-cond", tblHost, tblCond); renderTable(); };
-document.querySelectorAll("#tbl-cond button").forEach(b => b.onclick = () => {
-  document.querySelectorAll("#tbl-cond button").forEach(x => x.classList.remove("on"));
-  b.classList.add("on"); tblCond = b.dataset.c; renderTable();
+document.getElementById("cond-seg").addEventListener("click", e => {
+  if (e.target.dataset.c) { curCond = e.target.dataset.c; updateCondButtons(); buildDefectList(); plotEf(); }
 });
-let sortKey = "de0", sortAsc = true;
-function tableRows() {
-  const f = document.getElementById("tbl-search").value.toLowerCase();
-  const ty = document.getElementById("tbl-type").value;
-  const rs = rowsFor(tblHost), mid = rs[0] ? rs[0].g / 2 : 0;
-  return rs
-    .filter(r => (!ty || r.t === ty) && (r.d.toLowerCase().includes(f) || r.l.toLowerCase().includes(f)))
-    .map(r => {
-      const [efv, qv] = envelope(r, 0, tblCond), [efm, qm] = envelope(r, mid, tblCond);
-      return { l: r.l, d: r.d, t: r.t, de0: "0" in r.e ? r.e["0"] : null, efv, qv, efm, qm };
-    })
-    .sort((a, b) => {
-      let va = a[sortKey], vb = b[sortKey];
-      if (va === null) va = Infinity; if (vb === null) vb = Infinity;
-      const c = typeof va === "string" ? va.localeCompare(vb) : va - vb;
-      return sortAsc ? c : -c;
+
+function buildDefectList() {
+  const defects = [...new Set(DATA.filter(r => r.h === curHost).map(r => r.d))];
+  const list = document.getElementById("defect-list");
+  list.innerHTML = "";
+  defects.forEach(d => {
+    const label = document.createElement("label");
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.checked = selDefects.has(d);
+    chk.onchange = () => {
+      selDefects.has(d) ? selDefects.delete(d) : selDefects.add(d);
+      updateDefectBtn();
+      plotEf();
+    };
+    label.appendChild(chk);
+    label.appendChild(document.createTextNode(defLabel(d)));
+    list.appendChild(label);
+  });
+}
+
+function updateDefectBtn() {
+  document.getElementById("defect-btn").innerText = selDefects.size === 0 ? "Select defects ▾" : `${selDefects.size} selected ▾`;
+}
+
+document.getElementById("defect-btn").addEventListener("click", () => {
+  const menu = document.getElementById("defect-menu");
+  menu.classList.toggle("open");
+});
+
+document.getElementById("defect-search").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll("#defect-menu label").forEach(l => {
+    l.style.display = l.innerText.toLowerCase().includes(q) ? "" : "none";
+  });
+});
+
+document.getElementById("reset-btn").addEventListener("click", () => {
+  const hostData = DATA.filter(r => r.h === curHost);
+  const top5 = hostData.sort((a, b) => {
+    const aEf = efAt(a, 0.5);
+    const bEf = efAt(b, 0.5);
+    return (aEf ?? 999) - (bEf ?? 999);
+  }).slice(0, 5).map(r => r.d);
+  selDefects = new Set(top5);
+  updateDefectBtn();
+  buildDefectList();
+  plotEf();
+});
+
+function efAt(row, x) {
+  const mu = curCond === "mc" ? row.mc : row.mt;
+  if (mu === null) return null;
+  const eg = row.g - row.v;
+  const ef = [];
+  for (let q = -2; q <= 2; q++) {
+    const ekey = String(q);
+    if (!(ekey in row.e)) continue;
+    const de = row.e[ekey];
+    ef.push(de + q * (row.v + x * eg) + (mu ?? 0));
+  }
+  return ef.length > 0 ? Math.min(...ef) : null;
+}
+
+function plotEf() {
+  if (!curHost || selDefects.size === 0) {
+    Plotly.newPlot("efplot", [], {
+      title: { text: "Select defects to plot", x: 0.5, xanchor: "center", font: { size: 15.5 } },
+      xaxis: { title: "E<sub>F</sub> (eV)" },
+      yaxis: { title: "E<sub>f</sub> (eV)" },
+      margin: { l: 54, r: 14, t: 32, b: 46 }
     });
-}
-const fmt = (v, d) => v === null ? "—" : v.toFixed(d);
-const fq = q => q === null ? "—" : (q > 0 ? "+" + q : String(q));
-function renderTable() {
-  const rows = tableRows();
-  document.querySelector("#tbl tbody").innerHTML = rows.map(r =>
-    `<tr><td>${defLabel(r.l)}</td><td>${r.t}</td>
-     <td class="num">${fmt(r.de0, 2)}</td>
-     <td class="num">${fmt(r.efv, 2)}</td><td class="num">${fq(r.qv)}</td>
-     <td class="num">${fmt(r.efm, 2)}</td><td class="num">${fq(r.qm)}</td></tr>`).join("");
-  document.getElementById("tbl-count").textContent = rows.length + " of " + rowsFor(tblHost).length + " entries";
-  document.querySelectorAll("#tbl th").forEach(th => {
-    th.innerHTML = th.innerHTML.replace(/ <span class="arr">.*<\/span>/, "");
-    if (th.dataset.k === sortKey) th.innerHTML += ` <span class="arr">${sortAsc ? "▲" : "▼"}</span>`;
+    return;
+  }
+  const eg = DATA.find(r => r.h === curHost).g - DATA.find(r => r.h === curHost).v;
+  const xpts = Array.from({ length: 51 }, (_, i) => (i / 50) * eg);
+  const traces = [];
+  const rows = DATA.filter(r => r.h === curHost && selDefects.has(r.d));
+  rows.forEach(row => {
+    const ypts = xpts.map(ef => efAt(row, ef / eg) ?? null);
+    traces.push({
+      x: xpts,
+      y: ypts,
+      name: defLabel(row.d),
+      hovertemplate: "E<sub>F</sub>=%{x:.3f} eV<br>E<sub>f</sub>=%{y:.3f} eV",
+      mode: "lines",
+      line: { width: 2.4 }
+    });
+  });
+  Plotly.newPlot("efplot", traces, {
+    title: { text: `${hostUni(curHost)} — ${curCond === "mc" ? "Cd-rich" : "Te-rich"}`, x: 0.5, xanchor: "center", font: { size: 15.5 } },
+    xaxis: { title: "E<sub>F</sub> − E<sub>VBM</sub> (eV)" },
+    yaxis: { title: "E<sub>f</sub> (eV)" },
+    hovermode: "closest",
+    margin: { l: 54, r: 14, t: 32, b: 46 },
+    width: Math.min(820, window.innerWidth - 60),
+    height: 430
   });
 }
-document.querySelectorAll("#tbl th").forEach(th => th.onclick = () => {
-  if (sortKey === th.dataset.k) sortAsc = !sortAsc; else { sortKey = th.dataset.k; sortAsc = true; }
-  renderTable();
-});
-document.getElementById("tbl-search").oninput = renderTable;
-document.getElementById("tbl-type").onchange = renderTable;
 
-cond = refreshSeg("#cond-seg", host, cond);
-tblCond = refreshSeg("#tbl-cond", tblHost, tblCond);
-presetSelection(); renderDiagram(); renderTable();
+function sortTbl(i) {
+  sortAsc = sortIdx === i ? !sortAsc : true;
+  sortIdx = i;
+  renderTbl();
+}
+
+function renderTbl() {
+  const tBody = document.querySelector("#tbl tbody");
+  const sorted = [...tblRows].sort((a, b) => {
+    const va = a[sortIdx], vb = b[sortIdx];
+    const cmp = typeof va === "number" ? va - vb : (va ?? "").localeCompare(vb ?? "");
+    return sortAsc ? cmp : -cmp;
+  });
+  tBody.innerHTML = "";
+  sorted.forEach(row => {
+    const tr = document.createElement("tr");
+    row.forEach((v, i) => {
+      const td = document.createElement(i === 0 ? "th" : "td");
+      if (i > 1) td.className = "num";
+      td.innerHTML = v;
+    });
+    tBody.appendChild(tr);
+  });
+}
+
+function updateLibraryTable() {
+  tblRows = DATA.filter(r => r.h === curHost).map(r => {
+    const mu = curCond === "mc" ? r.mc : r.mt;
+    const eg = r.g - r.v;
+    const atVbm = efAt(r, 0), atMid = efAt(r, 0.5);
+    const efVals = [];
+    for (let q = -2; q <= 2; q++) {
+      if (String(q) in r.e) {
+        const de = r.e[String(q)];
+        efVals.push({ q, ef: de + q * r.v + (mu ?? 0) });
+      }
+    }
+    const qVbm = efVals.reduce((a, b) => efAt(r, 0) - b.ef < efAt(r, 0) - a.ef ? a : b, efVals[0])?.q || 0;
+    const qMid = efVals.reduce((a, b) => efAt(r, 0.5) - b.ef < efAt(r, 0.5) - a.ef ? a : b, efVals[0])?.q || 0;
+    return [
+      defLabel(r.d),
+      r.t,
+      r.e["0"] !== undefined ? r.e["0"].toFixed(2) : "—",
+      atVbm !== null ? atVbm.toFixed(2) : "—",
+      qVbm,
+      atMid !== null ? atMid.toFixed(2) : "—",
+      qMid
+    ];
+  });
+  sortAsc = false;
+  renderTbl();
+}
+
+updateStats();
+buildCompoundTabs();
+updateCondButtons();
 </script>
 </body>
 </html>
