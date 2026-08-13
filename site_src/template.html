@@ -97,6 +97,10 @@ sub{font-size:.72em}
 .dgrid{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(380px,1.6fr) minmax(260px,1fr);gap:20px}
 @media(max-width:1100px){.dgrid{grid-template-columns:1fr}}
 .dcol h4{margin:0 0 6px;font-size:14px;color:var(--wbg-accent)}
+#cdetail .dgrid{align-items:stretch}
+#cdetail .dcol{display:flex;flex-direction:column}
+#cdetail .dcol>*{flex:0 0 auto}
+#cdetail #cnote,#cdetail #cmapnote{flex:1 1 auto}
 .minitbl{border-collapse:collapse;width:100%;font-size:13.5px}
 .minitbl th{text-align:left;color:var(--wbg-muted);font-weight:700;border-bottom:1px solid var(--wbg-border);padding:4px 8px}
 .minitbl td{border-bottom:1px solid #eceff3;padding:4px 8px;font-variant-numeric:tabular-nums;font-size:13.5px}
@@ -143,7 +147,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 .mvhost{width:100%;overflow:hidden;position:relative;display:block;zoom:calc(1/1.22)}
 .mvhost>*{height:100% !important}
 #cstruct,#trajbox_struct,#trajbox2_struct{overflow:hidden}
-#dqsel .cpill,#cdl .cpill,#incarbtn,#ctitle .cpill{text-transform:none}
+#dqsel .cpill,#incarbtn,#ctitle .cpill{text-transform:none}
 </style>
 </head>
 <body>
@@ -170,7 +174,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
   <div class="tabgroup">
     <div class="glabel">Browse the data</div>
     <div class="pills">
-      <button class="tab" data-v="rankings">Compound Rankings</button>
+      <button class="tab" data-v="rankings">Compounds Explorer</button>
       <button class="tab on" data-v="explorer">Defect Explorer</button>
     </div>
   </div>
@@ -267,7 +271,6 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
         <div class="dcol">
           <h4>DFT-optimized structure — MatterViz</h4>
           <div id="cstruct" style="width:100%;height:330px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
-          <div id="cdl" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
           <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center" id="cmoviebtn"></div>
           <h4 style="margin-top:12px" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
           <div id="cmap" style="width:100%;height:210px"></div>
@@ -554,19 +557,15 @@ document.querySelectorAll("#view-explorer .cpill").forEach(p=>p.onclick=()=>{
 const CCOLS=[
   {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}</span>`,val:r=>r.n},
   {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
-  {k:"cell",label:"Supercell",w:265,cell:(r,v)=>`<span class="c" style="width:130px">${cellLabel(v)}</span>`,val:r=>r.o[r.b][6]||0},
+  {k:"nat",label:"No. of atoms",w:100,num:1,cell:(r,v)=>`<span class="c num" style="width:100px">${v[6]||"—"}</span>`,val:r=>r.o[r.b][6]||0},
+  {k:"latt",label:"Lattice parameter (Å)",w:170,cell:(r,v)=>`<span class="c" style="width:170px">${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)}`:"—"}</span>`,val:r=>r.o[r.b][8]?r.o[r.b][8][0]:0},
   {k:"eform",label:"Formation energy (eV/atom)",w:170,num:1,vi:0},
   {k:"edec",label:"Decomposition energy (eV/f.u.)",w:190,num:1,vi:1},
   {k:"gap",label:"Band gap (eV)",w:116,num:1,vi:2},
-  {k:"eps",label:"ε∞ (electronic)",w:120,num:1,vi:3},
+  {k:"eps",label:"Dielectric constant",w:132,num:1,vi:3},
   {k:"slme",label:"SLME (%)",w:92,num:1,vi:4},
 ];
 CCOLS.forEach(c=>{ if(c.vi!==undefined) c.val=r=>r.o[r.b][c.vi]; });
-const cellLabel=v=>{
-  const nat=v[6]?`${v[6]} atoms`:"";
-  const abc=v[8]?` · ${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"";
-  return nat?nat+abc:"—";
-};
 let cSort={k:"eform",asc:true},cSel=null,cFiltered=[],cOrd=null;
 function cApplyFilters(){
   const q=document.getElementById("csearch").value.trim().toLowerCase();
@@ -655,9 +654,10 @@ function cOpenDetail(r,ord){
      <div><span>Formation energy</span><span>${fmt(v[0])} eV/atom</span></div>
      <div><span>Decomposition energy</span><span>${fmt(v[1])} eV/f.u.</span></div>
      <div><span>Band gap</span><span>${fmt(v[2])} eV</span></div>
-     <div><span>ε<sub>∞</sub> (electronic)</span><span>${fmt(v[3])}</span></div>
+     <div><span>Dielectric constant</span><span>${fmt(v[3])}</span></div>
      <div><span>SLME</span><span>${fmt(v[4])} %</span></div>
-     <div><span>Supercell</span><span>${cellLabel(v)}</span></div>
+     <div><span>No. of atoms</span><span>${v[6]||"—"}</span></div>
+     <div><span>Lattice parameter</span><span>${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"—"}</span></div>
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
   mountStructure(r,cOrd);
@@ -706,27 +706,8 @@ function loadMV(seed){
   }
   return mvMod;
 }
-function toCIF(name,st){
-  const L=st.lattice;
-  let s=`data_${name}\n_symmetry_space_group_name_H-M   'P 1'\n`+
-    `_cell_length_a   ${L.a}\n_cell_length_b   ${L.b}\n_cell_length_c   ${L.c}\n`+
-    `_cell_angle_alpha   ${L.alpha}\n_cell_angle_beta   ${L.beta}\n_cell_angle_gamma   ${L.gamma}\n`+
-    `_symmetry_Int_Tables_number   1\n_chemical_formula_structural   ${name}\n`+
-    `loop_\n _symmetry_equiv_pos_site_id\n _symmetry_equiv_pos_as_xyz\n  1  'x, y, z'\n`+
-    `loop_\n _atom_site_type_symbol\n _atom_site_label\n _atom_site_symmetry_multiplicity\n`+
-    ` _atom_site_fract_x\n _atom_site_fract_y\n _atom_site_fract_z\n _atom_site_occupancy\n`;
-  const cnt={};
-  st.sites.forEach(si=>{const el=si.species[0].element; cnt[el]=(cnt[el]||0)+1;
-    s+=`  ${el}  ${el}${cnt[el]}  1  ${si.abc[0].toFixed(8)}  ${si.abc[1].toFixed(8)}  ${si.abc[2].toFixed(8)}  1\n`;});
-  return s;
-}
-function dlText(txt,fname){
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain"}));
-  a.download=fname; a.click(); URL.revokeObjectURL(a.href);
-}
 async function mountStructure(r,ord){
-  const el=document.getElementById("cstruct"), dl=document.getElementById("cdl");
+  const el=document.getElementById("cstruct");
   const FK={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
   const RK={"PBEsol":"PBEsol","HSE06":"HSE","HSE+SOC":"HSE+SOC"}[r.f];
   const key = r.ref            ? `ref__${RK}__${r.n}`
@@ -734,7 +715,7 @@ async function mountStructure(r,ord){
             : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
             : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}`
             : r.rk==="HSE06 (A2BCX4)" ? `HSE06__${r.n}_${ord}` : null;
-  CURKEY=key; CURSTRUCT=null; dl.innerHTML="";
+  CURKEY=key; CURSTRUCT=null;
   if(!key){
     el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-geometry payload published for this level of theory yet.</div>';
     return;
@@ -751,13 +732,12 @@ async function mountStructure(r,ord){
   }catch(e){ st=null; }
   if(!st){ el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-structure payload for this ordering.</div>'; return; }
   CURSTRUCT=hydrate(st);
-  dl.innerHTML=`<button class="cpill" onclick="dlText(toCIF(CURKEY,CURSTRUCT),CURKEY+'.cif')">download CIF</button>`+
-    `<a class="cpill" style="text-decoration:none" href="structures/${encodeURIComponent(key)}.json" download>download structure (JSON)</a>`;
+
   try{
     await loadMV(CURSTRUCT);
     renderGrid(CURSTRUCT, el);
   }catch(e){
-    el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable offline; the CIF and JSON downloads above hold the same relaxed geometry.</div>';
+    el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable offline.</div>';
   }
 }
 const INCAR_TXT={
