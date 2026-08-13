@@ -1,0 +1,11 @@
+tool:
+  name: defectdatabase
+  title: "DefectDB: An Open Source Infrastructure for Defect Thermodynamics in II–VI Semiconductors"
+  tool_type: jupyter
+  main: Cd_Zn_X_v3.ipynb
+  description: |
+    A unified, ML-accelerated defect informatics platform for Cd/Zn-S/Se/Te
+    semiconductors that combines high-throughput DFT, machine-learning force
+    fields, and interactive analysis tools.
+  author: Habibur Rahman
+  license: MIT
