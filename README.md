@@ -12,7 +12,7 @@ The tool runs live in the browser on nanoHUB — no installation required:
 
 > **▶ Launch the tool: [nanohub.org/tools/defectdatabase](https://nanohub.org/tools/defectdatabase)**
 >
-> **🌐 Browse the library: [defectdatabase.github.io/II-VI-semiconductors](https://defectdatabase.github.io/II-VI-semiconductors/)** — interactive formation-energy diagrams and a sortable defect table, computed live from the published dataset.
+> **🌐 Browse the library: [defectdatabase.github.io/II-VI-semiconductors](https://defectdatabase.github.io/II-VI-semiconductors/)** — a compound explorer with 6763 DFT-computed I–III–VI₂ / I₂–II–IV–VI₄ chalcogenides (formation energy, decomposition energy, band gap, dielectric constant, SLME) plus interactive defect formation-energy diagrams for II–VI hosts at PBEsol and HSE+SOC, computed live from the published dataset. The website reports DFT data only; the MLFF models are used in the simulation tool.
 
 Developed in the Mannodi research group at Purdue University (Md Habibur Rahman, Yi Yang, Arun Mannodi-Kanakkithodi).
 
