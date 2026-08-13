@@ -530,7 +530,7 @@ document.querySelectorAll("#view-explorer .cpill").forEach(p=>p.onclick=()=>{
 const CCOLS=[
   {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}</span>`,val:r=>r.n},
   {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
-  {k:"cell",label:"Supercell",w:118,cell:(r,v)=>`<span class="c" style="width:118px">${v[7]||"—"}${v[6]?` (${v[6]} at.)`:""}</span>`,val:r=>r.o[r.b][6]||0},
+  {k:"cell",label:"Supercell",w:130,cell:(r,v)=>`<span class="c" style="width:130px">${cellLabel(v)}</span>`,val:r=>r.o[r.b][6]||0},
   {k:"eform",label:"Formation energy (eV/atom)",w:170,num:1,vi:0},
   {k:"edec",label:"Decomposition energy (eV/f.u.)",w:190,num:1,vi:1},
   {k:"gap",label:"Band gap (eV)",w:116,num:1,vi:2},
@@ -538,6 +538,11 @@ const CCOLS=[
   {k:"slme",label:"SLME (%)",w:92,num:1,vi:4},
 ];
 CCOLS.forEach(c=>{ if(c.vi!==undefined) c.val=r=>r.o[r.b][c.vi]; });
+const cellLabel=v=>{
+  const dims=v[7]&&/^\d+×\d+×\d+$/.test(v[7])?v[7]:"";
+  const nat=v[6]?`${v[6]} atoms`:"";
+  return [dims,nat].filter(Boolean).join(", ")||"—";
+};
 let cSort={k:"eform",asc:true},cSel=null,cFiltered=[],cOrd=null;
 function cApplyFilters(){
   const q=document.getElementById("csearch").value.trim().toLowerCase();
@@ -627,7 +632,7 @@ function cOpenDetail(r,ord){
      <div><span>Band gap</span><span>${fmt(v[2])} eV</span></div>
      <div><span>ε<sub>∞</sub> (electronic)</span><span>${fmt(v[3])}</span></div>
      <div><span>SLME</span><span>${fmt(v[4])} %</span></div>
-     <div><span>Supercell</span><span>${v[7]||"—"}${v[6]?`, ${v[6]} atoms`:""}</span></div>
+     <div><span>Supercell</span><span>${cellLabel(v)}</span></div>
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
   document.getElementById("incarbtn").onclick=()=>openIncar(r.f);
