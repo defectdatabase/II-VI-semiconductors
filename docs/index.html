@@ -145,8 +145,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
   border-radius:14px;padding:18px 22px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.4)}
 #moviemodal.on{display:block}
 #mvm-head{display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--wbg-border)}
-#mvm-info{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--wbg-surface);
-  border:1px solid var(--wbg-border);border-radius:8px;padding:7px 12px;margin:10px 0;
+#mvm-info{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:6px 2px;margin:2px 0 6px;
   font-family:'Arial Narrow',Arial,sans-serif;font-size:13.5px;color:#475569}
 #mvm-info .sep{color:#c9ced8}
 #mvm-info b{font-weight:700}
@@ -633,6 +632,7 @@ const CCOLS=[
   {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
   {k:"nat",label:"No. of atoms",w:100,num:1,cell:(r,v)=>`<span class="c num" style="width:100px">${v[6]||"—"}</span>`,val:r=>r.o[r.b][6]||0},
   {k:"latt",label:"Lattice parameter (Å)",w:170,cell:(r,v)=>`<span class="c" style="width:170px">${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)}`:"—"}</span>`,val:r=>r.o[r.b][8]?r.o[r.b][8][0]:0},
+  {k:"ang",label:"α × β × γ (°)",w:140,cell:(r,v)=>`<span class="c" style="width:140px">${v.length>18&&v[18]?v[18].map(x=>x.toFixed(1)).join(" × "):"—"}</span>`,val:r=>{const w=r.o[r.b];return w.length>18&&w[18]?w[18][0]:null;}},
   {k:"eform",label:"Formation energy (eV/atom)",w:170,num:1,vi:0},
   {k:"edec",label:"Decomposition energy (eV/f.u.)",w:190,num:1,vi:1},
   {k:"gap",label:"Band gap (eV)",w:116,num:1,vi:2},
@@ -730,11 +730,16 @@ function cOpenDetail(r,ord){
      <div><span>SLME</span><span>${fmt(v[4])} %</span></div>
      <div><span>No. of atoms</span><span>${v[6]||"—"}</span></div>
      <div><span>Lattice parameter</span><span>${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"—"}</span></div>
+     <div><span>Angles α × β × γ</span><span>${v.length>18&&v[18]?v[18].map(x=>x.toFixed(2)).join(" × ")+" °":"—"}</span></div>
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
-  typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd));
   document.getElementById("cnote").scrollTop=0;
-  if(!OPTICS && r.o[cOrd] && r.o[cOrd].length>14 && r.o[cOrd][14])
-    loadOptics().then(()=>{ if(cSel===r&&cOrd) typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd)); });
+  if(!OPTICS && r.o[cOrd] && r.o[cOrd].length>14 && r.o[cOrd][14]){
+    // fetch the optics side-payload first so the panel types exactly once
+    document.getElementById("cnote").innerHTML="";
+    loadOptics().then(()=>{ if(cSel===r) typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd)); });
+  } else {
+    typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd));
+  }
   mountStructure(r,cOrd);
   drawInsight(r,cOrd);
   const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
@@ -1044,7 +1049,7 @@ async function openMovie(key,options,label){
   MVM.data=data;
   MVM.opts=options.filter(o=>data[o.sub]&&data[o.sub].frames&&data[o.sub].frames.length>=2);
   const sel=document.getElementById("mvm-sel");
-  sel.style.display="";
+  sel.style.display=MVM.opts.length>1?"":"none";
   sel.innerHTML=MVM.opts.map(o=>{
     const n=data[o.sub].frames.length;
     return `<option value="${o.sub}">${MVM.opts.length>1?o.name+" · ":"ionic relaxation · "}${n} frames</option>`;}).join("");
@@ -1180,11 +1185,21 @@ async function mvmShow(i){
   MVM.frame=Math.max(0,Math.min(t.frames.length-1,i));
   const f=t.frames[MVM.frame];
   document.getElementById("mvm-slider").value=String(MVM.frame);
-  document.getElementById("mvm-count").textContent=`frame ${MVM.frame+1} / ${t.frames.length}`;
+  document.getElementById("mvm-count").innerHTML=
+    `frame ${MVM.frame+1} / ${t.frames.length} · E = ${f.e!==null&&f.e!==undefined?f.e.toFixed(2):"—"} eV`+
+    (f.f!==null&&f.f!==undefined?` · F<sub>max</sub> = ${f.f.toFixed(3)}`:"");
   try{
     const st=mvmStructure(f);
     await loadMV(st);
-    renderGrid(st, document.getElementById("mvm-grid"));
+    const grid=document.getElementById("mvm-grid");
+    if(MVM.timer&&grid.querySelector(".mvhost")){
+      // while playing, only the first pane re-renders — full 4-pane remounts churn WebGL contexts
+      const host=grid.querySelector(".mvhost");
+      freeMV(host); host.replaceChildren();
+      window.renderMatterViz(st, host, {});
+    } else {
+      renderGrid(st, grid);
+    }
   }catch(e){}
   const eL=t.frames[t.frames.length-1].e;
   const de=f.e!==null&&eL!==null?f.e-eL:null;
@@ -1339,7 +1354,7 @@ function typeInto(el, html){
   const gen=++TYPEGEN;
   const tokens=html.split(/(<[^>]+>|\s+)/).filter(t=>t!=="");
   if(document.hidden){ el.innerHTML=html; return; }
-  const perTick=Math.max(1, Math.ceil(tokens.length/700));   // deliberate pace (~30 s on long panels)
+  const perTick=1;                                            // one word per tick — steady, deliberate
   let i=0, buf="";
   el.innerHTML="";
   TYPETIMER=setInterval(()=>{
