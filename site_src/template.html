@@ -119,6 +119,8 @@ sub{font-size:.72em}
 #reportbtn:hover{color:var(--wbg-accent);text-decoration:none}
 
 .showing{font-weight:400}
+body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.tab,.cpill,.dhead,#attr .who
+  {font-weight:400 !important;font-family:'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif !important}
 #incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:90;
   background:#fff;border:1px solid var(--wbg-border);border-radius:12px;padding:20px 24px;
   max-width:640px;width:88%;box-shadow:0 20px 60px rgba(10,25,50,.35)}
@@ -625,7 +627,7 @@ function cOpenDetail(r,ord){
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
   document.getElementById("incarbtn").onclick=()=>openIncar(r.f);
   mountStructure(r,cOrd);
-  const FKEY={"PBE (GGA)":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
+  const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
   mountTraj(`host__${FKEY}__${r.n}`,null,`${subHTML(r.n)} — ${r.f} relaxation`);
   cRenderRows();
 }
@@ -681,7 +683,7 @@ function dlText(txt,fname){
 }
 async function mountStructure(r,ord){
   const el=document.getElementById("cstruct"), dl=document.getElementById("cdl");
-  const FK={"PBE (GGA)":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
+  const FK={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
   const key = ord==="zinc blende" ? `${FK}__${r.n}`
             : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
             : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}` : null;
@@ -720,7 +722,7 @@ KPOINTS: Γ-centred mesh from the parent PBEsol run · POTCAR: PBE PAW (VASP 5.4
 GGA = PS · PREC = Accurate · ENCUT = 500 eV · EDIFF = 1e-4 · NSW = 0 · IBRION = -1 · ISIF = 0
 ISPIN = 2 · ISMEAR = 0, SIGMA = 0.05 · LORBIT = 11 · NEDOS = 2000 · LVTOT = .TRUE.
 KPOINTS: Γ-centred 2×2×2 (1×1×1 for the largest cells)`,
- "PBE (GGA)":`Static PBE single point on the relaxed host cell:
+ "PBE":`Static PBE single point on the relaxed host cell:
 GGA = PE · ENCUT = 500 eV · EDIFF = 1e-6 · ISMEAR = 0, SIGMA = 0.05 · KSPACING ≈ 0.03 2π/Å`,
  "HSE06":`Static HSE06 single point on the relaxed host cell:
 LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · GGA = PS · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`,
