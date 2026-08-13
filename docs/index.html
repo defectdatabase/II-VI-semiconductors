@@ -192,6 +192,8 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #cdetail #cnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
 #cdetail #cmapnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
 #incarbody,#cdetail #cnote,#cdetail #cmapnote{text-align:justify}
+#cdetail #cnote,#cdetail #cnote *,#incarbody,#incarbody *{
+  font-family:'Courier New',Courier,monospace;font-size:13px;line-height:1.55}
 #detail,#cdetail{color:var(--wbg-ink)}
 .mvhost{width:100%;overflow:visible;position:relative;display:block;zoom:calc(1/1.22)}
 .mvhost .draggable-pane{max-height:340px !important;overflow-y:auto;z-index:60}
@@ -754,7 +756,7 @@ document.getElementById("csearch").addEventListener("input",cApplyFilters);
 
 
 function openIncar(theory,r,ord){
-  document.getElementById("incartitle").innerHTML=r?`${subHTML(r.n)} — ${String(r.f)}`:theory;
+  document.getElementById("incartitle").innerHTML=r?subHTML(r.n):theory;
   let body=(INCAR_TXT[theory]||INCAR_TXT[String(theory).split(" (")[0]]||"—").replace(/\n/g,"<br>");
   if(r&&ord&&r.o[ord]){
     const v=r.o[ord], R=REFS[r.rk||r.f]||{}, paw=R.paw||{};
@@ -1077,23 +1079,7 @@ async function openStaticMovie(key,label,E,fmax,info){
   const hst=hydrate(st), L=hst.lattice;
   const nfo=info||{};
   const pct=fmax!==null&&fmax!==undefined?Math.min(100,100*fmax/(EDIFFG*2)):null;
-  const card=document.getElementById("mvm-card");
-  card.style.display="";
-  card.style.borderTop="1px solid var(--wbg-border)";
-  card.style.paddingTop="10px"; card.style.marginTop="10px";
-  card.style.flex="0 0 auto"; card.style.overflowY="auto"; card.style.maxHeight="290px";
-  document.getElementById("mvm-frame").style.minHeight="150px";
-  card.innerHTML=`<h5>Run summary</h5>
-    ${pct!==null?`<div class="row"><span>Residual force vs EDIFFG = ${EDIFFG} eV/Å</span><span class="mono">${fmax.toFixed(3)}</span></div>
-      <div class="mvm-bar"><i style="width:${pct.toFixed(0)}%;background:${conv?"#2e8b57":"#a5541a"}"></i></div>`:""}
-    <div class="row"><span>Atoms</span><span class="mono">${hst.sites.length}</span></div>
-    <div class="row"><span>Lattice a × b × c</span><span class="mono">${L.a.toFixed(2)} × ${L.b.toFixed(2)} × ${L.c.toFixed(2)} Å</span></div>
-    <div class="row"><span>Cell volume</span><span class="mono">${L.volume?L.volume.toFixed(1)+" Å³":"—"}</span></div>
-    ${nfo.kmesh?`<div class="row"><span>k-mesh</span><span class="mono">Γ-centred ${nfo.kmesh}</span></div>`:""}
-    ${nfo.theory?`<div class="row"><span>Level of theory</span><span>${nfo.theory}</span></div>`:""}
-    <div class="mvm-note">This run is a single point (NSW = 0) on the geometry produced by its parent
-      relaxation, so there are no ionic steps to animate — the four views show that relaxed geometry and
-      the force above is the residual on it, read from the OUTCAR TOTAL-FORCE block.</div>`;
+  document.getElementById("mvm-card").style.display="none";
   await loadPlotly();
   Plotly.react("mvm-frame",[
     {x:[0],y:[E],mode:"markers",marker:{size:12,color:"#3b82c4"},
