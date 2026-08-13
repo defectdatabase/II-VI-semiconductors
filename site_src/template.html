@@ -134,7 +134,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #detail .kv div,#cdetail .kv div{background:transparent !important;color:var(--wbg-ink) !important}
 #detail .notebox,#cdetail .notebox{background:var(--wbg-surface) !important;color:#475569 !important}
 #detail,#cdetail{color:var(--wbg-ink)}
-.mvhost{width:100%;overflow:hidden;position:relative;display:block}
+.mvhost{width:100%;overflow:hidden;position:relative;display:block;zoom:calc(1/1.22)}
 .mvhost>*{height:100% !important}
 #cstruct,#trajbox_struct,#trajbox2_struct{overflow:hidden}
 #dqsel .cpill,#cdl .cpill,#incarbtn,#ctitle .cpill{text-transform:none}
@@ -529,7 +529,7 @@ document.querySelectorAll("#view-explorer .cpill").forEach(p=>p.onclick=()=>{
 const CCOLS=[
   {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}</span>`,val:r=>r.n},
   {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
-  {k:"cell",label:"Supercell",w:130,cell:(r,v)=>`<span class="c" style="width:130px">${cellLabel(v)}</span>`,val:r=>r.o[r.b][6]||0},
+  {k:"cell",label:"Supercell",w:250,cell:(r,v)=>`<span class="c" style="width:130px">${cellLabel(v)}</span>`,val:r=>r.o[r.b][6]||0},
   {k:"eform",label:"Formation energy (eV/atom)",w:170,num:1,vi:0},
   {k:"edec",label:"Decomposition energy (eV/f.u.)",w:190,num:1,vi:1},
   {k:"gap",label:"Band gap (eV)",w:116,num:1,vi:2},
@@ -538,9 +538,9 @@ const CCOLS=[
 ];
 CCOLS.forEach(c=>{ if(c.vi!==undefined) c.val=r=>r.o[r.b][c.vi]; });
 const cellLabel=v=>{
-  const dims=v[7]&&/^\d+×\d+×\d+$/.test(v[7])?v[7]:"";
   const nat=v[6]?`${v[6]} atoms`:"";
-  return [dims,nat].filter(Boolean).join(", ")||"—";
+  const abc=v[8]?` (a=${v[8][0].toFixed(2)}, b=${v[8][1].toFixed(2)}, c=${v[8][2].toFixed(2)} Å)`:"";
+  return nat?nat+abc:"—";
 };
 let cSort={k:"eform",asc:true},cSel=null,cFiltered=[],cOrd=null;
 function cApplyFilters(){
@@ -651,6 +651,8 @@ function openIncar(theory){
 }
 function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
 /* ---------- MatterViz structure viewer ---------- */
+try{ localStorage.setItem("matterviz-theme","light"); }catch(e){}
+document.documentElement.setAttribute("data-theme","light");
 const MV_BASE="https://cdn.jsdelivr.net/gh/defectdatabase/chalcogenide-defects@main/matterviz";
 let mvMod=null, CURSTRUCT=null, CURKEY=null;
 function loadMV(seed){
@@ -755,14 +757,28 @@ function hydrate(st){
   if(st.charge===undefined) st.charge=0;
   return st;
 }
+const MV_VIEWS=[["perspective",null],["front",[0,0,1]],["top",[0,1,0]],["side",[1,0,0]]];
 function renderGrid(st, el){
   const h=(el.clientHeight||460);
+  const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c);
+  const dist=1.9*L;
   el.replaceChildren();
-  const host=document.createElement("div");
-  host.className="mvhost";
-  host.style.cssText=`width:100%;height:${h}px;position:relative;overflow:hidden`;
-  el.appendChild(host);
-  try{ window.renderMatterViz(st, host, {}); }catch(e){}
+  const grid=document.createElement("div");
+  grid.style.cssText=`display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;width:100%;height:${h}px`;
+  el.appendChild(grid);
+  MV_VIEWS.forEach(([label,dir])=>{
+    const cell=document.createElement("div");
+    cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:6px;overflow:hidden;background:#fff";
+    const tag=document.createElement("div");
+    tag.textContent=label;
+    tag.style.cssText="position:absolute;bottom:4px;left:8px;z-index:5;font-size:12px;color:var(--wbg-muted);pointer-events:none";
+    const host=document.createElement("div");
+    host.className="mvhost";
+    host.style.height=Math.floor((h-6)/2)+"px";
+    cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
+    const props = dir ? {scene_props:{camera_position:dir.map(x=>x*dist)}} : {};
+    try{ window.renderMatterViz(st, host, props); }catch(e){}
+  });
 }
 /* ---------- relaxation movie: XDATCAR frames + energies + forces ---------- */
 let TRAJ=null, TFRAME=0, TTIMER=null, TSPECIES=null, TPFX="trajbox_";
