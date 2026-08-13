@@ -1092,25 +1092,30 @@ async function openStaticMovie(key,label,E,fmax,info){
   const pct=fmax!==null&&fmax!==undefined?Math.min(100,100*fmax/(EDIFFG*2)):null;
   document.getElementById("mvm-card").style.display="none";
   await loadPlotly();
+  await new Promise(r=>requestAnimationFrame(r));
+  const box=document.getElementById("mvm-frame");
+  const W=Math.max(320,box.clientWidth||560), Hh=Math.max(260,box.clientHeight||380);
   Plotly.react("mvm-frame",[
     {x:[0],y:[E],mode:"markers",marker:{size:12,color:"#3b82c4"},
      hovertemplate:"E = %{y:.3f} eV<extra></extra>"},
     {x:[0],y:[fmax],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},
      hovertemplate:"F max = %{y:.3f} eV/Å<extra></extra>"}],
-    {margin:{l:80,r:64,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
+    {width:W,height:Hh,margin:{l:66,r:56,t:30,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
      xaxis:{title:{text:"frame",font:{size:13}},dtick:1,range:[-0.5,0.5]},
-     yaxis:{title:{text:"E (eV)",font:{size:13},standoff:12},color:"#3b82c4",tickformat:".2f"},
-     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13},standoff:10},overlaying:"y",side:"right",
-             color:"#2e8b57",rangemode:"tozero"},
+     yaxis:{color:"#3b82c4",tickformat:".2f"},
+     yaxis2:{overlaying:"y",side:"right",color:"#2e8b57",rangemode:"tozero"},
      shapes:[{type:"line",xref:"paper",x0:0,x1:1,yref:"y2",y0:EDIFFG,y1:EDIFFG,
               line:{color:"#2e8b57",width:1,dash:"dot"}},
              {type:"line",xref:"x",x0:0,x1:0,yref:"paper",y0:0,y1:1,
               line:{color:"#9aa3af",width:1,dash:"dot"}}],
-     annotations:[{xref:"paper",x:1,yref:"y2",y:EDIFFG,text:`EDIFFG ${EDIFFG}`,showarrow:false,
-              font:{size:11,color:"#2e8b57"},xanchor:"right",yanchor:"bottom"}],
+     annotations:[{xref:"paper",x:0.02,yref:"y2",y:EDIFFG,text:`EDIFFG ${EDIFFG}`,showarrow:false,
+              font:{size:11,color:"#2e8b57"},xanchor:"left",yanchor:"bottom"},
+             {xref:"paper",x:0,y:1.07,yref:"paper",text:"E (eV)",showarrow:false,
+              font:{size:13,color:"#3b82c4"},xanchor:"left"},
+             {xref:"paper",x:1,y:1.07,yref:"paper",text:"F<sub>max</sub> (eV/Å)",showarrow:false,
+              font:{size:13,color:"#2e8b57"},xanchor:"right"}],
      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},
-    {responsive:true,displaylogo:false,displayModeBar:false});
-  requestAnimationFrame(()=>{ if(window.Plotly&&document.getElementById("mvm-frame").data) Plotly.Plots.resize("mvm-frame"); });
+    {responsive:false,displaylogo:false,displayModeBar:false});
   await loadMV(hst);
   renderGrid(hst, document.getElementById("mvm-grid"));
 }
@@ -1150,26 +1155,31 @@ async function mvmLoad(sub){
     (fr.length<t.nframes?` <span class="sep">|</span> ${fr.length} frames stored`:"");
   // subsampled frame chart
   const es=fr.map(f=>f.e);
+  const box=document.getElementById("mvm-frame");
+  const W=Math.max(320,box.clientWidth||560), Hh=Math.max(260,box.clientHeight||380);
   Plotly.react("mvm-frame",[
     {x:fr.map((f,i)=>i),y:es,mode:"lines+markers",name:"E (eV)",line:{color:"#3b82c4"},marker:{size:6}},
     {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"F max (eV/Å)",yaxis:"y2",line:{color:"#2e8b57"},marker:{size:6}},
     {x:[0],y:[es[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
     {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false}],
-    {margin:{l:80,r:64,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},hovermode:"x unified",
+    {width:W,height:Hh,margin:{l:66,r:56,t:30,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},hovermode:"x unified",
      xaxis:{title:{text:"frame",font:{size:13}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
-     yaxis:{title:{text:"E (eV)",font:{size:13},standoff:12},color:"#3b82c4",nticks:6,tickformat:".2f"},
-     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13},standoff:10},overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g",rangemode:"tozero"},
+     yaxis:{color:"#3b82c4",nticks:6,tickformat:".2f"},
+     yaxis2:{overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g",rangemode:"tozero"},
      shapes:[{type:"line",xref:"paper",x0:0,x1:1,yref:"y2",y0:EDIFFG,y1:EDIFFG,
               line:{color:"#2e8b57",width:1,dash:"dot"}},
              {type:"line",xref:"x",x0:0,x1:0,yref:"paper",y0:0,y1:1,
               line:{color:"#9aa3af",width:1,dash:"dot"}}],
-     annotations:[{xref:"paper",x:1,yref:"y2",y:EDIFFG,text:`EDIFFG ${EDIFFG}`,showarrow:false,
-              font:{size:11,color:"#2e8b57"},xanchor:"right",yanchor:"bottom"}],
-     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+     annotations:[{xref:"paper",x:0.02,yref:"y2",y:EDIFFG,text:`EDIFFG ${EDIFFG}`,showarrow:false,
+              font:{size:11,color:"#2e8b57"},xanchor:"left",yanchor:"bottom"},
+             {xref:"paper",x:0,y:1.07,yref:"paper",text:"E (eV)",showarrow:false,
+              font:{size:13,color:"#3b82c4"},xanchor:"left"},
+             {xref:"paper",x:1,y:1.07,yref:"paper",text:"F<sub>max</sub> (eV/Å)",showarrow:false,
+              font:{size:13,color:"#2e8b57"},xanchor:"right"}],
+     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:false,displaylogo:false,displayModeBar:false});
   const sl=document.getElementById("mvm-slider");
   sl.max=String(fr.length-1); sl.value="0";
   mvmShow(0);
-  requestAnimationFrame(()=>{ if(window.Plotly&&document.getElementById("mvm-frame").data) Plotly.Plots.resize("mvm-frame"); });
   mvmTick();
   document.getElementById("mvm-play").textContent="⏸ Pause";
 }
