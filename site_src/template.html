@@ -192,8 +192,9 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #cdetail #cnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
 #cdetail #cmapnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
 #incarbody,#cdetail #cnote,#cdetail #cmapnote{text-align:justify}
-#cdetail #cnote,#cdetail #cnote *,#incarbody,#incarbody *{
-  font-family:'Courier New',Courier,monospace;font-size:13px;line-height:1.55}
+#cdetail #cnote .caret{display:inline-block;width:7px;background:var(--wbg-accent);height:1em;
+  vertical-align:text-bottom;animation:mvblink .8s steps(1) infinite}
+@keyframes mvblink{50%{opacity:0}}
 #detail,#cdetail{color:var(--wbg-ink)}
 .mvhost{width:100%;overflow:visible;position:relative;display:block;zoom:calc(1/1.22)}
 .mvhost .draggable-pane{max-height:340px !important;overflow-y:auto;z-index:60}
@@ -730,10 +731,10 @@ function cOpenDetail(r,ord){
      <div><span>No. of atoms</span><span>${v[6]||"—"}</span></div>
      <div><span>Lattice parameter</span><span>${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"—"}</span></div>
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
-  document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
+  typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd));
   document.getElementById("cnote").scrollTop=0;
   if(!OPTICS && r.o[cOrd] && r.o[cOrd].length>14 && r.o[cOrd][14])
-    loadOptics().then(()=>{ if(cSel===r&&cOrd) document.getElementById("cnote").innerHTML=provenanceHTML(r,cOrd); });
+    loadOptics().then(()=>{ if(cSel===r&&cOrd) typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd)); });
   mountStructure(r,cOrd);
   drawInsight(r,cOrd);
   const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
@@ -1255,14 +1256,18 @@ async function drawDOS(r,ord,key){
   head.innerHTML="Density of states — element-projected";
   el.style.height="250px";
   const traces=[];
+  const haveProj=Object.keys(d.el).length>0;
   Object.keys(d.el).forEach((elname,i)=>{
     const c=DOS_COLORS[i%DOS_COLORS.length];
     traces.push({x:d.e,y:d.el[elname],name:elname,mode:"lines",fill:"tozeroy",
       line:{color:c,width:1.6},fillcolor:c+"33",
       hovertemplate:elname+": %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"});
   });
-  traces.push({x:d.e,y:d.total,name:"total",mode:"lines",line:{color:"#6b7280",width:1.2,dash:"dot"},
-    hovertemplate:"total: %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"});
+  traces.push(haveProj
+    ? {x:d.e,y:d.total,name:"total",mode:"lines",line:{color:"#6b7280",width:1.2,dash:"dot"},
+       hovertemplate:"total: %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"}
+    : {x:d.e,y:d.total,name:"total",mode:"lines",fill:"tozeroy",line:{color:"#0e7490",width:1.8},
+       fillcolor:"#0e749033",hovertemplate:"total: %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"});
   await loadPlotly();
   Plotly.react(el,traces,{
     margin:{l:56,r:8,t:6,b:40},font:{family:"Arial Narrow",size:12},
@@ -1273,9 +1278,14 @@ async function drawDOS(r,ord,key){
     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
   const parts=decompParts(r,ord);
   const Tstar=(parts&&parts.ent!==0&&parts.d0>0&&parts.ent<0)?-parts.d0/(KB*parts.ent):null;
-  note.innerHTML=`Element-projected DOS from this run's DOSCAR (per-atom orbital projections summed by
-    element); energies relative to E<sub>F</sub> = ${d.ef.toFixed(2)} eV (dashed red). Click legend
-    entries to toggle elements; drag to zoom.`+
+  head.innerHTML=haveProj?"Density of states — element-projected":"Density of states — total";
+  note.innerHTML=(haveProj
+    ? `Element-projected DOS from this run's DOSCAR (per-atom orbital projections summed by
+       element); energies relative to E<sub>F</sub> = ${d.ef.toFixed(2)} eV (dashed red). Click legend
+       entries to toggle elements; drag to zoom.`
+    : `Total DOS from this run's vasprun.xml; energies relative to E<sub>F</sub> = ${d.ef.toFixed(2)} eV
+       (dashed red). This campaign ran without LORBIT, so per-element projections were not written —
+       only the total is archived. Drag to zoom.`)+
     (parts?` Stability: ${r.o[ord][1]<=0?"stable against the binary decomposition at 298 K":(Tstar&&Tstar<2000?`metastable at 298 K, entropy-stabilized above ~${Tstar.toFixed(0)} K`:"metastable (positive ΔE<sub>decomp</sub>)")} .`:"");
   return true;
 }
@@ -1321,6 +1331,25 @@ async function drawStabilityMap(r,ord){
        temperature-independent at this level of theory: ${parts.d0.toFixed(2)} eV/f.u. at every temperature.`);
 }
 
+/* ---------- typewriter ---------- */
+let TYPETIMER=null, TYPEGEN=0;
+function typeInto(el, html){
+  if(TYPETIMER){clearInterval(TYPETIMER);TYPETIMER=null;}
+  const gen=++TYPEGEN;
+  const tokens=html.split(/(<[^>]+>|\s+)/).filter(t=>t!=="");
+  let i=0, buf="";
+  el.innerHTML="";
+  TYPETIMER=setInterval(()=>{
+    if(gen!==TYPEGEN){clearInterval(TYPETIMER);return;}
+    let words=0;
+    while(i<tokens.length&&words<3){
+      const t=tokens[i++]; buf+=t;
+      if(!/^</.test(t)&&t.trim()) words++;
+    }
+    el.innerHTML=i<tokens.length?buf+'<span class="caret"></span>':buf;
+    if(i>=tokens.length){clearInterval(TYPETIMER);TYPETIMER=null;}
+  },28);
+}
 /* ---------- provenance arithmetic ---------- */
 function setupHTML(r,v){
   const R=REFS[r.rk||r.f]||{}; const paw=R.paw||{};
