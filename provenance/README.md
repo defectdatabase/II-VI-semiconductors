@@ -93,6 +93,19 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
 - The P-T stability map was replaced (pressure axis carries no information for a balanced solid-state
   decomposition): element-projected DOS (DOSCAR sweep) with a dG_decomp(T) line fallback.
 
+## DOS + optics pass 2026-08-13 (late PM)
+- Element-projected DOS published for 16,809 rows/orderings from raw DOSCARs (per-atom orbital
+  projections summed by element, 160-point window around E_F): HSE+SOC 100%, PBEsol 92%, all 223
+  reference phases. The HSE06 A2BCX4 campaign ran without LORBIT, so no projections exist on disk —
+  its 3,427 rows show the TOTAL DOS parsed from vasprun.xml and the panel says so. Remaining rows
+  (388 PBEsol + 160 HSE06) have no matching raw run and keep the dG_decomp(T) line.
+- Boot payload trimmed back to 5.1 MB: SLME(thickness) + absorption arrays moved to a lazily
+  fetched optics.json.gz; per-row DOS fetched on demand (docs/dos/, 53 MB gzipped).
+- WebGL context parking (dashboard viewers released while a movie is open) cured the hangs —
+  browsers grant ~8 contexts and two open 4-pane grids exhausted them.
+- Axis views are orthographic projections sighted down the cell vectors (labeled Along a/b/c).
+- Sweep scripts: dos_sweep.py, ref_dos_sweep.py, hse06_dos_sweep.py (Anvil defectdb_recompute/).
+
 ## Mistakes & corrections log (append-only)
 - **2026-08-13 — redesigned the site instead of only fixing it.** WHAT I DID WRONG: to cure a slow
   page I shipped a whole new dark-header/three-column layout. WHY IT WAS WRONG: his words — "well I
