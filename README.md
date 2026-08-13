@@ -1,5 +1,6 @@
 # DefectDB — Defect Thermodynamics in II–VI Semiconductors
 
+[![Website](https://img.shields.io/badge/website-defectdatabase.github.io-0e7490)](https://defectdatabase.github.io/II-VI-semiconductors/)
 [![nanoHUB tool](https://img.shields.io/badge/nanoHUB-defectdatabase-2e7d32)](https://nanohub.org/tools/defectdatabase)
 [![Dataset](https://img.shields.io/badge/dataset-DefectDB.zip%20(640%20MB)-blue)](https://github.com/msehabibur/DefectDB/releases/download/DefectDB/DefectDB.zip)
 [![Python](https://img.shields.io/badge/python-3.12-3776ab)](#installation)
@@ -10,6 +11,8 @@ DefectDB is an open-source, ML-accelerated defect-informatics platform for **Cd/
 The tool runs live in the browser on nanoHUB — no installation required:
 
 > **▶ Launch the tool: [nanohub.org/tools/defectdatabase](https://nanohub.org/tools/defectdatabase)**
+>
+> **🌐 Browse the library: [defectdatabase.github.io/II-VI-semiconductors](https://defectdatabase.github.io/II-VI-semiconductors/)** — interactive formation-energy diagrams and a sortable defect table, computed live from the published dataset.
 
 Developed in the Mannodi research group at Purdue University (Md Habibur Rahman, Yi Yang, Arun Mannodi-Kanakkithodi).
 
