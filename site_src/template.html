@@ -214,10 +214,7 @@ sub{font-size:.72em}
 <div class="view" id="view-rankings">
   <div class="filterrow">
     <input type="text" id="csearch" placeholder="Search compound or structure (e.g. Ag1Al0.5Ga0.5S2, kesterite)…">
-    <button class="cpill on" data-s="all">All</button>
-    <button class="cpill" data-s="kesterite">kesterite</button>
-    <button class="cpill" data-s="stannite">stannite</button>
-    <button class="cpill" data-s="chalcopyrite">other</button>
+
   </div>
   <div class="checks">
     <label><input type="checkbox" id="ck-stable"> stable (E<sub>decomp</sub> ≤ 0)</label>
@@ -283,7 +280,8 @@ const QS = ["-2","-1","0","1","2"];
 const THEORY = {pbesol:"PBEsol", hsesoc:"HSE+SOC"};
 
 /* ---------- formatting ---------- */
-const subHTML = s => s.replace(/([A-Za-z\)])([\d.]+)/g,(m,a,n)=>a+"<sub>"+n+"</sub>");
+const dropOnes = s => s.replace(/([A-Z][a-z]?)1(?![\d.])/g,"$1");
+const subHTML = s => dropOnes(s).replace(/([A-Za-z\)])([\d.]+)/g,(m,a,n)=>a+"<sub>"+n+"</sub>");
 const defHTML = d => d.split("+").map(p=>{
   const i=p.indexOf("_");
   return i<0?p:p.slice(0,i)+"<sub>"+p.slice(i+1)+"</sub>";
@@ -477,29 +475,28 @@ document.querySelectorAll("#view-explorer .cpill").forEach(p=>p.onclick=()=>{
   p.classList.add("on");dClass=p.dataset.c;dApplyFilters();});
 
 /* ================= COMPOUND TABLE ================= */
+/* record: {n:name, f:theory, o:{ordering:[eform,edec,gap,eps,slme,F,nat,cell]}, b:bestOrdering} */
 const CCOLS=[
-  {k:"name",label:"Compound",w:230,cell:r=>`<span class="c hostc" style="width:230px">${subHTML(r[0])}</span>`,val:r=>r[0]},
-  {k:"struct",label:"Structure",w:100,cell:r=>`<span class="c" style="width:100px">${r[1]||"—"}</span>`,val:r=>r[1]},
-  {k:"theory",label:"Theory",w:92,cell:r=>`<span class="c" style="width:92px">${r[7]||"HSE+SOC"}</span>`,val:r=>r[7]||"HSE+SOC"},
-  {k:"eform",label:"Eform (eV/atom)",w:130,num:1,val:r=>r[2],d:3},
-  {k:"edec",label:"Edecomp (eV/f.u.)",w:140,num:1,val:r=>r[3],d:3},
-  {k:"gap",label:"Band gap (eV)",w:116,num:1,val:r=>r[4]},
-  {k:"eps",label:"ε∞ (electronic)",w:120,num:1,val:r=>r[5]},
-  {k:"slme",label:"SLME (%)",w:92,num:1,val:r=>r[6]},
+  {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}</span>`,val:r=>r.n},
+  {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
+  {k:"cell",label:"Supercell",w:118,cell:(r,v)=>`<span class="c" style="width:118px">${v[7]||"—"}${v[6]?` (${v[6]} at.)`:""}</span>`,val:r=>r.o[r.b][6]||0},
+  {k:"eform",label:"Eform (eV/atom)",w:130,num:1,vi:0,d:3},
+  {k:"edec",label:"Edecomp (eV/f.u.)",w:140,num:1,vi:1,d:3},
+  {k:"gap",label:"Band gap (eV)",w:116,num:1,vi:2},
+  {k:"eps",label:"ε∞ (electronic)",w:120,num:1,vi:3},
+  {k:"slme",label:"SLME (%)",w:92,num:1,vi:4},
 ];
-let cSort={k:"eform",asc:true},cSel=null,cFiltered=[],cStruct="all";
+CCOLS.forEach(c=>{ if(c.vi!==undefined) c.val=r=>r.o[r.b][c.vi]; });
+let cSort={k:"eform",asc:true},cSel=null,cFiltered=[],cOrd=null;
 function cApplyFilters(){
   const q=document.getElementById("csearch").value.trim().toLowerCase();
   const stable=document.getElementById("ck-stable").checked;
   const gap1=document.getElementById("ck-gap1").checked;
   cFiltered=COMPOUNDS.filter(r=>{
-    if(cStruct!=="all"){
-      const s=(r[1]||"").toLowerCase();
-      if(cStruct==="chalcopyrite"){if(s==="kesterite"||s==="stannite")return false;}
-      else if(s!==cStruct)return false;}
-    if(stable&&!(r[3]!==null&&r[3]<=0))return false;
-    if(gap1&&!(r[4]!==null&&r[4]>=1&&r[4]<=2))return false;
-    if(q&&!(r[0]+" "+(r[1]||"")).toLowerCase().includes(q))return false;
+    const v=r.o[r.b];
+    if(stable&&!(v[1]!==null&&v[1]<=0))return false;
+    if(gap1&&!(v[2]!==null&&v[2]>=1&&v[2]<=2))return false;
+    if(q&&!(r.n+" "+r.f+" "+Object.keys(r.o).join(" ")).toLowerCase().includes(q))return false;
     return true;
   });
   const col=CCOLS.find(c=>c.k===cSort.k);
@@ -525,13 +522,13 @@ function cRenderRows(){
   const end=Math.min(cFiltered.length,start+Math.ceil(VIEWH/ROWH)+10);
   let html="";
   for(let i=start;i<end;i++){
-    const r=cFiltered[i];
+    const r=cFiltered[i], v=r.o[r.b];
     html+=`<div class="trow${cSel===r?" sel":""}" data-i="${i}" style="top:${i*ROWH}px">`+
       CCOLS.map(c=>{
-        if(c.cell)return c.cell(r);
-        const v=c.val(r);
-        const red=c.k==="edec"&&v!==null&&v>0?" spontv":"";
-        return `<span class="c num${red}" style="width:${c.w}px">${fmt(v,c.d||2)}</span>`;
+        if(c.cell)return c.cell(r,v);
+        const val=c.val(r);
+        const red=c.k==="edec"&&val!==null&&val>0?" spontv":"";
+        return `<span class="c num${red}" style="width:${c.w}px">${fmt(val,c.d||2)}</span>`;
       }).join("")+"</div>";
   }
   spacer.innerHTML=html;
@@ -540,40 +537,83 @@ function cRenderRows(){
 document.getElementById("ctview").addEventListener("scroll",cRenderRows);
 function cRenderMeta(){
   document.getElementById("cfoot").innerHTML=
-    `Formation energy per atom versus same-theory elemental references; decomposition energy per formula
-     unit versus the stoichiometric binary decomposition including ideal-mixing entropy (red = unstable);
-     band gap from eigenvalue band properties; ε<sub>∞</sub> is the electronic (ion-clamped) LOPTICS
-     dielectric constant; SLME at optimal thickness. Click headers to sort, rows for detail.
-     <span class="showing">Showing ${cFiltered.length.toLocaleString()} of ${COMPOUNDS.length.toLocaleString()} compounds.</span>`;
-  const nk=COMPOUNDS.filter(r=>r[1]==="kesterite").length,ns=COMPOUNDS.filter(r=>r[1]==="stannite").length;
+    `One row per compound and level of theory; the table shows the lowest-energy cation ordering —
+     click a row to switch between orderings (kesterite / stannite are ordering variants of the same
+     compound). Formation energy per atom versus same-theory elemental references; decomposition
+     energy per formula unit versus the stoichiometric binary decomposition including ideal-mixing
+     entropy (red = unstable); band gap from occupied-band counting on EIGENVAL (PBEsol rows use a
+     2×2×2-k static screen — treat as approximate); ε<sub>∞</sub> is the electronic LOPTICS dielectric;
+     SLME at optimal thickness. <span class="showing">Showing ${cFiltered.length.toLocaleString()} of ${COMPOUNDS.length.toLocaleString()} compounds.</span>`;
+  const nH=COMPOUNDS.filter(r=>r.f==="HSE+SOC").length,nP=COMPOUNDS.filter(r=>r.f==="PBEsol").length;
   document.getElementById("ccov").innerHTML=
-    `Coverage — <b>${COMPOUNDS.length.toLocaleString()}</b> unique compounds (kesterite <b>${nk}</b> ·
-     stannite <b>${ns}</b> · other <b>${COMPOUNDS.length-nk-ns}</b>) · HSE06+SOC production properties ·
-     ground-state configurations from a 21,242-calculation PBEsol polymorph screen`;
+    `Coverage — <b>${COMPOUNDS.length.toLocaleString()}</b> compound rows (HSE+SOC <b>${nH.toLocaleString()}</b> ·
+     PBEsol <b>${nP.toLocaleString()}</b>) · cation orderings selectable per row ·
+     ground-state configurations from a 21,242-calculation PBEsol polymorph screen · all pure DFT`;
 }
-function cOpenDetail(r){
-  if(cSel===r){cSel=null;document.getElementById("cdetail").classList.remove("on");cRenderRows();return;}
-  cSel=r;
+function cOpenDetail(r,ord){
+  if(cSel===r&&!ord){cSel=null;document.getElementById("cdetail").classList.remove("on");cRenderRows();return;}
+  cSel=r; cOrd=ord||r.b;
+  const v=r.o[cOrd];
   document.getElementById("cdetail").classList.add("on");
-  document.getElementById("ctitle").innerHTML=`${subHTML(r[0])} (${r[1]||"—"})`;
+  const ords=Object.keys(r.o);
+  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)} — ${r.f}` +
+    `<span style="margin-left:14px">`+
+    ords.map(o=>`<button class="cpill${o===cOrd?" on":""}" data-o="${o}" style="margin-right:6px">${o}${o===r.b?" (ground state)":""}</button>`).join("")+`</span>`;
+  document.querySelectorAll("#ctitle .cpill").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();cOpenDetail(r,b.dataset.o);});
   document.getElementById("ckv").innerHTML=
-    `<div><span>Formation energy</span><span>${fmt(r[2],4)} eV/atom</span></div>
-     <div><span>Decomposition energy</span><span>${fmt(r[3],4)} eV/f.u.</span></div>
-     <div><span>Band gap</span><span>${fmt(r[4],3)} eV</span></div>
-     <div><span>ε<sub>∞</sub> (electronic)</span><span>${fmt(r[5],3)}</span></div>
-     <div><span>SLME</span><span>${fmt(r[6],2)} %</span></div>
-     <div><span>Level of theory</span><span>${r[7]||"HSE+SOC"} (static, LOPTICS)</span></div>`;
-  document.getElementById("cnote").innerHTML=
-    `${r[3]!==null&&r[3]<=0?"Stable against the binary decomposition at this level of theory.":"Positive decomposition energy — metastable versus the binary decomposition."}
-     Structure selected as the lowest-energy PBEsol 2×2×1 configuration; properties from the HSE06+SOC
-     static run of that geometry. Raw VASP outputs archived on Purdue Anvil and ALCF Eagle.`;
+    `<div><span>Cation ordering</span><span>${cOrd}${cOrd===r.b?" — lowest energy":""}</span></div>
+     <div><span>Formation energy</span><span>${fmt(v[0],4)} eV/atom</span></div>
+     <div><span>Decomposition energy</span><span>${fmt(v[1],4)} eV/f.u.</span></div>
+     <div><span>Band gap</span><span>${fmt(v[2],3)} eV</span></div>
+     <div><span>ε<sub>∞</sub> (electronic)</span><span>${fmt(v[3],3)}</span></div>
+     <div><span>SLME</span><span>${fmt(v[4],2)} %</span></div>
+     <div><span>Supercell</span><span>${v[7]||"—"}${v[6]?`, ${v[6]} atoms`:""}</span></div>
+     <div><span>Level of theory</span><span>${r.f}</span></div>`;
+  document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
   cRenderRows();
 }
 document.getElementById("csearch").addEventListener("input",cApplyFilters);
 ["ck-stable","ck-gap1"].forEach(id=>document.getElementById(id).addEventListener("change",cApplyFilters));
-document.querySelectorAll("#view-rankings .cpill").forEach(p=>p.onclick=()=>{
-  document.querySelectorAll("#view-rankings .cpill").forEach(x=>x.classList.remove("on"));
-  p.classList.add("on");cStruct=p.dataset.s;cApplyFilters();});
+
+/* ---------- provenance arithmetic ---------- */
+const REFS = /*__REFS__*/;
+function provenanceHTML(r,ord){
+  const th = r.f;
+  const R = REFS[th]; if(!R) return "";
+  const v = r.o[ord]; const F = v[5], nat = v[6];
+  const comp = {};
+  for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0], parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
+    comp[el]=(comp[el]||0)+n;
+  const apfu = Object.values(comp).reduce((a,b)=>a+b,0);
+  const nfu = nat/apfu, epfu = F/nfu;
+  let terms=[], refsum=0;
+  for(const el in comp){ const mu=R.el[el]; refsum+=comp[el]*nfu*mu;
+    terms.push(`${comp[el]*nfu}×μ(${el})=${(comp[el]*nfu*mu).toFixed(2)}`); }
+  const eform=(F-refsum)/nat;
+  // decomposition
+  const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
+  const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
+  let sc=0, ent=0, bins=[], kes=Math.abs(xsum-4)<.01;
+  const add=(f,key)=>{ const E=R.bin[key]; if(E===undefined||f<=0) return false;
+    sc+=f*E; ent+=f*Math.log(f); bins.push(`${f.toFixed(3)}×E(${key})`); return true; };
+  if(kes){ for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add((comp[a]/2)*(comp[x]/4),`${a}2${x}`);
+    for(const b of BK) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/4),`${b}${x}`);
+    for(const c of CK) if(comp[c]) for(const x of XS) if(comp[x]) add(comp[c]*(comp[x]/4),`${c}${x}2`); }
+  else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add(comp[a]*(comp[x]/2),`${a}2${x}`);
+    for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/2),`${b}2${x}3`); }
+  const edec = kes? epfu-sc+0.0257*ent : epfu-0.5*sc+0.0257*ent;
+  return `<b>How these numbers are computed (${th}).</b><br>
+    Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(5):"—"}</span> eV
+    for the ${nat}-atom ${ord} supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
+    <b>Formation energy</b> = (F − Σnᵢμᵢ)/N = (${F!==null?F.toFixed(3):"—"} − (${refsum.toFixed(3)}))/${nat}
+    = <span class="mono">${eform.toFixed(4)}</span> eV/atom, with elemental references ${terms.slice(0,4).join(", ")}${terms.length>4?", …":""} (same theory).<br>
+    <b>Decomposition energy</b> = E<sub>f.u.</sub> − ${kes?"":"½"}Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
+    = ${epfu.toFixed(3)} − ${(kes?sc:0.5*sc).toFixed(3)} + ${(0.0257*ent).toFixed(4)}
+    = <span class="mono">${edec.toFixed(4)}</span> eV/f.u. versus ${bins.length} binaries (${bins.slice(0,3).join(", ")}${bins.length>3?", …":""}), k<sub>B</sub>T = 0.0257 eV.<br>
+    ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
+    Band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness.
+    Raw outputs on Purdue Anvil, mirrored on ALCF Eagle.`;
+}
 
 /* ---------- top stats ---------- */
 document.getElementById("topstats").textContent=
