@@ -344,8 +344,6 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
     <select id="mvm-sel"></select>
     <span id="mvm-meta" style="color:var(--wbg-muted)"></span>
   </div>
-  <div id="mvm-conv" style="width:100%;height:230px"></div>
-  <p style="text-align:center;color:var(--wbg-muted);font-size:13.5px;margin:2px 0 10px" id="mvm-caption"></p>
   <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:14px">
     <div id="mvm-grid" style="height:520px"></div>
     <div>
@@ -771,7 +769,7 @@ KPOINTS: Γ-centred mesh from the parent PBEsol run · POTCAR: PBE PAW (VASP 5.4
  "PBEsol":`Static PBEsol single point on the 2×2×1 polymorph screen:
 GGA = PS · PREC = Accurate · ENCUT = 500 eV · EDIFF = 1e-4 · NSW = 0 · IBRION = -1 · ISIF = 0
 ISPIN = 2 · ISMEAR = 0, SIGMA = 0.05 · LORBIT = 11 · NEDOS = 2000 · LVTOT = .TRUE.
-KPOINTS: Γ-centred 2×2×2 (1×1×1 for the largest cells)`,
+KPOINTS: Γ-centred, scaled with cell size — each row's provenance quotes the actual mesh from its KPOINTS file`,
  "PBE":`Static PBE single point on the relaxed host cell:
 GGA = PE · ENCUT = 500 eV · EDIFF = 1e-6 · ISMEAR = 0, SIGMA = 0.05 · KSPACING ≈ 0.03 2π/Å`,
  "HSE06":`Static HSE06 single point on the relaxed host cell:
@@ -994,19 +992,13 @@ async function openStaticMovie(key,label,E,fmax){
   document.getElementById("mvm-count").textContent="frame 1 / 1";
   document.getElementById("mvm-play").textContent="▶ Play";
   await loadPlotly();
-  const lay={margin:{l:56,r:56,t:8,b:34},showlegend:false,font:{family:"Arial Narrow",size:13},
-    xaxis:{dtick:1,range:[-0.5,0.5],title:{text:"ionic step",font:{size:12}}},
-    yaxis:{color:"#0e7490",zeroline:true},yaxis2:{overlaying:"y",side:"right",color:"#de9e3a",rangemode:"tozero"},
+  const lay={margin:{l:58,r:58,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
+    xaxis:{dtick:1,range:[-0.5,0.5],title:{text:"Frame",font:{size:13}}},
+    yaxis:{title:{text:"ΔE vs final (eV)",font:{size:13}},color:"#3b82c4",zeroline:true},
+    yaxis2:{title:{text:"F max (eV/Å)",font:{size:13}},overlaying:"y",side:"right",color:"#2e8b57",rangemode:"tozero"},
     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"};
-  Plotly.react("mvm-conv",[{x:[0],y:[0],mode:"markers",marker:{size:10,color:"#0e7490"}},
-    {x:[0],y:[fmax],yaxis:"y2",mode:"markers",marker:{size:10,color:"#de9e3a"}}],lay,
-    {responsive:true,displaylogo:false,displayModeBar:false});
-  document.getElementById("mvm-caption").innerHTML=
-    `static single point — <span style="color:#0e7490">ΔE vs final = 0 by definition</span> · `+
-    `<span style="color:#de9e3a">${fmax!==null&&fmax!==undefined?"F max = "+fmax.toFixed(3)+" eV/Å on the relaxed geometry":"forces not archived"}</span>`;
   Plotly.react("mvm-frame",[{x:[0],y:[0],mode:"markers",marker:{size:11,color:"#3b82c4"}},
-    {x:[0],y:[fmax],yaxis:"y2",mode:"markers",marker:{size:11,color:"#2e8b57"}}],
-    Object.assign({},lay,{xaxis:{dtick:1,range:[-0.5,0.5],title:{text:"Frame",font:{size:13}}}}),
+    {x:[0],y:[fmax],yaxis:"y2",mode:"markers",marker:{size:11,color:"#2e8b57"}}],lay,
     {responsive:true,displaylogo:false,displayModeBar:false});
   const hst=hydrate(st);
   await loadMV(hst);
@@ -1023,25 +1015,6 @@ async function mvmLoad(sub){
   const de=fr.map(f=>f.e!==null&&eL!==null?f.e-eL:null);
   document.getElementById("mvm-meta").textContent=
     `${t.nframes} steps · ΔE ${de[0]!==null?(-de[0]).toFixed(2):"—"} eV`;
-  // full-width convergence chart, ΔE clipped at 5 eV like Kosmos
-  const CLIP=5.0;
-  const xs=fr.map(f=>f.i);
-  const deC=de.map(v=>v===null?null:Math.min(v,CLIP));
-  const clipped=de.some(v=>v!==null&&v>CLIP);
-  Plotly.react("mvm-conv",[
-    {x:xs,y:deC,mode:"lines",name:"ΔE vs final (eV)",line:{width:2.4,color:"#0e7490"}},
-    {x:xs,y:fr.map(f=>f.f),mode:"lines",name:"F max (eV/Å)",yaxis:"y2",line:{width:2.4,color:"#de9e3a"}}],
-    {margin:{l:56,r:56,t:8,b:34},showlegend:false,font:{family:"Arial Narrow",size:13},
-     xaxis:{title:{text:""},dtick:xs.length<=8?1:undefined,range:[-0.3,xs[xs.length-1]+0.3]},
-     yaxis:{color:"#0e7490",rangemode:"tozero",nticks:5},
-     yaxis2:{overlaying:"y",side:"right",color:"#de9e3a",rangemode:"tozero",nticks:4,tickformat:".2~g"},
-     annotations:clipped?[{x:1,y:1,xref:"paper",yref:"paper",text:"≥"+CLIP.toFixed(1)+" clipped",
-       showarrow:false,font:{color:"#0e7490",size:13},xanchor:"right"}]:[],
-     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
-  document.getElementById("mvm-caption").innerHTML=
-    `ionic step — <span style="color:#0e7490">ΔE vs final (eV)</span> · <span style="color:#de9e3a">F max (eV/Å)</span>`+
-    (clipped?` — initial spike clipped to show the approach`:``)+
-    (fr.length<t.nframes?` · ${fr.length} of ${t.nframes} steps stored`:``);
   // subsampled frame chart
   Plotly.react("mvm-frame",[
     {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",name:"ΔE vs final (eV)",line:{color:"#3b82c4"},marker:{size:6}},
@@ -1155,6 +1128,16 @@ async function drawStabilityMap(r,ord){
 }
 
 /* ---------- provenance arithmetic ---------- */
+function setupHTML(r,v){
+  const R=REFS[r.rk||r.f]||{}; const paw=R.paw||{};
+  const els=[...new Set((r.n.match(/[A-Z][a-z]?/g)||[]))];
+  const pieces=els.map(e=>paw[e]?`${e} → ${paw[e]}`:null).filter(Boolean);
+  const bits=[];
+  if(v.length>17&&v[17]) bits.push(`<b>k-mesh</b>: Γ-centred ${v[17]} (read from this run's KPOINTS).`);
+  if(pieces.length) bits.push(`<b>PAW potentials</b> (TITEL from the run's POTCAR): ${pieces.join(" · ")}`
+    +(pieces.length<els.length?" — the remaining element's POTCAR was not archived, so it is not quoted":"")+".");
+  return bits.length?"<br>"+bits.join("<br>"):"";
+}
 function edgesHTML(v){
   const has=v.length>12&&v[11]!==null&&v[11]!==undefined;
   if(!has) return `<b>Band gap</b> from occupied-band counting on EIGENVAL with NELECT: E<sub>g</sub> = ${v[2]!==null&&v[2]!==undefined?v[2].toFixed(2)+" eV":"—"}.`;
@@ -1231,7 +1214,7 @@ function provenanceHTML(r,ord){
     = ${epfu.toFixed(2)} − (${sc2.toFixed(2)}) + ${(0.0257*v[9]).toFixed(2)}
     = <span class="mono">${edec2.toFixed(2)}</span> eV/f.u. versus the same-library end-member binaries:<br>&nbsp;&nbsp;${bins2.join("<br>&nbsp;&nbsp;")}<br>
     f are the site fractions of the mixed sublattice; k<sub>B</sub>T = 0.0257 eV. ${v[1]<=0?"Entropy-stabilized against demixing at 298 K.":"Positive ΔE<sub>decomp</sub> — demixing is enthalpy-favoured; the map shows where mixing entropy wins."}
-    ${edgesHTML(v)}${opticsHTML(v)}`;
+    ${edgesHTML(v)}${opticsHTML(v)}${setupHTML(r,v)}`;
   }
   // decomposition
   const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
@@ -1256,7 +1239,7 @@ function provenanceHTML(r,ord){
       ? `The stoichiometric binary decomposition needs ${miss} binary phase(s) not archived at this level
          of theory (e.g. GeTe<sub>2</sub>/SnTe<sub>2</sub>), so ΔE<sub>decomp</sub> is left blank rather than mixed across theories.`
       : `No binary decomposition is published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`}
-    ${edgesHTML(v)}${opticsHTML(v)}`;
+    ${edgesHTML(v)}${opticsHTML(v)}${setupHTML(r,v)}`;
   return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), ${r.rk==="HSE06 (A2BCX4)"
@@ -1268,7 +1251,7 @@ function provenanceHTML(r,ord){
     = ${epfu.toFixed(2)} − ${(kes?sc:0.5*sc).toFixed(2)} + ${(0.0257*ent).toFixed(2)}
     = <span class="mono">${edec.toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
     ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
-    ${edgesHTML(v)}${opticsHTML(v)}`;
+    ${edgesHTML(v)}${opticsHTML(v)}${setupHTML(r,v)}`;
 }
 
 function closeModals(){dSel=null;cSel=null;stopTraj();closeIncar();closeMovie();
