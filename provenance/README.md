@@ -81,6 +81,18 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
 - Table: Compounds Explorer tab, No. of atoms + Lattice parameter columns, "Dielectric constant",
   sentence-case filter labels, search inputs with icon, crisp selects, download buttons removed.
 
+## Full-transparency pass 2026-08-13 PM (user-directed; all raw-derived, nothing recalled)
+- Per-ordering payload extended: VBM/CBM from occupied-band counting (16,648), eps diagonal
+  components from REAL.in (6,188), SLME(thickness) curve + optimum and 14-point absorption sample
+  from vaspkit outputs (6,188), static-frame Fmax from OUTCAR TOTAL-FORCE (13,126), per-run k-mesh
+  from KPOINTS (16,657), verified POTCAR TITEL sets per tree (S POTCAR not archived in the II-VI
+  library -> not quoted). 438 missing HSE+SOC structures extracted; HSE06 (no PS) merged into HSE06.
+- Provenance panel now walks every number step by step; calculation-inputs popup is per-compound
+  (supercell, this run's k-mesh, POTCAR titles, final F). Relaxation-movie button on every row —
+  statics play their one archived configuration with E and Fmax.
+- The P-T stability map was replaced (pressure axis carries no information for a balanced solid-state
+  decomposition): element-projected DOS (DOSCAR sweep) with a dG_decomp(T) line fallback.
+
 ## Mistakes & corrections log (append-only)
 - **2026-08-13 — redesigned the site instead of only fixing it.** WHAT I DID WRONG: to cure a slow
   page I shipped a whole new dark-header/three-column layout. WHY IT WAS WRONG: his words — "well I
