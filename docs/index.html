@@ -263,15 +263,15 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
           <div class="kv" id="ckv"></div>
           <h4 style="margin-top:12px">How these numbers are computed</h4>
           <div class="notebox" id="cnote"></div>
-          <h4 style="margin-top:12px" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
-          <div id="cmap" style="width:100%;height:210px"></div>
-          <div class="notebox" id="cmapnote"></div>
         </div>
         <div class="dcol">
           <h4>DFT-optimized structure — MatterViz</h4>
           <div id="cstruct" style="width:100%;height:330px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
           <div id="cdl" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
           <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center" id="cmoviebtn"></div>
+          <h4 style="margin-top:12px" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
+          <div id="cmap" style="width:100%;height:210px"></div>
+          <div class="notebox" id="cmapnote"></div>
         </div>
       </div>
     </div>
@@ -679,7 +679,7 @@ document.getElementById("csearch").addEventListener("input",cApplyFilters);
 
 function openIncar(theory){
   document.getElementById("incartitle").textContent=theory;
-  document.getElementById("incarbody").innerHTML=(INCAR_TXT[theory]||"—").replace(/\n/g,"<br>");
+  document.getElementById("incarbody").innerHTML=(INCAR_TXT[theory]||INCAR_TXT[String(theory).split(" (")[0]]||"—").replace(/\n/g,"<br>");
   document.getElementById("incarmodal").classList.add("on");
 }
 function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
@@ -1055,6 +1055,7 @@ const KB=8.617333e-5;
 function decompParts(r,ord){
   const R=REFS[r.f]; if(!R) return null;
   const v=r.o[ord]; if(!v||v[1]===null||v[1]===undefined) return null;
+  if(v.length>9&&v[9]!==null&&v[9]!==undefined) return { d0: v[1]-0.0257*v[9], ent: v[9] };
   const comp={};
   for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0],parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
     comp[el]=(comp[el]||0)+n;
@@ -1074,10 +1075,18 @@ async function drawStabilityMap(r,ord){
   const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
   const head=document.getElementById("cmaphead");
   const parts=decompParts(r,ord);
+  head.style.display=""; note.style.display="";
   if(!parts){
     if(window.Plotly) Plotly.purge(el);
     el.innerHTML=""; el.style.height="0";
-    head.style.display="none"; note.style.display="none";
+    const v=r.o[ord];
+    note.innerHTML = r.ref
+      ? "Reference phase — it is itself a decomposition product, so no ΔG<sub>decomp</sub> map is defined."
+      : (v&&v[1]!==null&&v[1]!==undefined)
+      ? "No mixing model is published for this composition, so the map is omitted rather than guessed."
+      : "No ΔG<sub>decomp</sub> map: the stoichiometric binary decomposition is not published for this row "+
+        "(elemental/binary phase, or a competing binary not archived at this level of theory — see the "+
+        "provenance panel). The blank is deliberate; nothing is interpolated across theories.";
     return;
   }
   el.style.height="240px"; head.style.display=""; note.style.display="";
@@ -1133,6 +1142,28 @@ function provenanceHTML(r,ord){
   for(const el in comp){ const mu=R.el[el]; refsum+=comp[el]*nfu*mu;
     terms.push(`${comp[el]*nfu}·μ<sub>${el}</sub> = ${(comp[el]*nfu*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(2)} eV/atom)`); }
   const eform=(F-refsum)/nat;
+  if(v.length>9&&v[9]!==null&&v[9]!==undefined){
+    const cats=Object.keys(comp).filter(e=>!["S","Se","Te"].includes(e));
+    const ans=Object.keys(comp).filter(e=>["S","Se","Te"].includes(e));
+    let sc2=0, bins2=[];
+    for(const ce of cats) for(const ae of ans){
+      const f=comp[ce]*comp[ae], E=R.bin[ce+ae];
+      if(f<=0||E===undefined) continue;
+      sc2+=f*E;
+      bins2.push(`${f.toFixed(2)} · E(${subHTML(ce+ae)}) = ${(f*E).toFixed(2)} eV  [E(${subHTML(ce+ae)}) = ${E.toFixed(2)} eV/f.u.]`);
+    }
+    const edec2=epfu-sc2+0.0257*v[9];
+    return `<b>Level of theory: ${th.split(" (")[0]}.</b><br>
+    Total energy: OSZICAR free energy F = <span class="mono">${F.toFixed(2)}</span> eV
+    for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units).<br>
+    <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
+    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    <b>Decomposition energy</b> (pseudo-binary alloy) = E<sub>f.u.</sub> − Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
+    = ${epfu.toFixed(2)} − (${sc2.toFixed(2)}) + ${(0.0257*v[9]).toFixed(2)}
+    = <span class="mono">${edec2.toFixed(2)}</span> eV/f.u. versus the same-library end-member binaries:<br>&nbsp;&nbsp;${bins2.join("<br>&nbsp;&nbsp;")}<br>
+    f are the site fractions of the mixed sublattice; k<sub>B</sub>T = 0.0257 eV. ${v[1]<=0?"Entropy-stabilized against demixing at 298 K.":"Positive ΔE<sub>decomp</sub> — demixing is enthalpy-favoured; the map shows where mixing entropy wins."}
+    Band gap from occupied-band counting on EIGENVAL with NELECT.`;
+  }
   // decomposition
   const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
   const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
