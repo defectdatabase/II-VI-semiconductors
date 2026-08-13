@@ -687,17 +687,29 @@ function cOpenDetail(r,ord){
              onclick='openStaticMovie(${JSON.stringify(sk)},${JSON.stringify(r.n+" — "+r.f)},${v[5]},${v.length>10&&v[10]!==null&&v[10]!==undefined?v[10]:null})'>▶ relaxation movie</button>
            <button class="cpill" id="incarbtn">calculation inputs</button>`
         : `<button class="cpill" id="incarbtn">calculation inputs</button>`;})();
-  const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.rk||r.f);
+  const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.rk||r.f,r,cOrd);
   cRenderRows();
 }
 document.getElementById("csearch").addEventListener("input",cApplyFilters);
 ["ck-stable","ck-gap1"].forEach(id=>document.getElementById(id).addEventListener("change",cApplyFilters));
 
 
-function openIncar(theory){
-  document.getElementById("incartitle").textContent=theory;
-  document.getElementById("incarbody").innerHTML=(INCAR_TXT[theory]||INCAR_TXT[String(theory).split(" (")[0]]||"—").replace(/\n/g,"<br>");
+function openIncar(theory,r,ord){
+  document.getElementById("incartitle").innerHTML=r?`${subHTML(r.n)} — ${String(r.f)}`:theory;
+  let body=(INCAR_TXT[theory]||INCAR_TXT[String(theory).split(" (")[0]]||"—").replace(/\n/g,"<br>");
+  if(r&&ord&&r.o[ord]){
+    const v=r.o[ord], R=REFS[r.rk||r.f]||{}, paw=R.paw||{};
+    const els=[...new Set((r.n.match(/[A-Z][a-z]?/g)||[]))];
+    const pieces=els.map(e=>paw[e]?`${e} → ${paw[e]}`:null).filter(Boolean);
+    const rows=[];
+    if(v[6]) rows.push(`supercell: ${v[6]} atoms`+(v[8]?` · ${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:""));
+    if(v.length>17&&v[17]) rows.push(`KPOINTS: Γ-centred ${v[17]} (this run's KPOINTS file)`);
+    if(pieces.length) rows.push(`POTCAR TITEL: ${pieces.join(" · ")}`+(pieces.length<els.length?" — remaining element's POTCAR not archived":""));
+    if(v[5]!==null&&v[5]!==undefined) rows.push(`final OSZICAR free energy F = ${v[5].toFixed(5)} eV`);
+    if(rows.length) body+=`<br><br><b>This run</b><br>`+rows.join("<br>");
+  }
   document.getElementById("incarmodal").classList.add("on");
+  document.getElementById("incarbody").innerHTML=body;
 }
 function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
 /* ---------- MatterViz structure viewer ---------- */
@@ -1139,18 +1151,22 @@ function setupHTML(r,v){
 }
 function edgesHTML(v){
   const has=v.length>12&&v[11]!==null&&v[11]!==undefined;
-  if(!has) return `<b>Band gap</b> from occupied-band counting on EIGENVAL with NELECT: E<sub>g</sub> = ${v[2]!==null&&v[2]!==undefined?v[2].toFixed(2)+" eV":"—"}.`;
+  if(!has) return `<b>Band gap</b> from occupied-band counting on EIGENVAL with NELECT: band gap = ${v[2]!==null&&v[2]!==undefined?v[2].toFixed(2)+" eV":"—"}.`;
   return `<b>Band edges</b> from occupied-band counting on EIGENVAL with NELECT:
     VBM = <span class="mono">${v[11].toFixed(2)}</span> eV (highest occupied band over all k) ·
     CBM = <span class="mono">${v[12].toFixed(2)}</span> eV (lowest unoccupied) →
-    E<sub>g</sub> = ${v[12].toFixed(2)} − ${v[11].toFixed(2)} = <span class="mono">${(v[12]-v[11]).toFixed(2)}</span> eV.`;
+    band gap = ${v[12].toFixed(2)} − ${v[11].toFixed(2)} = <span class="mono">${(v[12]-v[11]).toFixed(2)}</span> eV.`;
 }
 function opticsHTML(v){
   if(!(v.length>13&&v[13])) return v[3]!==null&&v[3]!==undefined
-    ? `<br><b>Dielectric constant</b>: ε<sub>∞</sub> = ${v[3].toFixed(2)} (electronic, LOPTICS density–density response at E = 0).`
+    ? `<br><b>Dielectric constant</b> — real part of the density–density dielectric function of the LOPTICS run
+       at zero frequency: ε<sub>∞</sub> = (ε<sub>xx</sub> + ε<sub>yy</sub> + ε<sub>zz</sub>)/3 = Re ε(E = 0) averaged over the
+       three diagonal components = <span class="mono">${v[3].toFixed(2)}</span>. The per-component breakdown
+       (REAL.in) was not archived for this run, so only the mean is quoted.`
     : `<br>No LOPTICS in this campaign, so the dielectric constant and SLME are not published.`;
   const e=v[13], mean=(e[0]+e[1]+e[2])/3;
-  let out=`<br><b>Dielectric constant</b> — real density–density dielectric function at E = 0 from the LOPTICS run;
+  let out=`<br><b>Dielectric constant</b> — ε<sub>∞</sub> = (ε<sub>xx</sub> + ε<sub>yy</sub> + ε<sub>zz</sub>)/3,
+    the zero-frequency real part of the density–density dielectric function from the LOPTICS run;
     diagonal components ε<sub>xx</sub> = <span class="mono">${e[0].toFixed(2)}</span>,
     ε<sub>yy</sub> = <span class="mono">${e[1].toFixed(2)}</span>,
     ε<sub>zz</sub> = <span class="mono">${e[2].toFixed(2)}</span> →
