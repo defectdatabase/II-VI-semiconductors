@@ -646,11 +646,10 @@ function cRenderMeta(){
   const parts=order.filter(k=>byTh[k]).map(k=>`${k} ${byTh[k].toLocaleString()}`);
   const uniq=new Set(COMPOUNDS.map(r=>r.n)).size;
   document.getElementById("ccov").innerHTML=
-    `Coverage — ${COMPOUNDS.length.toLocaleString()} rows over ${uniq.toLocaleString()} unique compounds ·
-     ${parts.join(" · ")} · cation orderings selectable per row ·
-     ground-state configurations from a 21,242-calculation PBEsol polymorph screen · all pure DFT.
-     The HSE06 rows are the A2BCX4/ABX2 relaxation campaign restored from archive (converged runs only;
-     no LOPTICS in that campaign, so ε<sub>∞</sub> and SLME are blank there).`;
+    `Coverage — ${COMPOUNDS.length.toLocaleString()} rows · ${uniq.toLocaleString()} unique compounds ·
+     ${parts.join(" · ")} · orderings selectable per row · all pure DFT.
+     HSE06 = the restored A<sub>2</sub>BCX<sub>4</sub>/ABX<sub>2</sub> relaxation campaign
+     (converged runs only; no optics, so dielectric constant and SLME are blank there).`;
 }
 function cOpenDetail(r,ord){
   if(cSel===r&&!ord){cSel=null;document.getElementById("cdetail").classList.remove("on");cRenderRows();return;}
@@ -685,8 +684,12 @@ function cOpenDetail(r,ord){
     ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
          onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(r.n+" — "+r.f)})'>▶ relaxation movie</button>
        <button class="cpill" id="incarbtn">calculation inputs</button>`
-    : `<button class="cpill" id="incarbtn">calculation inputs</button>
-       <span style="font-size:13px;color:var(--wbg-muted)">static run (NSW = 0) on the relaxed geometry — a single SCF has no ionic steps to animate</span>`;
+    : (()=>{const sk=structKeyOf(r,cOrd), v=r.o[cOrd];
+        return sk&&HAVE_STRUCT.has(sk)
+        ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
+             onclick='openStaticMovie(${JSON.stringify(sk)},${JSON.stringify(r.n+" — "+r.f)},${v[5]},${v.length>10&&v[10]!==null&&v[10]!==undefined?v[10]:null})'>▶ relaxation movie</button>
+           <button class="cpill" id="incarbtn">calculation inputs</button>`
+        : `<button class="cpill" id="incarbtn">calculation inputs</button>`;})();
   const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.rk||r.f);
   cRenderRows();
 }
@@ -723,15 +726,18 @@ function loadMV(seed){
   }
   return mvMod;
 }
-async function mountStructure(r,ord){
-  const el=document.getElementById("cstruct");
+function structKeyOf(r,ord){
   const FK={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
   const RK={"PBEsol":"PBEsol","HSE06":"HSE","HSE+SOC":"HSE+SOC"}[r.f];
-  const key = r.ref            ? `ref__${RK}__${r.n}`
-            : ord==="zinc blende" ? `${r.fk||FK}__${r.n}`
-            : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
-            : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}`
-            : r.rk==="HSE06 (A2BCX4)" ? `HSE06__${r.n}_${ord}` : null;
+  return r.ref             ? `ref__${RK}__${r.n}`
+       : ord==="zinc blende" ? `${r.fk||FK}__${r.n}`
+       : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
+       : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}`
+       : r.rk==="HSE06 (A2BCX4)" ? `HSE06__${r.n}_${ord}` : null;
+}
+async function mountStructure(r,ord){
+  const el=document.getElementById("cstruct");
+  const key = structKeyOf(r,ord);
   CURKEY=key; CURSTRUCT=null;
   if(!key){
     el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-geometry payload published for this level of theory yet.</div>';
@@ -817,7 +823,7 @@ function renderGrid(st, el){
     tag.style.cssText="position:absolute;top:5px;left:9px;z-index:5;font-size:13px;color:var(--wbg-ink);pointer-events:none";
     const host=document.createElement("div");
     host.className="mvhost";
-    host.style.height=Math.floor((h-6)/2)+"px";
+    host.style.height=Math.floor((h-6)/2*1.22)+"px";   // compensate .mvhost zoom 1/1.22
     cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
     const props = dir ? {scene_props:{camera_position:dir.map(x=>x*dist)}} : {};
     try{ window.renderMatterViz(st, host, props); }catch(e){}
@@ -967,6 +973,45 @@ async function openMovie(key,options,label){
   if(!MVM.opts.length){ document.getElementById("mvm-meta").textContent="no multi-step relaxation archived"; return; }
   mvmLoad(MVM.opts[0].sub);
 }
+async function openStaticMovie(key,label,E,fmax){
+  closeMovie();
+  document.getElementById("moviemodal").classList.add("on");
+  document.getElementById("modalback").classList.add("on");
+  document.getElementById("mvm-title").innerHTML="relaxation movie — "+label;
+  if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
+  MVM.cur=null; MVM.data=null;
+  document.getElementById("mvm-sel").innerHTML=`<option>static run (1 configuration)</option>`;
+  document.getElementById("mvm-meta").textContent=
+    `static run (NSW = 0) — one archived configuration · E = ${E!==null&&E!==undefined?E.toFixed(2)+" eV":"—"}`+
+    (fmax!==null&&fmax!==undefined?` · F max = ${fmax.toFixed(3)} eV/Å`:"");
+  let st=null;
+  try{
+    const r=await fetch(`structures/${encodeURIComponent(key)}.json`);
+    if(r.ok&&(r.headers.get("content-type")||"").includes("json")) st=await r.json();
+  }catch(e){}
+  if(!st){ document.getElementById("mvm-meta").textContent="structure payload unavailable"; return; }
+  const sl=document.getElementById("mvm-slider"); sl.max="0"; sl.value="0";
+  document.getElementById("mvm-count").textContent="frame 1 / 1";
+  document.getElementById("mvm-play").textContent="▶ Play";
+  await loadPlotly();
+  const lay={margin:{l:56,r:56,t:8,b:34},showlegend:false,font:{family:"Arial Narrow",size:13},
+    xaxis:{dtick:1,range:[-0.5,0.5],title:{text:"ionic step",font:{size:12}}},
+    yaxis:{color:"#0e7490",zeroline:true},yaxis2:{overlaying:"y",side:"right",color:"#de9e3a",rangemode:"tozero"},
+    plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"};
+  Plotly.react("mvm-conv",[{x:[0],y:[0],mode:"markers",marker:{size:10,color:"#0e7490"}},
+    {x:[0],y:[fmax],yaxis:"y2",mode:"markers",marker:{size:10,color:"#de9e3a"}}],lay,
+    {responsive:true,displaylogo:false,displayModeBar:false});
+  document.getElementById("mvm-caption").innerHTML=
+    `static single point — <span style="color:#0e7490">ΔE vs final = 0 by definition</span> · `+
+    `<span style="color:#de9e3a">${fmax!==null&&fmax!==undefined?"F max = "+fmax.toFixed(3)+" eV/Å on the relaxed geometry":"forces not archived"}</span>`;
+  Plotly.react("mvm-frame",[{x:[0],y:[0],mode:"markers",marker:{size:11,color:"#3b82c4"}},
+    {x:[0],y:[fmax],yaxis:"y2",mode:"markers",marker:{size:11,color:"#2e8b57"}}],
+    Object.assign({},lay,{xaxis:{dtick:1,range:[-0.5,0.5],title:{text:"Frame",font:{size:13}}}}),
+    {responsive:true,displaylogo:false,displayModeBar:false});
+  const hst=hydrate(st);
+  await loadMV(hst);
+  renderGrid(hst, document.getElementById("mvm-grid"));
+}
 function closeMovie(){
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
   document.getElementById("moviemodal").classList.remove("on");
@@ -1072,20 +1117,13 @@ async function drawStabilityMap(r,ord){
   const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
   const head=document.getElementById("cmaphead");
   const parts=decompParts(r,ord);
-  head.style.display=""; note.style.display="";
   if(!parts){
     if(window.Plotly) Plotly.purge(el);
     el.innerHTML=""; el.style.height="0";
-    const v=r.o[ord];
-    note.innerHTML = r.ref
-      ? "Reference phase — it is itself a decomposition product, so no ΔG<sub>decomp</sub> map is defined."
-      : (v&&v[1]!==null&&v[1]!==undefined)
-      ? "No mixing model is published for this composition, so the map is omitted rather than guessed."
-      : "No ΔG<sub>decomp</sub> map: the stoichiometric binary decomposition is not published for this row "+
-        "(elemental/binary phase, or a competing binary not archived at this level of theory — see the "+
-        "provenance panel). The blank is deliberate; nothing is interpolated across theories.";
+    head.style.display="none"; note.style.display="none";
     return;
   }
+  head.style.display=""; note.style.display="";
   el.style.height="240px"; head.style.display=""; note.style.display="";
   const Ts=[],Ps=[]; for(let T=300;T<=2000;T+=25) Ts.push(T);
   for(let lp=-12;lp<=2;lp+=0.5) Ps.push(lp);
@@ -1117,6 +1155,40 @@ async function drawStabilityMap(r,ord){
 }
 
 /* ---------- provenance arithmetic ---------- */
+function edgesHTML(v){
+  const has=v.length>12&&v[11]!==null&&v[11]!==undefined;
+  if(!has) return `<b>Band gap</b> from occupied-band counting on EIGENVAL with NELECT: E<sub>g</sub> = ${v[2]!==null&&v[2]!==undefined?v[2].toFixed(2)+" eV":"—"}.`;
+  return `<b>Band edges</b> from occupied-band counting on EIGENVAL with NELECT:
+    VBM = <span class="mono">${v[11].toFixed(2)}</span> eV (highest occupied band over all k) ·
+    CBM = <span class="mono">${v[12].toFixed(2)}</span> eV (lowest unoccupied) →
+    E<sub>g</sub> = ${v[12].toFixed(2)} − ${v[11].toFixed(2)} = <span class="mono">${(v[12]-v[11]).toFixed(2)}</span> eV.`;
+}
+function opticsHTML(v){
+  if(!(v.length>13&&v[13])) return v[3]!==null&&v[3]!==undefined
+    ? `<br><b>Dielectric constant</b>: ε<sub>∞</sub> = ${v[3].toFixed(2)} (electronic, LOPTICS density–density response at E = 0).`
+    : `<br>No LOPTICS in this campaign, so the dielectric constant and SLME are not published.`;
+  const e=v[13], mean=(e[0]+e[1]+e[2])/3;
+  let out=`<br><b>Dielectric constant</b> — real density–density dielectric function at E = 0 from the LOPTICS run;
+    diagonal components ε<sub>xx</sub> = <span class="mono">${e[0].toFixed(2)}</span>,
+    ε<sub>yy</sub> = <span class="mono">${e[1].toFixed(2)}</span>,
+    ε<sub>zz</sub> = <span class="mono">${e[2].toFixed(2)}</span> →
+    ε<sub>∞</sub> = (${e[0].toFixed(2)} + ${e[1].toFixed(2)} + ${e[2].toFixed(2)})/3
+    = <span class="mono">${mean.toFixed(2)}</span>.`;
+  if(v.length>14&&v[14]){
+    if(v[16]&&v[16].length){
+      const pick=v[16].filter(a=>a[1]>0).filter((a,i)=>i%2===0).slice(0,6);
+      out+=`<br><b>Absorption</b> — α(E) from the LOPTICS dielectric (Im ε → α = 2ωk/c, vaspkit):
+        ${pick.map(a=>`α(${a[0].toFixed(2)} eV) = ${Number(a[1]).toExponential(1)} cm<sup>−1</sup>`).join(" · ")}.`;
+    }
+    if(v[15]&&v[15].length){
+      const pk=v[15].filter((a,i)=>i%3===0).slice(0,4);
+      out+=`<br><b>SLME</b> (Yu–Zunger, from α(E) and E<sub>g</sub> at 293.15 K) vs absorber thickness L:
+        ${pk.map(a=>`SLME(${a[0].toFixed(1)} µm) = ${a[1].toFixed(1)}%`).join(" · ")} →
+        maximum <span class="mono">${v[14][1].toFixed(2)}%</span> at L = ${v[14][0].toFixed(1)} µm (published value).`;
+    }
+  }
+  return out;
+}
 function provenanceHTML(r,ord){
   const th = r.f;
   const v = r.o[ord]; const F = v[5], nat = v[6];
@@ -1159,7 +1231,7 @@ function provenanceHTML(r,ord){
     = ${epfu.toFixed(2)} − (${sc2.toFixed(2)}) + ${(0.0257*v[9]).toFixed(2)}
     = <span class="mono">${edec2.toFixed(2)}</span> eV/f.u. versus the same-library end-member binaries:<br>&nbsp;&nbsp;${bins2.join("<br>&nbsp;&nbsp;")}<br>
     f are the site fractions of the mixed sublattice; k<sub>B</sub>T = 0.0257 eV. ${v[1]<=0?"Entropy-stabilized against demixing at 298 K.":"Positive ΔE<sub>decomp</sub> — demixing is enthalpy-favoured; the map shows where mixing entropy wins."}
-    Band gap from occupied-band counting on EIGENVAL with NELECT.`;
+    ${edgesHTML(v)}${opticsHTML(v)}`;
   }
   // decomposition
   const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
@@ -1180,10 +1252,11 @@ function provenanceHTML(r,ord){
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
     = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>
     &nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
-    Band gap from occupied-band counting on EIGENVAL with NELECT. ${miss
+    ${miss
       ? `The stoichiometric binary decomposition needs ${miss} binary phase(s) not archived at this level
          of theory (e.g. GeTe<sub>2</sub>/SnTe<sub>2</sub>), so ΔE<sub>decomp</sub> is left blank rather than mixed across theories.`
-      : `No binary decomposition is published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`}`;
+      : `No binary decomposition is published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`}
+    ${edgesHTML(v)}${opticsHTML(v)}`;
   return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), ${r.rk==="HSE06 (A2BCX4)"
@@ -1195,9 +1268,7 @@ function provenanceHTML(r,ord){
     = ${epfu.toFixed(2)} − ${(kes?sc:0.5*sc).toFixed(2)} + ${(0.0257*ent).toFixed(2)}
     = <span class="mono">${edec.toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
     ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
-    Band gap from occupied-band counting on EIGENVAL${v[3]!==null&&v[3]!==undefined
-      ?"; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness":
-      " with NELECT; no LOPTICS in this campaign, so ε<sub>∞</sub> and SLME are not published"}.`;
+    ${edgesHTML(v)}${opticsHTML(v)}`;
 }
 
 function closeModals(){dSel=null;cSel=null;stopTraj();closeIncar();closeMovie();
