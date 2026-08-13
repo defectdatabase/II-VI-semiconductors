@@ -119,6 +119,20 @@ sub{font-size:.72em}
 #reportbtn:hover{color:var(--wbg-accent);text-decoration:none}
 
 .showing{font-weight:400}
+/* MatterViz ships a dark theme; keep it inside the viewer only */
+#detail table.minitbl,#cdetail table.minitbl{background:#fff !important}
+#detail .minitbl tr,#cdetail .minitbl tr{background:#fff !important}
+#detail .minitbl td,#cdetail .minitbl td,
+#detail .minitbl th,#cdetail .minitbl th{background:#fff !important;color:var(--wbg-ink) !important}
+#detail .minitbl th,#cdetail .minitbl th{color:var(--wbg-muted) !important}
+#detail .kv div,#cdetail .kv div{background:transparent !important;color:var(--wbg-ink) !important}
+#detail .notebox,#cdetail .notebox{background:var(--wbg-surface) !important;color:#475569 !important}
+#detail,#cdetail{color:var(--wbg-ink)}
+.mvhost{width:100%;overflow:hidden;position:relative;display:block}
+.mvhost>*{width:100% !important;height:100% !important;max-height:100% !important;min-height:0 !important}
+.mvhost canvas{width:100% !important;height:100% !important;display:block}
+#cstruct,#trajbox_struct,#trajbox2_struct{overflow:hidden}
+#dqsel .cpill{text-transform:none}
 </style>
 </head>
 <body>
@@ -201,14 +215,14 @@ sub{font-size:.72em}
         <div class="dcol">
           <h4>Formation energy vs Fermi level</h4>
           <div id="efdetailplot"></div>
+          <h4 style="margin-top:16px">Relaxation movie</h4>
+          <div id="dqsel" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+          <div id="trajbox2"></div>
         </div>
         <div class="dcol">
           <h4>Per-charge-state raw data</h4>
           <table class="minitbl" id="dqtbl"></table>
           <div class="notebox" id="dnote"></div>
-          <h4 style="margin-top:16px">Relaxation movie</h4>
-          <div id="dqsel" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
-          <div id="trajbox2"></div>
         </div>
       </div>
     </div>
@@ -675,8 +689,12 @@ async function mountStructure(r,ord){
   dl.innerHTML=`<button class="cpill" onclick="dlText(toCIF(CURKEY,CURSTRUCT),CURKEY+'.cif')">download CIF</button>`+
     `<a class="cpill" style="text-decoration:none" href="structures/${encodeURIComponent(key)}.json" download>download structure (JSON)</a>`;
   try{
-    await loadMV(); el.innerHTML="";
-    window.renderMatterViz(st, el, {});
+    await loadMV();
+    const holder=document.createElement("div");
+    holder.className="mvhost";
+    holder.style.height=(el.clientHeight||460)+"px";
+    el.replaceChildren(holder);
+    window.renderMatterViz(st, holder, {});
   }catch(e){
     el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable offline; the CIF and JSON downloads above hold the same relaxed geometry.</div>';
   }
@@ -732,7 +750,8 @@ async function showFrame(i){
     await loadMV();
     if(document.getElementById(TPFX+"struct")!==host) return;   // panel changed under us
     const fresh=document.createElement("div");
-    fresh.style.cssText="width:100%;height:100%";
+    fresh.className="mvhost";
+    fresh.style.height=(host.clientHeight||340)+"px";
     host.replaceChildren(fresh);
     window.renderMatterViz(trajStructure(fr), fresh, {});
   }catch(e){}
