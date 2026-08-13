@@ -626,7 +626,7 @@ function cOpenDetail(r,ord){
   const os=document.getElementById("ordsel");
   if(os) os.onchange=(ev)=>{ev.stopPropagation();cOpenDetail(r,os.value);};
   document.getElementById("ckv").innerHTML=
-    `<div><span>Cation ordering</span><span>${oname(cOrd)}${cOrd===r.b?" — lowest energy":""} of ${ords.length}</span></div>
+    (ords.length>1?`<div><span>Cation ordering</span><span>${oname(cOrd)}${cOrd===r.b?" — lowest energy":""} of ${ords.length}</span></div>`:"")+`
      <div><span>Formation energy</span><span>${fmt(v[0])} eV/atom</span></div>
      <div><span>Decomposition energy</span><span>${fmt(v[1])} eV/f.u.</span></div>
      <div><span>Band gap</span><span>${fmt(v[2])} eV</span></div>
@@ -694,7 +694,9 @@ function dlText(txt,fname){
 async function mountStructure(r,ord){
   const el=document.getElementById("cstruct"), dl=document.getElementById("cdl");
   const FK={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
-  const key = ord==="zinc blende" ? `${FK}__${r.n}`
+  const RK={"PBEsol":"PBEsol","HSE06":"HSE","HSE+SOC":"HSE+SOC"}[r.f];
+  const key = r.ref            ? `ref__${RK}__${r.n}`
+            : ord==="zinc blende" ? `${FK}__${r.n}`
             : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
             : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}` : null;
   CURKEY=key; CURSTRUCT=null; dl.innerHTML="";
