@@ -635,8 +635,7 @@ function cRenderMeta(){
      click a row to switch between orderings (kesterite / stannite are ordering variants of the same
      compound). Formation energy per atom versus same-theory elemental references; decomposition
      energy per formula unit versus the stoichiometric binary decomposition including ideal-mixing
-     entropy (red = unstable); band gap from occupied-band counting on EIGENVAL (PBEsol rows use a
-     2×2×2-k static screen — treat as approximate); ε<sub>∞</sub> is the electronic LOPTICS dielectric;
+     entropy (red = unstable); band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> is the electronic LOPTICS dielectric;
      SLME at optimal thickness. <span class="showing">Showing ${cFiltered.length.toLocaleString()} of ${COMPOUNDS.length.toLocaleString()} compounds.</span>`;
   const byTh={};
   COMPOUNDS.forEach(r=>{byTh[r.f]=(byTh[r.f]||0)+1;});
