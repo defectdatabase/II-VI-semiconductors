@@ -51,8 +51,10 @@ sub{font-size:.72em}
 
 /* ---- filter row ---- */
 .filterrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-.filterrow input[type=text]{flex:1 1 320px;padding:9px 12px;font-size:14px;border-radius:8px;
-  border:1px solid var(--wbg-border);color:var(--wbg-ink);background:#fff}
+.filterrow input[type=text]{flex:1 1 320px;padding:10px 14px 10px 36px;font-size:14px;border-radius:9px;
+  border:1px solid var(--wbg-border);color:var(--wbg-ink);
+  background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><circle cx='7' cy='7' r='5' fill='none' stroke='%236b7280' stroke-width='1.6'/><path d='M11 11l4 4' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat 11px center}
+.filterrow input[type=text]:focus{outline:none;border-color:var(--wbg-accent);box-shadow:0 0 0 3px rgba(14,116,144,.12)}
 .cpill{padding:6px 11px;font-size:14px;font-weight:700;border-radius:7px;border:1px solid var(--wbg-border);
   background:#fff;color:var(--wbg-ink);cursor:pointer;text-transform:capitalize}
 .cpill.on{background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff}
@@ -94,6 +96,13 @@ sub{font-size:.72em}
 #detail.on,#cdetail.on{display:block}
 .dhead{font-size:16px;margin-bottom:8px}
 .dhead .sub{font-weight:400;color:var(--wbg-muted);font-size:14px;margin-left:10px}
+select{color:var(--wbg-ink);background:#fff;border:1px solid var(--wbg-border);border-radius:7px;
+  padding:5px 26px 5px 9px;font:inherit;font-size:13.5px;cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%231a1e2e' stroke-width='1.6' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 9px center}
+select:hover{border-color:var(--wbg-accent)}
+select:focus{outline:none;border-color:var(--wbg-accent);box-shadow:0 0 0 3px rgba(14,116,144,.12)}
 .dgrid{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(380px,1.6fr) minmax(260px,1fr);gap:20px}
 @media(max-width:1100px){.dgrid{grid-template-columns:1fr}}
 .dcol h4{margin:0 0 6px;font-size:14px;color:var(--wbg-accent)}
@@ -143,6 +152,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #detail .minitbl th,#cdetail .minitbl th{color:var(--wbg-muted) !important}
 #detail .kv div,#cdetail .kv div{background:transparent !important;color:var(--wbg-ink) !important}
 #detail .notebox,#cdetail .notebox{background:var(--wbg-surface) !important;color:#475569 !important}
+#cdetail #cnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
 #detail,#cdetail{color:var(--wbg-ink)}
 .mvhost{width:100%;overflow:hidden;position:relative;display:block;zoom:calc(1/1.22)}
 .mvhost>*{height:100% !important}
@@ -246,7 +256,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 <!-- ================= COMPOUND RANKINGS ================= -->
 <div class="view" id="view-rankings">
   <div class="filterrow">
-    <input type="text" id="csearch" placeholder="Search compound or structure (e.g. Ag1Al0.5Ga0.5S2, kesterite)…">
+    <input type="text" id="csearch" placeholder="Search compounds — e.g. Cu2ZnSnS4, AgGaS2, kesterite…">
 
   </div>
   <div class="checks">
