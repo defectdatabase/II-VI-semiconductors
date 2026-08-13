@@ -12,6 +12,9 @@
   --wbg-bg:#ffffff; --wbg-panel:#ffffff; --wbg-surface:#f7f8fa; --wbg-border:#d4d8e0;
   --wbg-ink:#1a1e2e; --wbg-muted:#6b7280; --wbg-accent:#0e7490; --wbg-accent2:#06b6d4;
   --wbg-cov:#2ca02c; --wbg-ion:#de9e3a; --wbg-spont:#c0392b;
+  --page-bg:#fff !important;
+  --pane-bg:#fff !important;
+  --pane-color:#1a1e2e !important;
   zoom:1.22;
 }
 *,*::before,*::after{box-sizing:border-box;font-family:'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif}
@@ -109,7 +112,8 @@ select:focus{outline:none;border-color:var(--wbg-accent);box-shadow:0 0 0 3px rg
 #cdetail .dgrid{align-items:stretch}
 #cdetail .dcol{display:flex;flex-direction:column}
 #cdetail .dcol>*{flex:0 0 auto}
-#cdetail #cnote,#cdetail #cmapnote{flex:1 1 auto}
+#cdetail #cnote{flex:1 1 0;min-height:220px;overflow-y:auto}
+#cdetail #cmapnote{flex:0 1 auto;min-height:0;max-height:240px;overflow-y:auto}
 .minitbl{border-collapse:collapse;width:100%;font-size:13.5px}
 .minitbl th{text-align:left;color:var(--wbg-muted);font-weight:700;border-bottom:1px solid var(--wbg-border);padding:4px 8px}
 .minitbl td{border-bottom:1px solid #eceff3;padding:4px 8px;font-variant-numeric:tabular-nums;font-size:13.5px}
@@ -153,6 +157,8 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #detail .kv div,#cdetail .kv div{background:transparent !important;color:var(--wbg-ink) !important}
 #detail .notebox,#cdetail .notebox{background:var(--wbg-surface) !important;color:#475569 !important}
 #cdetail #cnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
+#cdetail #cmapnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
+#incarbody,#cdetail #cnote,#cdetail #cmapnote{text-align:justify}
 #detail,#cdetail{color:var(--wbg-ink)}
 .mvhost{width:100%;overflow:hidden;position:relative;display:block;zoom:calc(1/1.22)}
 .mvhost>*{height:100% !important}
@@ -215,8 +221,8 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
     <button class="cpill" data-c="complex">complex</button>
   </div>
   <div class="checks">
-    <label><input type="checkbox" id="ck-spont"> spontaneous (E<sup>f</sup>&lt;0 at mid-gap)</label>
-    <label><input type="checkbox" id="ck-allq"> has all 5 charge states</label>
+    <label><input type="checkbox" id="ck-spont"> Spontaneous (formation energy &lt; 0 at mid-gap)</label>
+    <label><input type="checkbox" id="ck-allq"> Has all 5 charge states</label>
     <label><input type="checkbox" id="ck-pbesol" checked> PBEsol</label>
     <label><input type="checkbox" id="ck-hsesoc" checked> HSE+SOC</label>
   </div>
@@ -256,12 +262,12 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 <!-- ================= COMPOUND RANKINGS ================= -->
 <div class="view" id="view-rankings">
   <div class="filterrow">
-    <input type="text" id="csearch" placeholder="Search compounds — e.g. Cu2ZnSnS4, AgGaS2, kesterite…">
+    <input type="text" id="csearch" placeholder="Search compounds — e.g. Cu2ZnSnS4, AgGaS2…">
 
   </div>
   <div class="checks">
-    <label><input type="checkbox" id="ck-stable"> stable (E<sub>decomp</sub> ≤ 0)</label>
-    <label><input type="checkbox" id="ck-gap1"> gap 1.0–2.0 eV</label>
+    <label><input type="checkbox" id="ck-stable"> Stable (decomposition energy ≤ 0)</label>
+    <label><input type="checkbox" id="ck-gap1"> Band gap 1.0–2.0 eV</label>
   </div>
   <div class="covstrip" id="ccov"></div>
   <div class="tbox" id="ctbox">
@@ -279,7 +285,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
           <div class="notebox" id="cnote"></div>
         </div>
         <div class="dcol">
-          <h4>DFT-optimized structure — MatterViz</h4>
+          <h4>DFT-optimized structure</h4>
           <div id="cstruct" style="width:100%;height:330px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
           <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center" id="cmoviebtn"></div>
           <h4 style="margin-top:12px" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
@@ -635,7 +641,7 @@ function cRenderMeta(){
      SLME at optimal thickness. <span class="showing">Showing ${cFiltered.length.toLocaleString()} of ${COMPOUNDS.length.toLocaleString()} compounds.</span>`;
   const byTh={};
   COMPOUNDS.forEach(r=>{byTh[r.f]=(byTh[r.f]||0)+1;});
-  const order=["PBE","PBEsol","HSE06","HSE06 (no PS)","HSE+SOC"];
+  const order=["PBE","PBEsol","HSE06","HSE+SOC"];
   const parts=order.filter(k=>byTh[k]).map(k=>`${k} ${byTh[k].toLocaleString()}`);
   const uniq=new Set(COMPOUNDS.map(r=>r.n)).size;
   document.getElementById("ccov").innerHTML=
@@ -652,7 +658,7 @@ function cOpenDetail(r,ord){
   document.getElementById("cdetail").classList.add("on");document.getElementById("modalback").classList.add("on");
   const ords=Object.keys(r.o);
   const oname=o=>ords.length>1?`Ordering ${ords.indexOf(o)+1}`:"Ordering 1";
-  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)} — ${r.f}` + (ords.length>1
+  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)}` + (ords.length>1
     ? `<span style="margin-left:14px">cation ordering
         <select id="ordsel" style="margin-left:6px">${ords.map(o=>
           `<option value="${o}"${o===cOrd?" selected":""}>${oname(o)}${o===r.b?" — lowest energy":""}</option>`).join("")}</select></span>`
@@ -673,13 +679,13 @@ function cOpenDetail(r,ord){
   mountStructure(r,cOrd);
   drawStabilityMap(r,cOrd);
   const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
-  const mkey = r.rk==="HSE06 (A2BCX4)" ? `host__hse2x2x1__${r.n}_${cOrd}` : `host__${FKEY}__${r.n}`;
+  const mkey = r.rk==="HSE06 (A2BCX4)" ? `host__hse2x2x1__${r.n}_${cOrd}` : `host__${r.fk||FKEY}__${r.n}`;
   document.getElementById("cmoviebtn").innerHTML = HAVE_TRAJ.has(mkey)
     ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
          onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(r.n+" — "+r.f)})'>▶ relaxation movie</button>
        <button class="cpill" id="incarbtn">calculation inputs</button>`
     : `<button class="cpill" id="incarbtn">calculation inputs</button>
-       <span style="font-size:13px;color:var(--wbg-muted)">single-point static — no ionic steps archived</span>`;
+       <span style="font-size:13px;color:var(--wbg-muted)">static run (NSW = 0) on the relaxed geometry — a single SCF has no ionic steps to animate</span>`;
   const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.rk||r.f);
   cRenderRows();
 }
@@ -721,7 +727,7 @@ async function mountStructure(r,ord){
   const FK={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
   const RK={"PBEsol":"PBEsol","HSE06":"HSE","HSE+SOC":"HSE+SOC"}[r.f];
   const key = r.ref            ? `ref__${RK}__${r.n}`
-            : ord==="zinc blende" ? `${FK}__${r.n}`
+            : ord==="zinc blende" ? `${r.fk||FK}__${r.n}`
             : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
             : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}`
             : r.rk==="HSE06 (A2BCX4)" ? `HSE06__${r.n}_${ord}` : null;
