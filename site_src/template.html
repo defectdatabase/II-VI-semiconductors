@@ -84,7 +84,10 @@ sub{font-size:.72em}
 .spontv{color:var(--wbg-spont)}
 
 /* ---- detail panel (inline inside table box) ---- */
-#detail,#cdetail{border-top:2px solid var(--wbg-border);background:#fcfdfe;padding:16px 18px;display:none}
+#detail,#cdetail{display:none;position:fixed;inset:5% 6%;z-index:80;background:#fff;border:1px solid var(--wbg-border);border-radius:14px;padding:20px 24px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.35)}
+#modalback{display:none;position:fixed;inset:0;background:rgba(15,25,40,.45);z-index:70}
+#modalback.on{display:block}
+.mclose{position:absolute;top:12px;right:16px;border:1px solid var(--wbg-border);background:#fff;border-radius:8px;padding:4px 12px;font-weight:700;cursor:pointer}
 #detail.on,#cdetail.on{display:block}
 .dhead{font-size:16px;font-weight:800;margin-bottom:12px}
 .dhead .sub{font-weight:400;color:var(--wbg-muted);font-size:14px;margin-left:10px}
@@ -184,7 +187,7 @@ sub{font-size:.72em}
       <div class="thead" id="dthead"></div>
       <div class="tview" id="dtview"><div class="tspacer" id="dtspacer"></div></div>
     </div>
-    <div id="detail">
+    <div id="detail"><button class="mclose" onclick="closeModals()">✕ close</button>
       <div class="dhead">Defect thermodynamics <span class="sub" id="dtitle"></span></div>
       <div class="dgrid">
         <div class="dcol">
@@ -226,7 +229,7 @@ sub{font-size:.72em}
       <div class="thead" id="cthead"></div>
       <div class="tview" id="ctview"><div class="tspacer" id="ctspacer"></div></div>
     </div>
-    <div id="cdetail">
+    <div id="cdetail"><button class="mclose" onclick="closeModals()">✕ close</button>
       <div class="dhead">Compound detail <span class="sub" id="ctitle"></span></div>
       <div class="dgrid" style="grid-template-columns:1fr 1fr">
         <div class="dcol"><div class="kv" id="ckv"></div></div>
@@ -271,6 +274,7 @@ sub{font-size:.72em}
   </div>
 </div>
 
+<div id="modalback"></div>
 <a id="reportbtn" href="https://github.com/defectdatabase/chalcogenide-defects/issues">⚑ report an issue</a>
 
 <script>
@@ -431,7 +435,7 @@ function dRenderMeta(){
 function dOpenDetail(r){
   if(dSel===r){dSel=null;document.getElementById("detail").classList.remove("on");dRenderRows();return;}
   dSel=r;
-  const panel=document.getElementById("detail");panel.classList.add("on");
+  const panel=document.getElementById("detail");panel.classList.add("on");document.getElementById("modalback").classList.add("on");
   document.getElementById("dtitle").innerHTML=`${defHTML(r.d)} in ${subHTML(r.h)} — ${THEORY[r.f]}`;
   const rows=[["Cd-rich",r.efVc,r.qVc,r.efMc,r.qMc],["Te-rich",r.efVt,r.qVt,r.efMt,r.qMt]];
   document.getElementById("dcondtbl").innerHTML=
@@ -465,8 +469,7 @@ function dOpenDetail(r){
     margin:{l:52,r:12,t:8,b:42},legend:{x:.02,y:.98},font:{family:"Arial Narrow"},
     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false});
   dRenderRows();
-  panel.scrollIntoView({behavior:"smooth",block:"nearest"});
-}
+  }
 document.getElementById("dsearch").addEventListener("input",dApplyFilters);
 ["ck-spont","ck-allq","ck-pbesol","ck-hsesoc"].forEach(id=>
   document.getElementById(id).addEventListener("change",dApplyFilters));
@@ -480,8 +483,8 @@ const CCOLS=[
   {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}</span>`,val:r=>r.n},
   {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
   {k:"cell",label:"Supercell",w:118,cell:(r,v)=>`<span class="c" style="width:118px">${v[7]||"—"}${v[6]?` (${v[6]} at.)`:""}</span>`,val:r=>r.o[r.b][6]||0},
-  {k:"eform",label:"Eform (eV/atom)",w:130,num:1,vi:0,d:3},
-  {k:"edec",label:"Edecomp (eV/f.u.)",w:140,num:1,vi:1,d:3},
+  {k:"eform",label:"Formation energy (eV/atom)",w:170,num:1,vi:0,d:3},
+  {k:"edec",label:"Decomposition energy (eV/f.u.)",w:190,num:1,vi:1,d:3},
   {k:"gap",label:"Band gap (eV)",w:116,num:1,vi:2},
   {k:"eps",label:"ε∞ (electronic)",w:120,num:1,vi:3},
   {k:"slme",label:"SLME (%)",w:92,num:1,vi:4},
@@ -554,7 +557,7 @@ function cOpenDetail(r,ord){
   if(cSel===r&&!ord){cSel=null;document.getElementById("cdetail").classList.remove("on");cRenderRows();return;}
   cSel=r; cOrd=ord||r.b;
   const v=r.o[cOrd];
-  document.getElementById("cdetail").classList.add("on");
+  document.getElementById("cdetail").classList.add("on");document.getElementById("modalback").classList.add("on");
   const ords=Object.keys(r.o);
   document.getElementById("ctitle").innerHTML=`${subHTML(r.n)} — ${r.f}` +
     `<span style="margin-left:14px">`+
@@ -588,14 +591,14 @@ function provenanceHTML(r,ord){
   const nfu = nat/apfu, epfu = F/nfu;
   let terms=[], refsum=0;
   for(const el in comp){ const mu=R.el[el]; refsum+=comp[el]*nfu*mu;
-    terms.push(`${comp[el]*nfu}×μ(${el})=${(comp[el]*nfu*mu).toFixed(2)}`); }
+    terms.push(`${comp[el]*nfu}·μ<sub>${el}</sub> = ${(comp[el]*nfu*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(3)} eV/atom)`); }
   const eform=(F-refsum)/nat;
   // decomposition
   const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
   const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
   let sc=0, ent=0, bins=[], kes=Math.abs(xsum-4)<.01;
   const add=(f,key)=>{ const E=R.bin[key]; if(E===undefined||f<=0) return false;
-    sc+=f*E; ent+=f*Math.log(f); bins.push(`${f.toFixed(3)}×E(${key})`); return true; };
+    sc+=f*E; ent+=f*Math.log(f); bins.push(`${f.toFixed(3)} · E(${subHTML(key)}) = ${(f*E).toFixed(3)} eV  [E(${subHTML(key)}) = ${E.toFixed(3)} eV/f.u.]`); return true; };
   if(kes){ for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add((comp[a]/2)*(comp[x]/4),`${a}2${x}`);
     for(const b of BK) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/4),`${b}${x}`);
     for(const c of CK) if(comp[c]) for(const x of XS) if(comp[x]) add(comp[c]*(comp[x]/4),`${c}${x}2`); }
@@ -605,16 +608,22 @@ function provenanceHTML(r,ord){
   return `<b>How these numbers are computed (${th}).</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(5):"—"}</span> eV
     for the ${nat}-atom ${ord} supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
-    <b>Formation energy</b> = (F − Σnᵢμᵢ)/N = (${F!==null?F.toFixed(3):"—"} − (${refsum.toFixed(3)}))/${nat}
-    = <span class="mono">${eform.toFixed(4)}</span> eV/atom, with elemental references ${terms.slice(0,4).join(", ")}${terms.length>4?", …":""} (same theory).<br>
+    <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F!==null?F.toFixed(3):"—"} − (${refsum.toFixed(3)}))/${nat}
+    = <span class="mono">${eform.toFixed(4)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> = E<sub>f.u.</sub> − ${kes?"":"½"}Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
     = ${epfu.toFixed(3)} − ${(kes?sc:0.5*sc).toFixed(3)} + ${(0.0257*ent).toFixed(4)}
-    = <span class="mono">${edec.toFixed(4)}</span> eV/f.u. versus ${bins.length} binaries (${bins.slice(0,3).join(", ")}${bins.length>3?", …":""}), k<sub>B</sub>T = 0.0257 eV.<br>
+    = <span class="mono">${edec.toFixed(4)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
     ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
     Band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness.
     Raw outputs on Purdue Anvil, mirrored on ALCF Eagle.`;
 }
 
+function closeModals(){dSel=null;cSel=null;
+  document.getElementById("detail").classList.remove("on");
+  document.getElementById("cdetail").classList.remove("on");
+  document.getElementById("modalback").classList.remove("on");
+  dRenderRows();cRenderRows();}
+document.getElementById("modalback").onclick=closeModals;
 /* ---------- top stats ---------- */
 document.getElementById("topstats").textContent=
   `${DEFECTS.length.toLocaleString()} defect entries across ${new Set(DEFECTS.map(r=>r.h)).size} hosts · `+
