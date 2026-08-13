@@ -135,8 +135,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #detail .notebox,#cdetail .notebox{background:var(--wbg-surface) !important;color:#475569 !important}
 #detail,#cdetail{color:var(--wbg-ink)}
 .mvhost{width:100%;overflow:hidden;position:relative;display:block}
-.mvhost>*{width:100% !important;height:100% !important;max-height:100% !important;min-height:0 !important}
-.mvhost canvas{width:100% !important;height:100% !important;display:block}
+.mvhost>*{height:100% !important}
 #cstruct,#trajbox_struct,#trajbox2_struct{overflow:hidden}
 #dqsel .cpill,#cdl .cpill,#incarbtn,#ctitle .cpill{text-transform:none}
 </style>
@@ -742,7 +741,6 @@ LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · GGA = PS · ENCUT = 500 eV 
 LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`};
 
 
-const MV_VIEWS=[["perspective",[1,0.72,1.25]],["front",[0,0,1]],["top",[0,1,0]],["side",[1,0,0]]];
 function hydrate(st){
   const m=st.lattice.matrix;
   if(st.lattice.a===undefined) Object.assign(st.lattice, latParams(m));
@@ -759,28 +757,12 @@ function hydrate(st){
 }
 function renderGrid(st, el){
   const h=(el.clientHeight||460);
-  const m=st.lattice.matrix;
-  const c=[0,1,2].map(i=>(m[0][i]+m[1][i]+m[2][i])/2);           // cell centre
-  const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c);
-  const dist=2.1*L;
   el.replaceChildren();
-  const grid=document.createElement("div");
-  grid.style.cssText=`display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;width:100%;height:${h}px`;
-  el.appendChild(grid);
-  MV_VIEWS.forEach(([label,dir])=>{
-    const n=Math.hypot(...dir);
-    const cam=[0,1,2].map(i=>c[i]+dir[i]/n*dist);
-    const cell=document.createElement("div");
-    cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:6px;overflow:hidden;background:#fff";
-    const tag=document.createElement("div");
-    tag.textContent=label;
-    tag.style.cssText="position:absolute;bottom:4px;left:8px;z-index:5;font-size:12px;color:var(--wbg-muted);pointer-events:none";
-    const host=document.createElement("div");
-    host.className="mvhost";
-    host.style.height=Math.floor((h-6)/2)+"px";
-    cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
-    try{ window.renderMatterViz(st, host, {scene_props:{camera_position:cam,camera_target:c}}); }catch(e){}
-  });
+  const host=document.createElement("div");
+  host.className="mvhost";
+  host.style.cssText=`width:100%;height:${h}px;position:relative;overflow:hidden`;
+  el.appendChild(host);
+  try{ window.renderMatterViz(st, host, {}); }catch(e){}
 }
 /* ---------- relaxation movie: XDATCAR frames + energies + forces ---------- */
 let TRAJ=null, TFRAME=0, TTIMER=null, TSPECIES=null, TPFX="trajbox_";
@@ -927,6 +909,12 @@ function provenanceHTML(r,ord){
   else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add(comp[a]*(comp[x]/2),`${a}2${x}`);
     for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/2),`${b}2${x}3`); }
   const edec = kes? epfu-sc+0.0257*ent : epfu-0.5*sc+0.0257*ent;
+  if(r.ref) return `<b>Level of theory: ${th}.</b><br>
+    Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
+    for the ${nat}-atom reference cell.<br>
+    ${Object.keys(comp).length===1
+      ? `Elemental standard state — its energy per atom (μ<sub>${Object.keys(comp)[0]}</sub> = ${(F/nat).toFixed(2)} eV/atom) is the reference all formation energies are measured against; its own formation energy is zero by definition.`
+      : `<b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat} = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>This binary is itself a competing phase in the decomposition analysis of the quaternary and ternary compounds.`}`;
   return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
