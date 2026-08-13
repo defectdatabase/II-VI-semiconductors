@@ -160,9 +160,10 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #cdetail #cmapnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
 #incarbody,#cdetail #cnote,#cdetail #cmapnote{text-align:justify}
 #detail,#cdetail{color:var(--wbg-ink)}
-.mvhost{width:100%;overflow:hidden;position:relative;display:block;zoom:calc(1/1.22)}
+.mvhost{width:100%;overflow:visible;position:relative;display:block;zoom:calc(1/1.22)}
+.mvhost .draggable-pane{max-height:340px !important;overflow-y:auto;z-index:60}
 .mvhost>*{height:100% !important}
-#cstruct,#trajbox_struct,#trajbox2_struct{overflow:hidden}
+#cstruct,#trajbox_struct,#trajbox2_struct{overflow:visible}
 #dqsel .cpill,#incarbtn,#ctitle .cpill{text-transform:none}
 </style>
 </head>
@@ -810,7 +811,7 @@ function renderGrid(st, el){
   el.appendChild(grid);
   MV_VIEWS.forEach(([label,dir])=>{
     const cell=document.createElement("div");
-    cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:6px;overflow:hidden;background:#fff";
+    cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:6px;overflow:visible;background:#fff";
     const tag=document.createElement("div");
     tag.textContent=label;
     tag.style.cssText="position:absolute;top:5px;left:9px;z-index:5;font-size:13px;color:var(--wbg-ink);pointer-events:none";
