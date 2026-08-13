@@ -4,370 +4,345 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DefectDB — Chalcogenide Semiconductor Defect Library</title>
-<meta name="description" content="Open DFT library for chalcogenide semiconductors: compound rankings, charged-defect formation energies, relaxed structures and relaxation movies. Every value recomputed from raw VASP output.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-
+<meta name="description" content="Open DFT library for chalcogenide semiconductors: 6763 I–III–VI2 / I2–II–IV–VI4 compounds with computed properties, plus charged-defect formation energies for II–VI hosts. All DFT.">
 <style>
 :root{
   color-scheme:light;
-  --ink:#141c26; --sec:#5b6472; --mut:#7a8391;
-  --line:#e3e6eb; --hair:#eef1f5; --panel:#f7f8fa;
-  --teal:#0e7490; --amber:#a5541a; --green:#15803d;
   --surface-bg:#fffffff5; --text-color:#374151;
+  --wbg-bg:#ffffff; --wbg-panel:#ffffff; --wbg-surface:#f7f8fa; --wbg-border:#d4d8e0;
+  --wbg-ink:#1a1e2e; --wbg-muted:#6b7280; --wbg-accent:#0e7490; --wbg-accent2:#06b6d4;
+  --wbg-cov:#2ca02c; --wbg-ion:#de9e3a; --wbg-spont:#c0392b;
+  zoom:1.22;
 }
-*,*::before,*::after{box-sizing:border-box}
-html,body{margin:0;background:#f2f0eb;color:var(--ink);
-  font-family:'IBM Plex Sans','Helvetica Neue',Arial,sans-serif;font-size:13px;line-height:1.45}
-.mono,td.num,.num{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace}
-a{color:var(--teal);text-decoration:none}
+*,*::before,*::after{box-sizing:border-box;font-family:'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--wbg-bg);color:var(--wbg-ink);font-size:15px;line-height:1.45;min-height:100vh}
+a{color:var(--wbg-accent);text-decoration:none}
 a:hover{text-decoration:underline}
 sub{font-size:.72em}
-button,select,input{font-family:inherit;color:inherit}
+.mono,.num{font-family:'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif}
 
-.app{max-width:1960px;margin:14px auto;background:#fff;border:1px solid var(--line);border-radius:7px;overflow:hidden}
-.top{display:flex;align-items:center;gap:12px;height:44px;padding:0 16px;background:var(--ink);color:#fff}
-.brand{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;letter-spacing:-.01em}
-.tagline{font-size:12.5px;color:#a9b2c0}
-.topdiv{width:1px;height:18px;background:#2c3644}
-.topstats{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#cbd3dd}
-.topstats b{color:#fff;font-weight:500}
-.toplinks{margin-left:auto;display:flex;gap:8px}
-.toplinks a{background:#26313f;color:#e6ebf2;font-size:11.5px;padding:4px 11px;border-radius:5px}
-.toplinks a:hover{background:#33404f;text-decoration:none}
+/* ---- green citation banner ---- */
+#attr{background:#eefaf0;color:#15803d;font-size:15.5px;font-weight:600;text-align:center;
+  padding:10px 16px;border-bottom:1px solid #c3e6c9;line-height:1.5}
+#attr a{color:#15803d;text-decoration:underline}
+#attr .who{font-weight:700}
 
-.tabs{display:flex;align-items:center;gap:2px;padding:0 16px;border-bottom:1px solid var(--line)}
-.tabs button{border:0;background:0;padding:11px 14px;font-size:13.5px;color:var(--sec);cursor:pointer;
-  border-bottom:2px solid transparent;margin-bottom:-1px}
-.tabs button:hover{color:var(--ink)}
-.tabs button.on{color:var(--teal);border-bottom-color:var(--teal);font-weight:500}
-.tabs .who{margin-left:auto;font-size:11.5px;color:var(--mut)}
+/* ---- title row ---- */
+#titlebar{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:16px 26px 4px}
+#titlebar h1{margin:0;font-size:20px;font-weight:900;letter-spacing:.3px}
+#titlebar h1 .greek{font-weight:400;color:var(--wbg-muted)}
+#titlebar .stats{font-size:14px;color:var(--wbg-muted)}
+#titlebar .right{margin-left:auto;display:flex;gap:10px;font-size:14px}
+#titlebar .right a{font-weight:700;border:1px solid var(--wbg-border);border-radius:8px;padding:4px 11px;color:var(--wbg-ink)}
+#titlebar .right a:hover{border-color:var(--wbg-accent);text-decoration:none}
 
-.filters{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.search{position:relative;flex:1 1 320px;max-width:720px}
-.search input{width:100%;padding:7px 10px 7px 26px;font-size:12.5px;border:1px solid var(--line);
-  border-radius:6px;background:#fff;outline:none}
-.search input:focus{border-color:var(--teal)}
-.search::before{content:"⌕";position:absolute;left:9px;top:5px;color:var(--mut);font-size:13px}
-.chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sec);border:1px solid var(--line);
-  border-radius:6px;padding:6px 11px;cursor:pointer;background:#fff}
-.chk input{margin:0}
-.filters select{font-size:12px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:#fff}
-.counts{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;
-  font-size:11.5px;color:var(--mut)}
-.counts b{color:var(--ink);font-weight:500}
-.counts a{font-family:'IBM Plex Sans',sans-serif;font-size:11.5px}
+/* ---- grouped pill tab bar ---- */
+#tabbar{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end;padding:8px 26px 12px;border-bottom:1px solid var(--wbg-border)}
+.tabgroup>.glabel{font-size:14px;font-weight:700;color:var(--wbg-muted);margin-bottom:6px}
+.tabgroup .pills{display:flex;gap:8px;flex-wrap:wrap}
+.tab{padding:6px 10px;font-size:14px;font-weight:700;border-radius:8px;border:1px solid var(--wbg-border);
+  background:#fff;color:var(--wbg-ink);cursor:pointer}
+.tab:hover{border-color:var(--wbg-accent)}
+.tab.on{background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff}
 
-.pill{font-size:11px;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
-.pill.t-PBE{background:#e8f0fb;color:#1e4f8a}
-.pill.t-PBEsol{background:#e4eefb;color:#1d4e89}
-.pill.t-HSE06{background:#fdf1d8;color:#8a5a12}
-.pill.t-HSE06noPS{background:#fbeed8;color:#8a5a12}
-.pill.t-HSESOC{background:#ece7fb;color:#4c3a94}
-.badge{font-size:10.5px;padding:1.5px 7px;border-radius:10px;background:#e6f3f6;color:var(--teal);
-  border:1px solid #cfe6ec;white-space:nowrap}
-.cls{font-size:12px}
-.cls.native,.cls.dopant,.cls.complex{color:var(--amber)}
-.cls.vacancy,.cls.interstitial,.cls.substitution{color:var(--teal)}
+.view{display:none;padding:18px 26px}
+.view.on{display:block}
 
-.tbl{width:100%;border-collapse:collapse}
-.tbl thead th{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);
-  text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;
-  background:#fff;position:sticky;top:0;z-index:2}
-.tbl thead th.num{text-align:right}
-.tbl tbody td{padding:8px 12px;border-bottom:1px solid var(--hair);font-size:12.5px;white-space:nowrap}
-.tbl tbody td.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
-.tbl tbody td.name{font-weight:500}
-.tbl tbody tr{cursor:pointer}
-.tbl tbody tr:nth-child(even){background:#fcfcfd}
-.tbl tbody tr:hover{background:#f4f8f9}
-.tbl .muted{color:var(--mut)}
-.tbl .warn{color:var(--amber)}
-.tblwrap{overflow:auto;max-height:calc(100vh - 250px)}
-.foot{display:flex;align-items:center;gap:12px;padding:9px 16px;border-top:1px solid var(--line);
-  font-size:11.5px;color:var(--mut);flex-wrap:wrap}
-.foot .pg{margin-left:auto;display:flex;align-items:center;gap:6px}
-.pgbtn{font-size:11.5px;padding:4px 11px;border-radius:5px;border:1px solid var(--line);background:#fff;
-  color:var(--sec);cursor:pointer}
-.pgbtn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
-.pgbtn:disabled{opacity:.45;cursor:not-allowed}
-.foot .cov{font-family:'IBM Plex Mono',monospace;font-size:11px}
-.note{padding:10px 16px;font-size:11.5px;color:var(--mut);border-top:1px solid var(--hair);max-width:1180px}
+/* ---- filter row ---- */
+.filterrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.filterrow input[type=text]{flex:1 1 320px;padding:9px 12px;font-size:14px;border-radius:8px;
+  border:1px solid var(--wbg-border);color:var(--wbg-ink);background:#fff}
+.cpill{padding:6px 11px;font-size:14px;font-weight:700;border-radius:7px;border:1px solid var(--wbg-border);
+  background:#fff;color:var(--wbg-ink);cursor:pointer;text-transform:capitalize}
+.cpill.on{background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff}
+.checks{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:2px 0 10px;font-size:14px}
+.checks label{display:flex;gap:5px;align-items:center;cursor:pointer}
 
-.view{display:none}.view.on{display:block}
-.pane{padding:16px}
-.pane h3{font-size:14px;margin:0 0 8px;font-weight:500}
-.pane p{font-size:12.5px;color:var(--sec);max-width:900px;margin:0}
+/* ---- coverage strip ---- */
+.covstrip{background:#f6f9fb;border:1px solid #e2e8f0;border-radius:7px;color:#475569;
+  font-size:13.5px;padding:8px 12px;margin-bottom:12px}
+.covstrip b{color:#334155}
 
-#modalback{display:none;position:fixed;inset:0;background:rgba(15,25,40,.42);z-index:70}
+/* ---- virtualized table ---- */
+.tbox{border:1px solid var(--wbg-border);border-radius:10px;background:#fff;overflow:auto hidden}
+.tinner{min-width:max-content}
+.thead{display:flex;background:var(--wbg-surface);border-bottom:2px solid var(--wbg-border)}
+.thead .hc{padding:9px 8px;font-size:14px;font-weight:800;color:var(--wbg-muted);
+  letter-spacing:.2px;cursor:pointer;white-space:nowrap;flex:0 0 auto}
+.tview{height:560px;overflow-y:auto;position:relative}
+.tspacer{position:relative}
+.trow{position:absolute;left:0;right:0;height:34px;display:flex;align-items:center;
+  border-bottom:1px solid var(--wbg-border);cursor:pointer;background:#fff}
+.trow:hover{background:var(--wbg-surface)}
+.trow.sel{background:#eaf5f7}
+.trow .c{padding:0 8px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
+.trow .c.num{text-align:right;font-variant-numeric:tabular-nums;font-size:14px}
+.trow .c.hostc{font-weight:700}
+.trow .c.defc{font-size:14px}
+.cls-amber{color:var(--wbg-ion)}
+.cls-teal{color:var(--wbg-accent)}
+.spontv{color:var(--wbg-spont)}
+
+/* ---- detail panel (inline inside table box) ---- */
+#detail,#cdetail{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;
+  width:min(1240px,94vw);max-height:92vh;background:#fff;border:1px solid var(--wbg-border);
+  border-radius:14px;padding:16px 20px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.35)}
+#modalback{display:none;position:fixed;inset:0;background:rgba(15,25,40,.45);z-index:70}
 #modalback.on{display:block}
-#cdetail,#ddetail{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;
-  width:min(1340px,96vw);max-height:94vh;background:#fff;border:1px solid var(--line);border-radius:6px;
-  overflow:hidden;box-shadow:0 18px 50px rgba(10,25,50,.28)}
-#cdetail.on,#ddetail.on{display:block}
-.cd-head{display:flex;align-items:center;gap:9px;height:36px;padding:0 12px;background:var(--ink);color:#fff}
-.cd-lab{font-size:9.5px;letter-spacing:.09em;color:#8b94a3;text-transform:uppercase}
-.cd-formula{font-family:'IBM Plex Mono',monospace;font-size:14px}
-.cd-pill{font-size:10.5px;padding:2.5px 8px;border-radius:5px;background:#26313f;color:#cbd3dd;
-  font-family:'IBM Plex Mono',monospace;white-space:nowrap}
-.cd-pill.warn{background:#3a2a17;color:#e8a75a}
-.cd-pill.ok{background:#16301f;color:#5fc48a}
-.cd-head select{font-size:10.5px;padding:2px 6px;border-radius:5px;background:#26313f;color:#cbd3dd;
-  border:1px solid #37424f;outline:none}
-.cd-close{margin-left:auto;background:0;border:0;color:#8b94a3;font-size:13px;cursor:pointer;padding:2px 5px}
-.cd-close:hover{color:#fff}
-.cd-body{display:grid;gap:1px;background:var(--line);max-height:calc(94vh - 36px);overflow:auto}
-.cd-body.c3{grid-template-columns:300px 1fr 330px}
-.cd-body.c2{grid-template-columns:340px 1fr}
-.cd-col{background:#fff;padding:12px;min-width:0}
-.cd-sec{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:7px}
-.cd-sechead{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.cd-sechead .cd-sec{margin:0}
-.cd-sechead>span:last-child{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
-.cd-chip{font-size:9.5px;padding:1.5px 5px;border-radius:4px;color:#141c26;font-family:'IBM Plex Mono',monospace}
-.kv{font-size:11.5px}
-.kv div{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid var(--hair)}
-.kv div:last-child{border-bottom:0}
-.kv span:first-child{color:var(--sec)}
-.kv span:last-child{font-family:'IBM Plex Mono',monospace;text-align:right}
-.kv .muted{color:var(--mut)}
-.kv .warn{color:var(--amber)}
-.cd-prov{background:var(--panel);border:1px solid var(--hair);border-radius:5px;padding:8px 9px;
-  font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.62;color:var(--sec)}
-.cd-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:170px 170px;gap:6px}
-.cd-pane{position:relative;border:1px solid var(--line);border-radius:5px;overflow:hidden;background:#fff}
-.cd-tag{position:absolute;top:4px;left:6px;z-index:5;font-size:9.5px;color:var(--mut);pointer-events:none}
-.cd-foot{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px}
-.cd-btn{font-size:10.5px;padding:4px 10px;border-radius:5px;border:1px solid var(--teal);background:var(--teal);
-  color:#fff;cursor:pointer;text-decoration:none;white-space:nowrap}
-.cd-btn.out{background:#fff;color:var(--teal)}
-.cd-btn:hover{filter:brightness(1.07);text-decoration:none}
-.cd-italic{font-size:10px;font-style:italic;color:var(--mut);margin-left:auto}
-.mvhost{width:100%;height:100%;overflow:hidden;position:relative;display:block}
-.mvhost>*{height:100% !important}
-#cmap{width:100%;height:220px}
-#efplot{width:100%;height:260px}
+.mclose{position:absolute;top:12px;right:16px;border:1px solid var(--wbg-border);background:#fff;border-radius:8px;padding:4px 12px;font-weight:700;cursor:pointer}
+#detail.on,#cdetail.on{display:block}
+.dhead{font-size:16px;margin-bottom:8px}
+.dhead .sub{font-weight:400;color:var(--wbg-muted);font-size:14px;margin-left:10px}
+.dgrid{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(380px,1.6fr) minmax(260px,1fr);gap:20px}
+@media(max-width:1100px){.dgrid{grid-template-columns:1fr}}
+.dcol h4{margin:0 0 6px;font-size:14px;color:var(--wbg-accent)}
+.minitbl{border-collapse:collapse;width:100%;font-size:13.5px}
+.minitbl th{text-align:left;color:var(--wbg-muted);font-weight:700;border-bottom:1px solid var(--wbg-border);padding:4px 8px}
+.minitbl td{border-bottom:1px solid #eceff3;padding:4px 8px;font-variant-numeric:tabular-nums;font-size:13.5px}
 
-#moviemodal{display:none;position:fixed;inset:3% 4%;z-index:95;background:#fff;border:1px solid var(--line);
-  border-radius:6px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.4)}
+.kv{font-size:14px;margin-top:6px}
+.kv div{display:flex;justify-content:space-between;border-bottom:1px solid #eceff3;padding:3px 0}
+.kv span:first-child{color:var(--wbg-muted)}
+.notebox{background:var(--wbg-surface);border:1px solid var(--wbg-border);border-radius:7px;
+  padding:7px 10px;font-size:13.2px;line-height:1.45;color:#475569;margin-top:6px}
+#efdetailplot{width:100%;height:360px}
+
+/* ---- footnote + references ---- */
+.footnote{font-size:14px;color:var(--wbg-muted);max-width:1100px;margin:14px auto 0;text-align:justify}
+.refs{max-width:1100px;margin:14px auto 0;font-size:13px;color:var(--wbg-muted)}
+.refs .rh{font-weight:700;text-transform:lowercase}
+.refs ol{margin:4px 0 0 18px;padding:0}
+.refs li{margin-bottom:3px}
+
+/* ---- floating report button ---- */
+#reportbtn{position:fixed;left:16px;bottom:16px;background:#fff;color:#5b6570;border:1px solid #dfe6ec;
+  border-radius:999px;padding:8px 14px;font-size:13.5px;font-weight:700;cursor:pointer;
+  box-shadow:0 3px 12px rgba(12,42,66,.1);z-index:60;text-decoration:none}
+#reportbtn:hover{color:var(--wbg-accent);text-decoration:none}
+
+.showing{font-weight:400}
+body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.tab,.cpill,.dhead,#attr .who
+  {font-weight:400 !important;font-family:'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif !important}
+#moviemodal{display:none;position:fixed;inset:3% 4%;z-index:95;background:#fff;border:1px solid var(--wbg-border);
+  border-radius:14px;padding:18px 22px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.4)}
 #moviemodal.on{display:block}
-#incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:96;
-  background:#fff;border:1px solid var(--line);border-radius:6px;max-width:660px;width:88%;overflow:hidden;
-  box-shadow:0 18px 50px rgba(10,25,50,.3)}
+#incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:90;
+  background:#fff;border:1px solid var(--wbg-border);border-radius:12px;padding:20px 24px;
+  max-width:640px;width:88%;box-shadow:0 20px 60px rgba(10,25,50,.35)}
 #incarmodal.on{display:block}
-#reportbtn{position:fixed;left:14px;bottom:14px;background:#fff;color:var(--sec);border:1px solid var(--line);
-  border-radius:999px;padding:6px 13px;font-size:11.5px;cursor:pointer;z-index:60;text-decoration:none}
-#reportbtn:hover{color:var(--teal);text-decoration:none}
+/* MatterViz ships a dark theme; keep it inside the viewer only */
+#detail table.minitbl,#cdetail table.minitbl{background:#fff !important}
+#detail .minitbl tr,#cdetail .minitbl tr{background:#fff !important}
+#detail .minitbl td,#cdetail .minitbl td,
+#detail .minitbl th,#cdetail .minitbl th{background:#fff !important;color:var(--wbg-ink) !important}
+#detail .minitbl th,#cdetail .minitbl th{color:var(--wbg-muted) !important}
+#detail .kv div,#cdetail .kv div{background:transparent !important;color:var(--wbg-ink) !important}
+#detail .notebox,#cdetail .notebox{background:var(--wbg-surface) !important;color:#475569 !important}
+#detail,#cdetail{color:var(--wbg-ink)}
+.mvhost{width:100%;overflow:hidden;position:relative;display:block;zoom:calc(1/1.22)}
+.mvhost>*{height:100% !important}
+#cstruct,#trajbox_struct,#trajbox2_struct{overflow:hidden}
+#dqsel .cpill,#cdl .cpill,#incarbtn,#ctitle .cpill{text-transform:none}
 </style>
 </head>
 <body>
 
-<div class="app">
-  <div class="top">
-    <span class="brand">DefectDB</span>
-    <span class="tagline">Chalcogenide Semiconductor Defect Library</span>
-    <span class="topdiv"></span>
-    <span class="topstats" id="topstats"></span>
-    <span class="toplinks">
-      <a href="https://github.com/defectdatabase/chalcogenide-defects">GitHub</a>
-      <a href="https://nanohub.org/tools/defectdatabase">nanoHUB tool</a>
-    </span>
-  </div>
+<div id="attr">
+  <span class="who">Md Habibur Rahman · School of Materials Engineering, Purdue University</span> ·
+  <a href="mailto:imd.habiburrahman@gmail.com">imd.habiburrahman@gmail.com</a> ·
+  <a href="mailto:rahma103@purdue.edu">rahma103@purdue.edu</a> ·
+  <a href="https://msehabibur.github.io">msehabibur.github.io</a><br>
+  If you use this library, please cite the associated paper. DFT calculations used a plane-wave basis;
+  computations performed on the Purdue Anvil supercomputer (ACCESS allocations) — data mirrored on ALCF Eagle.
+</div>
 
-  <div class="tabs" id="tabs">
-    <button class="on" data-v="rankings">Compound Rankings</button>
-    <button data-v="explorer">Defect Explorer</button>
-    <button data-v="tool">Defect Calculator</button>
-    <button data-v="methods">Methods &amp; Data</button>
-    <span class="who">Md Habibur Rahman · Purdue MSE · <a href="#" onclick="showTab('methods');return false">cite the paper</a> · mirrored on ALCF Eagle</span>
-  </div>
+<div id="titlebar">
+  <h1>DefectDB — A Chalcogenide Semiconductor Defect Library</h1>
+  <span class="stats" id="topstats"></span>
+  <span class="right">
+    <a href="https://github.com/defectdatabase/chalcogenide-defects">GitHub</a>
+    <a href="https://nanohub.org/tools/defectdatabase">nanoHUB tool</a>
+  </span>
+</div>
 
-  <div class="view on" id="view-rankings">
-    <div class="filters">
-      <span class="search"><input type="text" id="csearch" placeholder="Search compound or structure (e.g. Ag1Al0.5Ga0.5S2, kesterite)…"></span>
-      <label class="chk"><input type="checkbox" id="ck-stable"> stable (E<sub>decomp</sub> ≤ 0)</label>
-      <label class="chk"><input type="checkbox" id="ck-gap1"> gap 1.0–2.0 eV</label>
-      <select id="ctheory"><option value="">Theory: All</option></select>
-      <span class="counts">
-        <b id="crows">0</b> rows · <b id="cuniq">0</b> compounds ·
-        <a href="#" onclick="showTab('methods');return false">coverage details ▾</a>
-      </span>
-    </div>
-    <div class="tblwrap"><table class="tbl" id="ctbl"><thead><tr></tr></thead><tbody></tbody></table></div>
-    <div class="foot">
-      <span id="cshowing"></span>
-      <span class="pg">
-        <button class="pgbtn" id="cprev">‹ Prev</button>
-        <button class="pgbtn primary" id="cnext">Next ›</button>
-      </span>
-      <span class="cov" id="ccov"></span>
+<div id="tabbar">
+  <div class="tabgroup">
+    <div class="glabel">Browse the data</div>
+    <div class="pills">
+      <button class="tab" data-v="rankings">Compound Rankings</button>
+      <button class="tab on" data-v="explorer">Defect Explorer</button>
     </div>
   </div>
-
-  <div class="view" id="view-explorer">
-    <div class="filters">
-      <span class="search"><input type="text" id="dsearch" placeholder="Search host, defect or class (e.g. CdTe, V_Cd, vacancy)…"></span>
-      <select id="dclass">
-        <option value="all">Class: All</option><option value="native">native</option>
-        <option value="dopant">dopant</option><option value="vacancy">vacancy</option>
-        <option value="interstitial">interstitial</option><option value="substitution">substitution</option>
-        <option value="complex">complex</option>
-      </select>
-      <select id="dtheory"><option value="">Theory: All</option><option value="pbesol">PBEsol</option><option value="hsesoc">HSE+SOC</option></select>
-      <label class="chk"><input type="checkbox" id="ck-spont"> spontaneous (E<sup>f</sup> &lt; 0)</label>
-      <span class="counts"><b id="drows">0</b> rows · <b id="dhosts">0</b> hosts</span>
-    </div>
-    <div class="tblwrap"><table class="tbl" id="dtbl"><thead><tr></tr></thead><tbody></tbody></table></div>
-    <div class="foot">
-      <span id="dshowing"></span>
-      <span class="pg">
-        <button class="pgbtn" id="dprev">‹ Prev</button>
-        <button class="pgbtn primary" id="dnext">Next ›</button>
-      </span>
-      <span class="cov" id="dcov"></span>
-    </div>
-    <p class="note" id="dnote2"></p>
-  </div>
-
-  <div class="view" id="view-tool">
-    <div class="pane">
-      <h3>Defect Calculator — nanoHUB</h3>
-      <p>Build any defect in any II–VI supercell, relax it with the fine-tuned M3GNet force fields
-        (ten models — one per charge state q = −2 … +2 at PBE and HSE fidelity), compute formation
-        energies, CI-NEB migration barriers and finite-temperature molecular dynamics. Machine-learning
-        results live in the tool; every number on this site is pure DFT.</p>
-      <p style="margin-top:12px"><a class="cd-btn" href="https://nanohub.org/tools/defectdatabase">Launch the tool →</a></p>
+  <div class="tabgroup">
+    <div class="glabel">Simulate</div>
+    <div class="pills">
+      <button class="tab" data-v="tool">Defect Calculator</button>
     </div>
   </div>
-
-  <div class="view" id="view-methods">
-    <div class="pane">
-      <h3>How every number is produced</h3>
-      <p><b>Total energy</b> — OSZICAR final free energy F of each run (the convention the production
-        pipeline used; E0 differs by ~0.5 meV/atom). <b>Formation energy</b> — (F − Σn<sub>i</sub>μ<sub>i</sub>)/N
-        against elemental references at the same level of theory. <b>Decomposition energy</b> — stoichiometric
-        decomposition into the local binaries (A<sub>2</sub>BCX<sub>4</sub> → A<sub>2</sub>X + BX + CX<sub>2</sub>;
-        ABX<sub>2</sub> → ½(A<sub>2</sub>X + B<sub>2</sub>X<sub>3</sub>)) plus the ideal-mixing entropy
-        k<sub>B</sub>T·Σf ln f at k<sub>B</sub>T = 0.0257 eV — a fixed binary decomposition, not a convex hull.
-        <b>Band gap</b> — occupied-band counting on EIGENVAL using NELECT. <b>Dielectric constant</b> —
-        electronic, ion-clamped, from the LOPTICS density–density tensor at E = 0. <b>SLME</b> — maximum over
-        absorber thickness of vaspkit's SLME.dat.</p>
-      <h3 style="margin-top:16px">Defects</h3>
-      <p>E<sub>f</sub>(q, E<sub>F</sub>) = E<sub>defect,q</sub> − E<sub>pristine</sub> + Σn<sub>i</sub>μ<sub>i</sub>
-        + q(E<sub>VBM</sub> + E<sub>F</sub>) + E<sub>corr</sub>, lower envelope over q = −2 … +2. Defect and
-        pristine energies are raw OSZICAR F values; the charge state is read from NELECT, never from the
-        directory name; band edges are recomputed per host from the raw bulk EIGENVAL; chemical potentials
-        come from the archived competing-phase analysis. Kumagai–Oba (eFNV) corrections are carried from the
-        original campaign — the generating script and dielectric tensor were not archived, so they are
-        reproducible in method but not bit-reproducible. Charge states without a correction are held back
-        from the envelope rather than published uncorrected.</p>
-      <h3 style="margin-top:16px">Known gaps</h3>
-      <p>No optics anywhere in the PBEsol tree, so dielectric and SLME exist only for HSE06+SOC. HSE+SOC
-        elemental references for Cd, Se and Zn are unconverged, so II–VI hosts carry no HSE+SOC row.
-        CdTe HSE+SOC defect runs were not retained, so those rows come from the campaign table and are
-        labelled as such. The kesterite/stannite defect campaign sits on a parent lattice whose pristine
-        cell is absent from disk, so it is not published yet.</p>
-      <h3 style="margin-top:16px">Citation</h3>
-      <p style="font-style:italic">M. H. Rahman, Y. Yang and A. Mannodi-Kanakkithodi, DefectDB: An
-        Open-Source Infrastructure for Defect Thermodynamics in II–VI Semiconductors (2026, in preparation).</p>
+  <div class="tabgroup">
+    <div class="glabel">About</div>
+    <div class="pills">
+      <button class="tab" data-v="methods">Methods &amp; Data</button>
     </div>
   </div>
 </div>
 
-<div id="modalback"></div>
-
-<div id="cdetail">
-  <div class="cd-head">
-    <span class="cd-lab">Compound</span>
-    <span class="cd-formula" id="cd-formula"></span>
-    <span class="cd-pill" id="cd-theory"></span>
-    <span id="cd-ordwrap"></span>
-    <span class="cd-pill" id="cd-status"></span>
-    <button class="cd-close" onclick="closeModals()">✕</button>
+<!-- ================= DEFECT EXPLORER ================= -->
+<div class="view on" id="view-explorer">
+  <div class="filterrow">
+    <input type="text" id="dsearch" placeholder="Search host, defect, class (e.g. CdTe, V_Cd, vacancy)…">
+    <button class="cpill on" data-c="all">All</button>
+    <button class="cpill" data-c="native">native</button>
+    <button class="cpill" data-c="dopant">dopant</button>
+    <button class="cpill" data-c="vacancy">vacancy</button>
+    <button class="cpill" data-c="interstitial">interstitial</button>
+    <button class="cpill" data-c="substitution">substitution</button>
+    <button class="cpill" data-c="complex">complex</button>
   </div>
-  <div class="cd-body c3">
-    <div class="cd-col">
-      <div class="cd-sec">Computed properties</div>
-      <div class="kv" id="ckv"></div>
-      <div class="cd-sec" style="margin-top:11px">Provenance</div>
-      <div class="cd-prov" id="cnote"></div>
-    </div>
-    <div class="cd-col">
-      <div class="cd-sechead"><span class="cd-sec">Structure — MatterViz</span><span id="cd-chips"></span></div>
-      <div class="cd-grid" id="cstruct"></div>
-      <div class="cd-foot" id="cdl"></div>
-    </div>
-    <div class="cd-col">
-      <div class="cd-sec" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T)</div>
-      <div id="cmap"></div>
-      <div class="cd-prov" id="cmapnote" style="margin-top:7px"></div>
-    </div>
+  <div class="checks">
+    <label><input type="checkbox" id="ck-spont"> spontaneous (E<sup>f</sup>&lt;0 at mid-gap)</label>
+    <label><input type="checkbox" id="ck-allq"> has all 5 charge states</label>
+    <label><input type="checkbox" id="ck-pbesol" checked> PBEsol</label>
+    <label><input type="checkbox" id="ck-hsesoc" checked> HSE+SOC</label>
   </div>
-</div>
-
-<div id="ddetail">
-  <div class="cd-head">
-    <span class="cd-lab">Defect</span>
-    <span class="cd-formula" id="dd-formula"></span>
-    <span class="cd-pill" id="dd-host"></span>
-    <span class="cd-pill" id="dd-theory"></span>
-    <span class="cd-pill" id="dd-src"></span>
-    <button class="cd-close" onclick="closeModals()">✕</button>
-  </div>
-  <div class="cd-body c2">
-    <div class="cd-col">
-      <div class="cd-sec">Formation energy per growth condition</div>
-      <div class="kv" id="dkv"></div>
-      <div class="cd-sec" style="margin-top:11px">Per charge state</div>
-      <div class="cd-prov" id="dqtbl"></div>
-      <div class="cd-sec" style="margin-top:11px">Provenance</div>
-      <div class="cd-prov" id="dprov"></div>
+  <div class="covstrip" id="dcov"></div>
+  <div class="tbox" id="dtbox">
+    <div class="tinner" id="dtinner">
+      <div class="thead" id="dthead"></div>
+      <div class="tview" id="dtview"><div class="tspacer" id="dtspacer"></div></div>
     </div>
-    <div class="cd-col">
-      <div class="cd-sec">Formation energy vs Fermi level</div>
-      <div id="efplot"></div>
-      <div class="cd-foot" id="dfoot"></div>
-    </div>
-  </div>
-</div>
-
-<div id="moviemodal">
-  <div class="cd-head">
-    <span class="cd-lab">Relaxation movie</span>
-    <span class="cd-formula" id="mvm-title"></span>
-    <span class="cd-lab" style="margin-left:10px">engine / charge</span>
-    <select id="mvm-sel"></select>
-    <span class="cd-pill" id="mvm-meta"></span>
-    <button class="cd-close" onclick="closeMovie()">✕</button>
-  </div>
-  <div style="padding:12px">
-    <div id="mvm-conv" style="width:100%;height:210px"></div>
-    <p style="text-align:center;color:var(--mut);font-size:11.5px;margin:2px 0 10px" id="mvm-caption"></p>
-    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:14px">
-      <div class="cd-grid" id="mvm-grid" style="grid-template-rows:210px 210px"></div>
-      <div>
-        <div id="mvm-frame" style="width:100%;height:340px"></div>
-        <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
-          <button class="cd-btn" id="mvm-play" onclick="mvmPlay()">⏸ Pause</button>
-          <input type="range" id="mvm-slider" min="0" max="1" value="0" style="flex:1"
-                 oninput="mvmShow(+this.value)">
-          <span id="mvm-count" class="mono" style="color:var(--mut);font-size:11.5px;white-space:nowrap"></span>
+    <div id="detail"><button class="mclose" onclick="closeModals()">✕ close</button>
+      <div class="dhead">Defect thermodynamics <span class="sub" id="dtitle"></span></div>
+      <div class="dgrid">
+        <div class="dcol">
+          <h4>Formation energy per growth condition</h4>
+          <table class="minitbl" id="dcondtbl"></table>
+          <div class="notebox">Notation. V<sub>X</sub> vacancy · X<sub>i</sub> interstitial ·
+            X<sub>Y</sub> substitution (X on Y site) · A+B defect complex. Values in eV; lower
+            envelope over charge states q = −2 … +2. E<sub>corr</sub> included.</div>
+          <div class="kv" id="dkv"></div>
+        </div>
+        <div class="dcol">
+          <h4>Formation energy vs Fermi level</h4>
+          <div id="efdetailplot"></div>
+          <div style="margin-top:14px" id="dmoviebtn"></div>
+        </div>
+        <div class="dcol">
+          <h4>Per-charge-state raw data</h4>
+          <table class="minitbl" id="dqtbl"></table>
+          <div class="notebox" id="dnote"></div>
         </div>
       </div>
     </div>
   </div>
+  <p class="footnote" id="dfoot"></p>
 </div>
 
-<div id="incarmodal">
-  <div class="cd-head">
-    <span class="cd-lab">Calculation inputs</span>
-    <span class="cd-formula" id="incartitle"></span>
-    <button class="cd-close" onclick="closeIncar()">✕</button>
+<!-- ================= COMPOUND RANKINGS ================= -->
+<div class="view" id="view-rankings">
+  <div class="filterrow">
+    <input type="text" id="csearch" placeholder="Search compound or structure (e.g. Ag1Al0.5Ga0.5S2, kesterite)…">
+
   </div>
-  <div style="padding:12px"><div class="cd-prov" id="incarbody" style="line-height:1.7"></div></div>
+  <div class="checks">
+    <label><input type="checkbox" id="ck-stable"> stable (E<sub>decomp</sub> ≤ 0)</label>
+    <label><input type="checkbox" id="ck-gap1"> gap 1.0–2.0 eV</label>
+  </div>
+  <div class="covstrip" id="ccov"></div>
+  <div class="tbox" id="ctbox">
+    <div class="tinner" id="ctinner">
+      <div class="thead" id="cthead"></div>
+      <div class="tview" id="ctview"><div class="tspacer" id="ctspacer"></div></div>
+    </div>
+    <div id="cdetail"><button class="mclose" onclick="closeModals()">✕ close</button>
+      <div class="dhead">Compound detail <span class="sub" id="ctitle"></span></div>
+      <div class="dgrid" style="grid-template-columns:minmax(330px,1fr) minmax(390px,1fr);gap:16px">
+        <div class="dcol">
+          <h4>Computed properties</h4>
+          <div class="kv" id="ckv"></div>
+          <h4 style="margin-top:12px">How these numbers are computed</h4>
+          <div class="notebox" id="cnote"></div>
+          <h4 style="margin-top:12px" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
+          <div id="cmap" style="width:100%;height:210px"></div>
+          <div class="notebox" id="cmapnote"></div>
+        </div>
+        <div class="dcol">
+          <h4>DFT-optimized structure — MatterViz</h4>
+          <div id="cstruct" style="width:100%;height:330px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
+          <div id="cdl" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center" id="cmoviebtn"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="footnote" id="cfoot"></p>
 </div>
 
+<!-- ================= TOOL ================= -->
+<div class="view" id="view-tool">
+  <p class="footnote" style="text-align:left;margin-left:0">
+    The <b>DefectDB simulation tool</b> runs live on nanoHUB: build any defect in any II–VI supercell,
+    relax it with our fine-tuned M3GNet force fields (ten models — one per charge state q = −2 … +2 at
+    PBE and HSE fidelity), compute formation energies, CI-NEB migration barriers, and finite-temperature MD.
+    MLFF results live in the tool; every number on this website is pure DFT.</p>
+  <p><a class="tab" style="display:inline-block;background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
+     href="https://nanohub.org/tools/defectdatabase">Launch the tool on nanoHUB →</a></p>
+</div>
+
+<!-- ================= METHODS ================= -->
+<div class="view" id="view-methods">
+  <div class="refs" style="margin:0;max-width:1100px">
+    <p class="footnote" style="text-align:left">
+      <b>Bulk compounds.</b> 6763 I–III–VI<sub>2</sub> chalcopyrites and I<sub>2</sub>–II–IV–VI<sub>4</sub>
+      kesterites/stannites. Ground-state configurations selected from a PBEsol 2×2×1 polymorph screen
+      (21,242 static calculations); production properties from HSE06+SOC (AEXX = 0.25, HFSCREEN = 0.2,
+      LOPTICS) static runs. Formation energy per atom versus elemental references computed at the same
+      level of theory; decomposition energy per formula unit versus the stoichiometric binary decomposition
+      (A<sub>2</sub>X + BX + CX<sub>2</sub> for kesterites; ½(A<sub>2</sub>X + B<sub>2</sub>X<sub>3</sub>)
+      for chalcopyrites) including the ideal-mixing entropy at k<sub>B</sub>T = 0.0257 eV. Band gaps from
+      eigenvalue band properties; dielectric constant is the electronic (ion-clamped) LOPTICS value at
+      E = 0; SLME from the Shockley–Queisser-like metric (vaspkit), maximum over absorber thickness.
+      <b>Defects.</b> Charged-defect supercells (q = −2 … +2) for CdTe and CdSe<sub>x</sub>Te<sub>1−x</sub>
+      alloys at PBEsol and HSE+SOC. E<sub>f</sub>(q, E<sub>F</sub>) = E<sub>defect,q</sub> −
+      E<sub>pristine</sub> + Σn<sub>i</sub>μ<sub>i</sub> + q(E<sub>VBM</sub> + E<sub>F</sub>) +
+      E<sub>corr</sub>, with chemical potentials at the Cd-rich and Te-rich limits and Kumagai–Oba (eFNV)
+      finite-size corrections. Raw data (~10.8 TB) archived on ALCF Eagle.
+      <b>Citation.</b> M. H. Rahman, Y. Yang, and A. Mannodi-Kanakkithodi, <i>DefectDB: An Open-Source
+      Infrastructure for Defect Thermodynamics in II–VI Semiconductors</i> (2026, in preparation).</p>
+  </div>
+</div>
+
+<div id="modalback"></div>
+<div id="moviemodal">
+  <div style="display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--wbg-border);padding-bottom:8px;margin-bottom:10px">
+    <span style="font-size:16px;color:var(--wbg-accent)" id="mvm-title">relaxation movie</span>
+    <span style="margin-left:auto"><button class="cpill" onclick="closeMovie()">✕ close</button></span>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+    <span style="color:var(--wbg-muted)">engine / charge</span>
+    <select id="mvm-sel"></select>
+    <span id="mvm-meta" style="color:var(--wbg-muted)"></span>
+  </div>
+  <div id="mvm-conv" style="width:100%;height:230px"></div>
+  <p style="text-align:center;color:var(--wbg-muted);font-size:13.5px;margin:2px 0 10px" id="mvm-caption"></p>
+  <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:14px">
+    <div id="mvm-grid" style="height:520px"></div>
+    <div>
+      <div id="mvm-frame" style="width:100%;height:380px"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
+        <button class="cpill" id="mvm-play" onclick="mvmPlay()">⏸ Pause</button>
+        <input type="range" id="mvm-slider" min="0" max="1" value="0" style="flex:1"
+               oninput="mvmShow(+this.value)">
+        <span id="mvm-count" style="color:var(--wbg-muted);white-space:nowrap"></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="incarmodal"><button class="mclose" onclick="closeIncar()">✕ close</button>
+  <div class="dhead">Calculation inputs <span class="sub" id="incartitle"></span></div>
+  <div class="notebox" id="incarbody" style="font-size:13.5px;line-height:1.6"></div>
+</div>
 <a id="reportbtn" href="https://github.com/defectdatabase/chalcogenide-defects/issues">⚑ report an issue</a>
 
 <script>
@@ -380,99 +355,24 @@ function loadPlotly(){
     s.onload=res; s.onerror=rej; document.head.appendChild(s);});
   return plotlyP;
 }
-const QS=["-2","-1","0","1","2"];
-const THEORY={pbesol:"PBEsol",hsesoc:"HSE+SOC"};
-const PAGE=18;
+const QS = ["-2","-1","0","1","2"];
+const THEORY = {pbesol:"PBEsol", hsesoc:"HSE+SOC"};
 
+/* ---------- formatting ---------- */
 const dropOnes = s => s.replace(/([A-Z][a-z]?)1(?![\d.])/g,"$1");
 const subHTML = s => dropOnes(s).replace(/([A-Za-z\)])([\d.]+)/g,(m,a,n)=>a+"<sub>"+n+"</sub>");
-const defHTML = d => d.split("+").map(p=>{const i=p.indexOf("_");
-  return i<0?p:p.slice(0,i)+"<sub>"+p.slice(i+1)+"</sub>";}).join("+");
+const defHTML = d => d.split("+").map(p=>{
+  const i=p.indexOf("_");
+  return i<0?p:p.slice(0,i)+"<sub>"+p.slice(i+1)+"</sub>";
+}).join("+");
 const fmt=(v,d=2)=>v===null||v===undefined||Number.isNaN(v)?"—":v.toFixed(d);
-const fq=q=>q===null||q===undefined?"—":(q>0?"+"+q:String(q));
-const em=v=>v===null||v===undefined||Number.isNaN(v);
-const thClass=t=>({"PBE":"t-PBE","PBEsol":"t-PBEsol","HSE06":"t-HSE06",
-  "HSE06 (no PS)":"t-HSE06noPS","HSE+SOC":"t-HSESOC"})[t]||"t-PBEsol";
-const cellLabel=v=>{
-  const nat=v[6]?`${v[6]} atoms`:"";
-  const abc=v[8]?` · ${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)}`:"";
-  return nat?nat+abc:"—";
-};
-const compOf=name=>{const c={};
-  for(const [el,n] of (name.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(x=>[x.match(/[A-Z][a-z]?/)[0],parseFloat(x.replace(/^[A-Z][a-z]?/,"")||"1")]))
-    c[el]=(c[el]||0)+n;
-  return c;};
+const fq=q=>q===null?"—":(q>0?"+"+q:String(q));
 
-function showTab(v){
-  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
-  document.querySelectorAll(".view").forEach(x=>x.classList.toggle("on",x.id==="view-"+v));
-  history.replaceState(null,"","?tab="+v);
-}
-document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.v));
-
-/* ================= COMPOUND TABLE ================= */
-const CCOLS=[
-  {k:"name",label:"Compound",cell:r=>`<td class="name">${subHTML(r.n)}${Object.keys(r.o).length>1
-      ?` <span class="badge">${Object.keys(r.o).length} orderings ▾</span>`:""}</td>`,val:r=>r.n},
-  {k:"theory",label:"Theory",cell:r=>`<td><span class="pill ${thClass(r.f)}">${r.f}</span></td>`,val:r=>r.f},
-  {k:"cell",label:"Supercell",cell:r=>`<td class="num" style="text-align:left">${cellLabel(r.o[r.b])}</td>`,val:r=>r.o[r.b][6]||0},
-  {k:"eform",label:"Form. E (eV/at)",num:1,vi:0},
-  {k:"edec",label:"Decomp. (eV/f.u.)",num:1,vi:1,warn:1},
-  {k:"gap",label:"Gap (eV)",num:1,vi:2},
-  {k:"eps",label:"ε∞",num:1,vi:3},
-  {k:"slme",label:"SLME %",num:1,vi:4},
-];
-CCOLS.forEach(c=>{ if(c.vi!==undefined){ c.val=r=>r.o[r.b][c.vi];
-  c.cell=r=>{const v=r.o[r.b][c.vi];
-    return `<td class="num ${em(v)?"muted":(c.warn&&v>0?"warn":"")}">${fmt(v)}</td>`;};}});
-let cSort={k:"eform",asc:true},cPage=0,cFiltered=[],cSel=null,cOrd=null;
-
-function cFilter(){
-  const q=document.getElementById("csearch").value.trim().toLowerCase();
-  const stable=document.getElementById("ck-stable").checked;
-  const gap1=document.getElementById("ck-gap1").checked;
-  const th=document.getElementById("ctheory").value;
-  cFiltered=COMPOUNDS.filter(r=>{
-    const v=r.o[r.b];
-    if(th&&r.f!==th)return false;
-    if(stable&&!(!em(v[1])&&v[1]<=0))return false;
-    if(gap1&&!(!em(v[2])&&v[2]>=1&&v[2]<=2))return false;
-    if(q&&!(r.n+" "+r.f+" "+Object.keys(r.o).join(" ")).toLowerCase().includes(q))return false;
-    return true;});
-  const col=CCOLS.find(c=>c.k===cSort.k);
-  cFiltered.sort((a,b)=>{const va=col.val(a),vb=col.val(b);
-    if(em(va)||va==="")return 1; if(em(vb)||vb==="")return -1;
-    const c=typeof va==="number"?va-vb:String(va).localeCompare(String(vb));
-    return cSort.asc?c:-c;});
-  cPage=0; cRender();
-}
-function cRender(){
-  document.querySelector("#ctbl thead tr").innerHTML=CCOLS.map(c=>
-    `<th data-k="${c.k}" class="${c.num?"num":""}">${c.label}${cSort.k===c.k?(cSort.asc?" ▲":" ▼"):""}</th>`).join("");
-  document.querySelectorAll("#ctbl th").forEach(th=>th.onclick=()=>{
-    const k=th.dataset.k; cSort=cSort.k===k?{k,asc:!cSort.asc}:{k,asc:true}; cFilter();});
-  const s=cPage*PAGE, page=cFiltered.slice(s,s+PAGE);
-  const tb=document.querySelector("#ctbl tbody"); tb.innerHTML="";
-  page.forEach(r=>{const tr=document.createElement("tr");
-    tr.innerHTML=CCOLS.map(c=>c.cell(r)).join("");
-    tr.onclick=()=>cOpenDetail(r); tb.appendChild(tr);});
-  document.getElementById("cshowing").textContent=cFiltered.length
-    ? `Showing ${s+1}–${Math.min(s+PAGE,cFiltered.length)} of ${cFiltered.length.toLocaleString()}` : "No matching compounds";
-  document.getElementById("cprev").disabled=cPage===0;
-  document.getElementById("cnext").disabled=s+PAGE>=cFiltered.length;
-  document.getElementById("crows").textContent=cFiltered.length.toLocaleString();
-  document.getElementById("cuniq").textContent=new Set(cFiltered.map(r=>r.n)).size.toLocaleString();
-}
-document.getElementById("cprev").onclick=()=>{if(cPage>0){cPage--;cRender();}};
-document.getElementById("cnext").onclick=()=>{if((cPage+1)*PAGE<cFiltered.length){cPage++;cRender();}};
-document.getElementById("csearch").addEventListener("input",cFilter);
-["ck-stable","ck-gap1","ctheory"].forEach(id=>document.getElementById(id).addEventListener("change",cFilter));
-
-/* ================= DEFECT TABLE ================= */
-const HOSTELS=h=>h.match(/[A-Z][a-z]?/g)||[];
-function envelope(r,cond,x){
-  const mu=cond==="mc"?r.mc:r.mt;
-  if(em(mu)) return [null,null];
+/* ---------- defect physics ---------- */
+const HOSTELS = h => h.match(/[A-Z][a-z]?/g) || [];
+function envelope(r, cond, x){       // x = EF (eV); returns [Ef, q]
+  const mu = cond==="mc"?r.mc:r.mt;
+  if(mu===null) return [null,null];
   let best=null,bq=null;
   for(const q of QS){ if(!(q in r.e)) continue;
     const v=r.e[q]+mu+(+q)*(r.v+x);
@@ -481,140 +381,329 @@ function envelope(r,cond,x){
 }
 function classify(r){
   if(r.d.includes("+")) return "complex";
-  const host=new Set(HOSTELS(r.h)), add=r.d.split("_")[0];
-  if(add==="V") return "native";
-  return host.has(add)?"native":"dopant";
+  const hostEls = new Set(HOSTELS(r.h));
+  const parts = r.d.split("_");
+  const added = parts[0];
+  if(added==="V") return "native";           // vacancy of a host atom
+  return hostEls.has(added) ? "native" : "dopant";
 }
 function structClasses(r){
-  const s=new Set([classify(r)]);
+  const set = new Set([classify(r)]);
   for(const p of r.d.split("+")){
-    if(p.startsWith("V_")) s.add("vacancy");
-    else if(p.endsWith("_i")) s.add("interstitial");
-    else if(p.includes("_")) s.add("substitution");}
-  if(r.d.includes("+")) s.add("complex");
-  return s;
+    if(p.startsWith("V_")) set.add("vacancy");
+    else if(p.endsWith("_i")) set.add("interstitial");
+    else if(p.includes("_")) set.add("substitution");
+  }
+  if(r.d.includes("+")) set.add("complex");
+  return set;
 }
+
+/* ---------- tab switching ---------- */
+document.querySelectorAll("#tabbar .tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll("#tabbar .tab").forEach(x=>x.classList.toggle("on",x===t));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="view-"+t.dataset.v));
+  history.replaceState(null,"","?tab="+t.dataset.v);
+});
+const urltab=new URLSearchParams(location.search).get("tab");
+if(urltab&&document.querySelector(`#tabbar .tab[data-v="${urltab}"]`))
+  document.querySelector(`#tabbar .tab[data-v="${urltab}"]`).click();
+
+/* ================= DEFECT TABLE ================= */
 const DCOLS=[
-  {k:"h",label:"Host",cell:r=>`<td class="name">${subHTML(r.h)}</td>`,val:r=>r.h},
-  {k:"d",label:"Defect",cell:r=>`<td class="mono">${defHTML(r.d)}</td>`,val:r=>r.d},
-  {k:"cls",label:"Class",cell:r=>`<td><span class="cls ${r.cls}">${r.cls}</span></td>`,val:r=>r.cls},
-  {k:"f",label:"Theory",cell:r=>`<td><span class="pill ${thClass(THEORY[r.f])}">${THEORY[r.f]}</span></td>`,val:r=>r.f},
-  {k:"efVc",label:"Eᶠ@VBM Cd-rich",num:1,val:r=>r.efVc},
-  {k:"efVt",label:"Eᶠ@VBM Te-rich",num:1,val:r=>r.efVt},
-  {k:"efMc",label:"Eᶠ@mid Cd-rich",num:1,val:r=>r.efMc},
-  {k:"efMt",label:"Eᶠ@mid Te-rich",num:1,val:r=>r.efMt},
-  {k:"qMt",label:"q@mid",num:1,val:r=>r.qMt,f:fq},
-  {k:"g",label:"Gap (eV)",num:1,val:r=>r.g},
-  {k:"nq",label:"q states",num:1,val:r=>r.nq,f:v=>String(v)},
+  {k:"h",label:"Host",w:150,cell:r=>`<span class="c hostc" style="width:150px">${subHTML(r.h)}</span>`,val:r=>r.h},
+  {k:"d",label:"Defect",w:190,cell:r=>`<span class="c defc" style="width:190px">${defHTML(r.d)}</span>`,val:r=>r.d},
+  {k:"cls",label:"Class",w:94,cell:r=>`<span class="c ${["vacancy","interstitial"].some(x=>r.clset.has(x))&&r.cls!=="complex"?"cls-teal":"cls-amber"}" style="width:94px">${r.cls}</span>`,val:r=>r.cls},
+  {k:"f",label:"Theory",w:92,cell:r=>`<span class="c" style="width:92px">${THEORY[r.f]}</span>`,val:r=>r.f},
+  {k:"de0",label:"Eᶠ(q=0) Te-rich",w:118,num:1,val:r=>r.de0===null||r.mt===null?null:r.de0+r.mt},
+  {k:"efVc",label:"Eᶠ@VBM Cd-rich",w:128,num:1,val:r=>r.efVc},
+  {k:"efVt",label:"Eᶠ@VBM Te-rich",w:128,num:1,val:r=>r.efVt},
+  {k:"efMc",label:"Eᶠ@mid Cd-rich",w:126,num:1,val:r=>r.efMc},
+  {k:"efMt",label:"Eᶠ@mid Te-rich",w:126,num:1,val:r=>r.efMt},
+  {k:"qMt",label:"q@mid",w:70,num:1,val:r=>r.qMt,fmt:fq},
+  {k:"g",label:"Gap (eV)",w:84,num:1,val:r=>r.g},
+  {k:"nq",label:"q states",w:78,num:1,val:r=>r.nq,fmt:v=>String(v)},
 ];
-DCOLS.forEach(c=>{ if(!c.cell) c.cell=r=>{const v=c.val(r);
-  return `<td class="num ${em(v)?"muted":(typeof v==="number"&&v<0&&c.k.startsWith("ef")?"warn":"")}">${c.f?c.f(v):fmt(v)}</td>`;};});
-let dSort={k:"efMt",asc:true},dPage=0,dFiltered=[],dSel=null;
+let dSort={k:"efMt",asc:true},dSel=null,dFiltered=[];
+let dClass="all";
 
-function dFilter(){
+function dApplyFilters(){
   const q=document.getElementById("dsearch").value.trim().toLowerCase();
-  const cls=document.getElementById("dclass").value;
-  const th=document.getElementById("dtheory").value;
-  const sp=document.getElementById("ck-spont").checked;
+  const spont=document.getElementById("ck-spont").checked;
+  const allq=document.getElementById("ck-allq").checked;
+  const fs=new Set(); if(document.getElementById("ck-pbesol").checked)fs.add("pbesol");
+  if(document.getElementById("ck-hsesoc").checked)fs.add("hsesoc");
   dFiltered=DEFECTS.filter(r=>{
-    if(th&&r.f!==th)return false;
-    if(cls!=="all"&&!r.clset.has(cls)&&r.cls!==cls)return false;
-    if(sp&&!r.spont)return false;
-    if(q&&!(r.h+" "+r.d+" "+r.cls+" "+THEORY[r.f]).toLowerCase().includes(q))return false;
-    return true;});
+    if(!fs.has(r.f))return false;
+    if(dClass!=="all"&&!r.clset.has(dClass)&&r.cls!==dClass)return false;
+    if(spont&&!r.spont)return false;
+    if(allq&&r.nq<5)return false;
+    if(q){const hay=(r.h+" "+r.d+" "+r.cls+" "+THEORY[r.f]).toLowerCase();
+      if(!hay.includes(q))return false;}
+    return true;
+  });
   const col=DCOLS.find(c=>c.k===dSort.k);
-  dFiltered.sort((a,b)=>{const va=col.val(a),vb=col.val(b);
-    if(em(va))return 1; if(em(vb))return -1;
+  dFiltered.sort((a,b)=>{
+    const va=col.val(a),vb=col.val(b);
+    if(va===null||va===undefined)return 1;
+    if(vb===null||vb===undefined)return -1;
     const c=typeof va==="number"?va-vb:String(va).localeCompare(String(vb));
-    return dSort.asc?c:-c;});
-  dPage=0; dRender();
+    return dSort.asc?c:-c;
+  });
+  dRenderHead();dRenderRows();dRenderMeta();
 }
-function dRender(){
-  document.querySelector("#dtbl thead tr").innerHTML=DCOLS.map(c=>
-    `<th data-k="${c.k}" class="${c.num?"num":""}">${c.label}${dSort.k===c.k?(dSort.asc?" ▲":" ▼"):""}</th>`).join("");
-  document.querySelectorAll("#dtbl th").forEach(th=>th.onclick=()=>{
-    const k=th.dataset.k; dSort=dSort.k===k?{k,asc:!dSort.asc}:{k,asc:true}; dFilter();});
-  const s=dPage*PAGE, page=dFiltered.slice(s,s+PAGE);
-  const tb=document.querySelector("#dtbl tbody"); tb.innerHTML="";
-  page.forEach(r=>{const tr=document.createElement("tr");
-    tr.innerHTML=DCOLS.map(c=>c.cell(r)).join("");
-    tr.onclick=()=>dOpenDetail(r); tb.appendChild(tr);});
-  document.getElementById("dshowing").textContent=dFiltered.length
-    ? `Showing ${s+1}–${Math.min(s+PAGE,dFiltered.length)} of ${dFiltered.length.toLocaleString()}` : "No matching defects";
-  document.getElementById("dprev").disabled=dPage===0;
-  document.getElementById("dnext").disabled=s+PAGE>=dFiltered.length;
-  document.getElementById("drows").textContent=dFiltered.length.toLocaleString();
-  document.getElementById("dhosts").textContent=new Set(dFiltered.map(r=>r.h)).size;
+function dRenderHead(){
+  document.getElementById("dthead").innerHTML=DCOLS.map(c=>
+    `<span class="hc" data-k="${c.k}" style="width:${c.w}px;flex-basis:${c.w}px;${c.num?'text-align:right':''}">${c.label}${dSort.k===c.k?(dSort.asc?" ▲":" ▼"):""}</span>`).join("");
+  document.querySelectorAll("#dthead .hc").forEach(h=>h.onclick=()=>{
+    const k=h.dataset.k;dSort=dSort.k===k?{k,asc:!dSort.asc}:{k,asc:true};dApplyFilters();});
 }
-document.getElementById("dprev").onclick=()=>{if(dPage>0){dPage--;dRender();}};
-document.getElementById("dnext").onclick=()=>{if((dPage+1)*PAGE<dFiltered.length){dPage++;dRender();}};
-document.getElementById("dsearch").addEventListener("input",dFilter);
-["dclass","dtheory","ck-spont"].forEach(id=>document.getElementById(id).addEventListener("change",dFilter));
+const ROWH=34,VIEWH=560;
+function dRenderRows(){
+  const view=document.getElementById("dtview"),spacer=document.getElementById("dtspacer");
+  spacer.style.height=dFiltered.length*ROWH+"px";
+  spacer.innerHTML="";
+  const start=Math.max(0,Math.floor(view.scrollTop/ROWH)-5);
+  const end=Math.min(dFiltered.length,start+Math.ceil(VIEWH/ROWH)+10);
+  let html="";
+  for(let i=start;i<end;i++){
+    const r=dFiltered[i];
+    html+=`<div class="trow${dSel===r?" sel":""}" data-i="${i}" style="top:${i*ROWH}px">`+
+      DCOLS.map(c=>{
+        if(c.cell)return c.cell(r);
+        const v=c.val(r);
+        const s=c.fmt?c.fmt(v):fmt(v);
+        const red=(c.k==="efMt"||c.k==="efMc")&&v!==null&&v<0?" spontv":"";
+        return `<span class="c num${red}" style="width:${c.w}px">${s}</span>`;
+      }).join("")+"</div>";
+  }
+  spacer.innerHTML=html;
+  spacer.querySelectorAll(".trow").forEach(el=>el.onclick=()=>dOpenDetail(dFiltered[+el.dataset.i]));
+}
+document.getElementById("dtview").addEventListener("scroll",dRenderRows);
+function dRenderMeta(){
+  const n=DEFECTS.length;
+  document.getElementById("dfoot").innerHTML=
+    `One row per defect and level of theory. E<sup>f</sup>(q=0) is the Fermi-level-independent neutral
+     formation energy at the Te-rich limit; the other E<sup>f</sup> columns are
+     lower-envelope formation energies at the band edges. Formation energies and gaps are in eV. Red
+     values are spontaneous (E<sup>f</sup> &lt; 0). "—" = not available (chemical potential not published
+     for that condition, or charge state not simulated). Click any row to see the full formation-energy
+     diagram and per-charge-state raw data. <span class="showing">Showing ${dFiltered.length.toLocaleString()} of ${n.toLocaleString()} defect entries.</span>`;
+  const nP=DEFECTS.filter(r=>r.f==="pbesol").length,nH=DEFECTS.filter(r=>r.f==="hsesoc").length;
+  const hosts=new Set(DEFECTS.map(r=>r.h));
+  document.getElementById("dcov").innerHTML=
+    `Coverage — PBEsol <b>${nP}</b> defect entries · HSE+SOC <b>${nH}</b> · <b>${hosts.size}</b> hosts ·
+     charge states −2 … +2 · all values pure DFT (MLFF models live in the nanoHUB tool)`;
+}
+async function dOpenDetail(r){
+  if(dSel===r){dSel=null;document.getElementById("detail").classList.remove("on");dRenderRows();return;}
+  dSel=r;
+  const panel=document.getElementById("detail");panel.classList.add("on");document.getElementById("modalback").classList.add("on");
+  document.getElementById("dtitle").innerHTML=`${defHTML(r.d)} in ${subHTML(r.h)} — ${THEORY[r.f]}`;
+  const rows=[["Cd-rich",r.efVc,r.qVc,r.efMc,r.qMc],["Te-rich",r.efVt,r.qVt,r.efMt,r.qMt]];
+  document.getElementById("dcondtbl").innerHTML=
+    `<tr><th>Condition</th><th>Eᶠ@VBM</th><th>q</th><th>Eᶠ@mid</th><th>q</th></tr>`+
+    rows.map(x=>`<tr><td>${x[0]}</td><td>${fmt(x[1])}</td><td>${fq(x[2])}</td><td>${fmt(x[3])}</td><td>${fq(x[4])}</td></tr>`).join("");
+  document.getElementById("dkv").innerHTML=
+    `<div><span>Host</span><span>${subHTML(r.h)}</span></div>
+     <div><span>Class</span><span>${r.cls} (${[...r.clset].join(", ")})</span></div>
+     <div><span>Level of theory</span><span>${THEORY[r.f]}</span></div>
+     <div><span>Band gap</span><span>${fmt(r.g)} eV</span></div>
+     <div><span>VBM reference</span><span>${fmt(r.v)} eV</span></div>
+     <div><span>Charge states</span><span>${QS.filter(q=>q in r.e).map(q=>+q>0?"+"+q:q).join(", ")}</span></div>`;
+  document.getElementById("dqtbl").innerHTML=
+    `<tr><th>q</th><th>ΔE + E<sub>corr</sub> (eV)</th></tr>`+
+    QS.filter(q=>q in r.e).map(q=>`<tr><td>${+q>0?"+"+q:q}</td><td>${r.e[q].toFixed(2)}</td></tr>`).join("");
+  document.getElementById("dnote").innerHTML=
+    `ΔE = E<sub>defect,q</sub> + E<sub>corr</sub> − E<sub>pristine</sub> from the raw supercell totals.
+     Add Σn<sub>i</sub>μ<sub>i</sub> and q(E<sub>VBM</sub>+E<sub>F</sub>) for the formation energy.
+     μ (Σnμ term): Cd-rich ${r.mc===null?"—":r.mc.toFixed(2)} · Te-rich ${r.mt===null?"—":r.mt.toFixed(2)} eV.`;
+  // plot both conditions
+  const traces=[];
+  for(const [cond,name,dash] of [["mc","Cd-rich",""],["mt","Te-rich","dash"]]){
+    const mu=cond==="mc"?r.mc:r.mt; if(mu===null)continue;
+    const xs=[],ys=[];
+    for(let i=0;i<=60;i++){const x=r.g*i/60;xs.push(x);ys.push(envelope(r,cond,x)[0]);}
+    traces.push({x:xs,y:ys,mode:"lines",name,line:{width:2.4,color:"#0e7490",dash}});
+  }
+  const dkey=`${r.f}__${r.h}__${r.d}`;
+  const qopts=QS.filter(q=>q in r.e).map(q=>({sub:q,name:`q = ${+q>0?"+"+q:q}`}));
+  document.getElementById("dmoviebtn").innerHTML = HAVE_TRAJ.has(dkey)
+    ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
+         id="dmovie-open">▶ relaxation movie</button>`
+    : `<span class="notebox" style="display:inline-block">No ionic steps archived for this defect's runs.</span>`;
+  const dbtn=document.getElementById("dmovie-open");
+  if(dbtn) dbtn.onclick=()=>openMovie(dkey,qopts,`${r.d} in ${r.n||r.h} — ${THEORY[r.f]}`);
+  await loadPlotly();
+  Plotly.react("efdetailplot",traces,{
+    xaxis:{title:{text:"E<sub>F</sub> − E<sub>VBM</sub> (eV)",font:{size:13}},range:[0,r.g],zeroline:false},
+    yaxis:{title:{text:"E<sub>f</sub> (eV)",font:{size:13}},zeroline:true,zerolinecolor:"#d4d8e0"},
+    margin:{l:52,r:12,t:8,b:42},legend:{x:.02,y:.98},font:{family:"Arial Narrow"},
+    plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false});
+  dRenderRows();
+  }
+document.getElementById("dsearch").addEventListener("input",dApplyFilters);
+["ck-spont","ck-allq","ck-pbesol","ck-hsesoc"].forEach(id=>
+  document.getElementById(id).addEventListener("change",dApplyFilters));
+document.querySelectorAll("#view-explorer .cpill").forEach(p=>p.onclick=()=>{
+  document.querySelectorAll("#view-explorer .cpill").forEach(x=>x.classList.remove("on"));
+  p.classList.add("on");dClass=p.dataset.c;dApplyFilters();});
 
-/* ---------- element colours ---------- */
-const ELCOL={S:"#f7e463",Se:"#e8a33d",Te:"#c98a3a",O:"#ff8a8a",N:"#9bb0f7",Cl:"#8fe790",
-  Cu:"#7aa6e8",Ag:"#d3d8de",Zn:"#bcc2c8",Cd:"#e6c072",Mg:"#bce88a",Ca:"#94e0a0",Sr:"#86dd86",Ba:"#78d878",
-  Zr:"#86ddc6",Sn:"#a0adb6",Ge:"#a3c0c0",Si:"#ead3b4",Al:"#d8c8c8",Ga:"#dcaaaa",In:"#c8a29f",
-  Na:"#d3b0f4",K:"#bd8fe6",Rb:"#a578d4",Cs:"#9260c4",Li:"#e6c6ff",As:"#d4aeee",Bi:"#c095d2",P:"#ffbe80"};
-const chipHTML=(comp,nfu)=>Object.entries(comp).map(([el,n])=>
-  `<span class="cd-chip" style="background:${ELCOL[el]||"#dfe3e8"}">${el}<sub>${Math.round(n*nfu)}</sub></span>`).join("");
+/* ================= COMPOUND TABLE ================= */
+/* record: {n:name, f:theory, o:{ordering:[eform,edec,gap,eps,slme,F,nat,cell]}, b:bestOrdering} */
+const CCOLS=[
+  {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}</span>`,val:r=>r.n},
+  {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
+  {k:"cell",label:"Supercell",w:265,cell:(r,v)=>`<span class="c" style="width:130px">${cellLabel(v)}</span>`,val:r=>r.o[r.b][6]||0},
+  {k:"eform",label:"Formation energy (eV/atom)",w:170,num:1,vi:0},
+  {k:"edec",label:"Decomposition energy (eV/f.u.)",w:190,num:1,vi:1},
+  {k:"gap",label:"Band gap (eV)",w:116,num:1,vi:2},
+  {k:"eps",label:"ε∞ (electronic)",w:120,num:1,vi:3},
+  {k:"slme",label:"SLME (%)",w:92,num:1,vi:4},
+];
+CCOLS.forEach(c=>{ if(c.vi!==undefined) c.val=r=>r.o[r.b][c.vi]; });
+const cellLabel=v=>{
+  const nat=v[6]?`${v[6]} atoms`:"";
+  const abc=v[8]?` · ${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"";
+  return nat?nat+abc:"—";
+};
+let cSort={k:"eform",asc:true},cSel=null,cFiltered=[],cOrd=null;
+function cApplyFilters(){
+  const q=document.getElementById("csearch").value.trim().toLowerCase();
+  const stable=document.getElementById("ck-stable").checked;
+  const gap1=document.getElementById("ck-gap1").checked;
+  cFiltered=COMPOUNDS.filter(r=>{
+    const v=r.o[r.b];
+    if(stable&&!(v[1]!==null&&v[1]<=0))return false;
+    if(gap1&&!(v[2]!==null&&v[2]>=1&&v[2]<=2))return false;
+    if(q&&!(r.n+" "+r.f+" "+Object.keys(r.o).join(" ")).toLowerCase().includes(q))return false;
+    return true;
+  });
+  const col=CCOLS.find(c=>c.k===cSort.k);
+  cFiltered.sort((a,b)=>{
+    const va=col.val(a),vb=col.val(b);
+    if(va===null||va===undefined||va==="")return 1;
+    if(vb===null||vb===undefined||vb==="")return -1;
+    const c=typeof va==="number"?va-vb:String(va).localeCompare(String(vb));
+    return cSort.asc?c:-c;
+  });
+  cRenderHead();cRenderRows();cRenderMeta();
+}
+function cRenderHead(){
+  document.getElementById("cthead").innerHTML=CCOLS.map(c=>
+    `<span class="hc" data-k="${c.k}" style="width:${c.w}px;flex-basis:${c.w}px;${c.num?'text-align:right':''}">${c.label}${cSort.k===c.k?(cSort.asc?" ▲":" ▼"):""}</span>`).join("");
+  document.querySelectorAll("#cthead .hc").forEach(h=>h.onclick=()=>{
+    const k=h.dataset.k;cSort=cSort.k===k?{k,asc:!cSort.asc}:{k,asc:true};cApplyFilters();});
+}
+function cRenderRows(){
+  const view=document.getElementById("ctview"),spacer=document.getElementById("ctspacer");
+  spacer.style.height=cFiltered.length*ROWH+"px";spacer.innerHTML="";
+  const start=Math.max(0,Math.floor(view.scrollTop/ROWH)-5);
+  const end=Math.min(cFiltered.length,start+Math.ceil(VIEWH/ROWH)+10);
+  let html="";
+  for(let i=start;i<end;i++){
+    const r=cFiltered[i], v=r.o[r.b];
+    html+=`<div class="trow${cSel===r?" sel":""}" data-i="${i}" style="top:${i*ROWH}px">`+
+      CCOLS.map(c=>{
+        if(c.cell)return c.cell(r,v);
+        const val=c.val(r);
+        const red=c.k==="edec"&&val!==null&&val>0?" spontv":"";
+        return `<span class="c num${red}" style="width:${c.w}px">${fmt(val,c.d||2)}</span>`;
+      }).join("")+"</div>";
+  }
+  spacer.innerHTML=html;
+  spacer.querySelectorAll(".trow").forEach(el=>el.onclick=()=>cOpenDetail(cFiltered[+el.dataset.i]));
+}
+document.getElementById("ctview").addEventListener("scroll",cRenderRows);
+function cRenderMeta(){
+  document.getElementById("cfoot").innerHTML=
+    `One row per compound and level of theory; the table shows the lowest-energy cation ordering —
+     click a row to switch between orderings (kesterite / stannite are ordering variants of the same
+     compound). Formation energy per atom versus same-theory elemental references; decomposition
+     energy per formula unit versus the stoichiometric binary decomposition including ideal-mixing
+     entropy (red = unstable); band gap from occupied-band counting on EIGENVAL (PBEsol rows use a
+     2×2×2-k static screen — treat as approximate); ε<sub>∞</sub> is the electronic LOPTICS dielectric;
+     SLME at optimal thickness. <span class="showing">Showing ${cFiltered.length.toLocaleString()} of ${COMPOUNDS.length.toLocaleString()} compounds.</span>`;
+  const byTh={};
+  COMPOUNDS.forEach(r=>{byTh[r.f]=(byTh[r.f]||0)+1;});
+  const order=["PBE","PBEsol","HSE06","HSE06 (no PS)","HSE+SOC"];
+  const parts=order.filter(k=>byTh[k]).map(k=>`${k} ${byTh[k].toLocaleString()}`);
+  const uniq=new Set(COMPOUNDS.map(r=>r.n)).size;
+  document.getElementById("ccov").innerHTML=
+    `Coverage — ${COMPOUNDS.length.toLocaleString()} rows over ${uniq.toLocaleString()} unique compounds ·
+     ${parts.join(" · ")} · cation orderings selectable per row ·
+     ground-state configurations from a 21,242-calculation PBEsol polymorph screen · all pure DFT.
+     The A2BCX4/ABX2 HSE06 campaign is being restored from archive and is not in this table yet.`;
+}
+function cOpenDetail(r,ord){
+  if(cSel===r&&!ord){cSel=null;document.getElementById("cdetail").classList.remove("on");cRenderRows();return;}
+  cSel=r; cOrd=ord||r.b;
+  const v=r.o[cOrd];
+  document.getElementById("cdetail").classList.add("on");document.getElementById("modalback").classList.add("on");
+  const ords=Object.keys(r.o);
+  const oname=o=>ords.length>1?`Ordering ${ords.indexOf(o)+1}`:"Ordering 1";
+  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)} — ${r.f}` + (ords.length>1
+    ? `<span style="margin-left:14px">cation ordering
+        <select id="ordsel" style="margin-left:6px">${ords.map(o=>
+          `<option value="${o}"${o===cOrd?" selected":""}>${oname(o)}${o===r.b?" — lowest energy":""}</option>`).join("")}</select></span>`
+    : "");
+  const os=document.getElementById("ordsel");
+  if(os) os.onchange=(ev)=>{ev.stopPropagation();cOpenDetail(r,os.value);};
+  document.getElementById("ckv").innerHTML=
+    (ords.length>1?`<div><span>Cation ordering</span><span>${oname(cOrd)}${cOrd===r.b?" — lowest energy":""} of ${ords.length}</span></div>`:"")+`
+     <div><span>Formation energy</span><span>${fmt(v[0])} eV/atom</span></div>
+     <div><span>Decomposition energy</span><span>${fmt(v[1])} eV/f.u.</span></div>
+     <div><span>Band gap</span><span>${fmt(v[2])} eV</span></div>
+     <div><span>ε<sub>∞</sub> (electronic)</span><span>${fmt(v[3])}</span></div>
+     <div><span>SLME</span><span>${fmt(v[4])} %</span></div>
+     <div><span>Supercell</span><span>${cellLabel(v)}</span></div>
+     <div><span>Level of theory</span><span>${r.f}</span></div>`;
+  document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
+  mountStructure(r,cOrd);
+  drawStabilityMap(r,cOrd);
+  const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
+  const mkey=`host__${FKEY}__${r.n}`;
+  document.getElementById("cmoviebtn").innerHTML = HAVE_TRAJ.has(mkey)
+    ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
+         onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(r.n+" — "+r.f)})'>▶ relaxation movie</button>
+       <button class="cpill" id="incarbtn">calculation inputs</button>`
+    : `<button class="cpill" id="incarbtn">calculation inputs</button>
+       <span style="font-size:13px;color:var(--wbg-muted)">single-point static — no ionic steps archived</span>`;
+  const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.f);
+  cRenderRows();
+}
+document.getElementById("csearch").addEventListener("input",cApplyFilters);
+["ck-stable","ck-gap1"].forEach(id=>document.getElementById(id).addEventListener("change",cApplyFilters));
 
-/* ---------- MatterViz ---------- */
+
+function openIncar(theory){
+  document.getElementById("incartitle").textContent=theory;
+  document.getElementById("incarbody").innerHTML=(INCAR_TXT[theory]||"—").replace(/\n/g,"<br>");
+  document.getElementById("incarmodal").classList.add("on");
+}
+function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
+/* ---------- MatterViz structure viewer ---------- */
 try{ localStorage.setItem("matterviz-theme","light"); }catch(e){}
 document.documentElement.setAttribute("data-theme","light");
 const MV_BASE="https://cdn.jsdelivr.net/gh/defectdatabase/chalcogenide-defects@main/matterviz";
-let mvMod=null, CURSTRUCT=null, CURKEY=null, MVBUSY=false;
+let mvMod=null, CURSTRUCT=null, CURKEY=null;
 function loadMV(seed){
   if(seed) window.MV_STRUCTURE=seed;
   if(!mvMod){
     if(!document.getElementById("mv-css")){
       const l=document.createElement("link"); l.id="mv-css"; l.rel="stylesheet";
-      l.href=MV_BASE+"/mv-asset-index.css"; document.head.appendChild(l);}
+      l.href=MV_BASE+"/mv-asset-index.css"; document.head.appendChild(l);
+    }
+    // the bundle's bootstrap renders window.MV_STRUCTURE into #viz, else fetches /structure.json (404).
+    // Give it a hidden target and a minimal structure so it never issues that request.
     if(!document.getElementById("viz")){
       const v=document.createElement("div"); v.id="viz";
       v.style.cssText="position:absolute;left:-99999px;top:0;width:240px;height:240px;overflow:hidden";
-      document.body.appendChild(v);}
-    mvMod=import(MV_BASE+"/mv-app.js");}
+      document.body.appendChild(v);
+    }
+    mvMod=import(MV_BASE+"/mv-app.js");
+  }
   return mvMod;
-}
-function latParams(m){
-  const n=v=>Math.hypot(v[0],v[1],v[2]);
-  const ang=(u,v)=>{const c=(u[0]*v[0]+u[1]*v[1]+u[2]*v[2])/(n(u)*n(v));
-    return Math.acos(Math.max(-1,Math.min(1,c)))*180/Math.PI;};
-  const vol=Math.abs(m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])
-                    -m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])
-                    +m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]));
-  return {a:n(m[0]),b:n(m[1]),c:n(m[2]),alpha:ang(m[1],m[2]),beta:ang(m[0],m[2]),gamma:ang(m[0],m[1]),volume:vol};
-}
-function hydrate(st){
-  const m=st.lattice.matrix;
-  if(st.lattice.a===undefined) Object.assign(st.lattice, latParams(m));
-  st.sites.forEach(s=>{
-    if(!s.xyz) s.xyz=[s.abc[0]*m[0][0]+s.abc[1]*m[1][0]+s.abc[2]*m[2][0],
-                      s.abc[0]*m[0][1]+s.abc[1]*m[1][1]+s.abc[2]*m[2][1],
-                      s.abc[0]*m[0][2]+s.abc[1]*m[1][2]+s.abc[2]*m[2][2]];
-    if(!s.properties) s.properties={};
-    if(!s.label) s.label=s.species[0].element;});
-  if(!st.properties) st.properties={};
-  if(st.charge===undefined) st.charge=0;
-  return st;
-}
-function freeMV(el){
-  el.querySelectorAll("canvas").forEach(c=>{
-    const gl=c.getContext("webgl2")||c.getContext("webgl");
-    const x=gl&&gl.getExtension("WEBGL_lose_context"); if(x) x.loseContext();});
-}
-const MV_VIEWS=[["Perspective",null],["Front",[0,0,1]],["Top",[0,1,0]],["Right",[1,0,0]]];
-function renderGrid(st, el){
-  freeMV(el);
-  const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c), dist=1.9*L;
-  el.replaceChildren();
-  MV_VIEWS.forEach(([label,dir])=>{
-    const pane=document.createElement("div"); pane.className="cd-pane";
-    const tag=document.createElement("div"); tag.className="cd-tag"; tag.textContent=label;
-    const host=document.createElement("div"); host.className="mvhost";
-    pane.appendChild(host); pane.appendChild(tag); el.appendChild(pane);
-    try{ window.renderMatterViz(st, host, dir?{scene_props:{camera_position:dir.map(x=>x*dist)}}:{}); }catch(e){}});
 }
 function toCIF(name,st){
   const L=st.lattice;
@@ -635,254 +724,248 @@ function dlText(txt,fname){
   a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain"}));
   a.download=fname; a.click(); URL.revokeObjectURL(a.href);
 }
-const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"};
-const RKEY={"PBEsol":"PBEsol","HSE06":"HSE","HSE+SOC":"HSE+SOC"};
-function structKey(r,ord){
-  if(r.ref) return `ref__${RKEY[r.f]}__${r.n}`;
-  if(ord==="zinc blende") return `${FKEY[r.f]}__${r.n}`;
-  if(r.f==="HSE+SOC") return `${r.n}_${ord}`;
-  if(r.f==="PBEsol") return `PBEsol__${r.n}_${ord}`;
-  return null;
-}
 async function mountStructure(r,ord){
   const el=document.getElementById("cstruct"), dl=document.getElementById("cdl");
-  const key=structKey(r,ord);
-  CURKEY=key; CURSTRUCT=null;
-  const mkey=`host__${FKEY[r.f]}__${r.n}`, hasMovie=HAVE_TRAJ.has(mkey);
-  const incarBtn=`<button class="cd-btn out" id="incarbtn">INCAR / KPOINTS</button>`;
-  const wire=()=>{const i=document.getElementById("incarbtn"); if(i) i.onclick=()=>openIncar(r.f);
-    const m=document.getElementById("cd-movie");
-    if(m) m.onclick=()=>openMovie(mkey,[{sub:"bulk",name:r.f}],subHTML(r.n)+" — "+r.f);};
-  if(!key||!HAVE_STRUCT.has(key)){
-    el.innerHTML=`<div class="cd-prov" style="grid-column:1/-1">No relaxed-geometry payload published for this row yet.</div>`;
-    dl.innerHTML=(hasMovie?`<button class="cd-btn" id="cd-movie">▶ movie</button>`:``)+incarBtn; wire(); return;
+  const FK={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
+  const RK={"PBEsol":"PBEsol","HSE06":"HSE","HSE+SOC":"HSE+SOC"}[r.f];
+  const key = r.ref            ? `ref__${RK}__${r.n}`
+            : ord==="zinc blende" ? `${FK}__${r.n}`
+            : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
+            : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}` : null;
+  CURKEY=key; CURSTRUCT=null; dl.innerHTML="";
+  if(!key){
+    el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-geometry payload published for this level of theory yet.</div>';
+    return;
   }
-  el.innerHTML=`<div class="cd-prov" style="grid-column:1/-1">loading structure…</div>`;
+  if(!HAVE_STRUCT.has(key)){
+    el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-geometry payload published for this row yet.</div>';
+    return;
+  }
+  el.innerHTML='<div class="notebox" style="margin:12px">loading structure…</div>';
   let st=null;
-  try{ const resp=await fetch(`structures/${encodeURIComponent(key)}.json`);
-    if(resp.ok&&(resp.headers.get("content-type")||"").includes("json")) st=await resp.json();
+  try{
+    const resp=await fetch(`structures/${encodeURIComponent(key)}.json`);
+    if(resp.ok && (resp.headers.get("content-type")||"").includes("json")) st=await resp.json();
   }catch(e){ st=null; }
-  if(!st){ el.innerHTML=`<div class="cd-prov" style="grid-column:1/-1">No relaxed-structure payload for this ordering.</div>`;
-    dl.innerHTML=incarBtn; wire(); return; }
+  if(!st){ el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-structure payload for this ordering.</div>'; return; }
   CURSTRUCT=hydrate(st);
-  dl.innerHTML=`<button class="cd-btn" onclick="dlText(toCIF(CURKEY,CURSTRUCT),CURKEY+'.cif')">↓ CIF</button>`+
-    `<a class="cd-btn" href="structures/${encodeURIComponent(key)}.json" download>↓ JSON</a>`+
-    (hasMovie?`<button class="cd-btn" id="cd-movie">▶ movie</button>`:``)+incarBtn+
-    (hasMovie?``:`<span class="cd-italic">single-point static · no ionic steps archived</span>`);
-  wire();
-  try{ await loadMV(CURSTRUCT); renderGrid(CURSTRUCT, el); }
-  catch(e){ el.innerHTML=`<div class="cd-prov" style="grid-column:1/-1">3D viewer unavailable; the CIF and JSON downloads hold the same geometry.</div>`; }
+  dl.innerHTML=`<button class="cpill" onclick="dlText(toCIF(CURKEY,CURSTRUCT),CURKEY+'.cif')">download CIF</button>`+
+    `<a class="cpill" style="text-decoration:none" href="structures/${encodeURIComponent(key)}.json" download>download structure (JSON)</a>`;
+  try{
+    await loadMV(CURSTRUCT);
+    renderGrid(CURSTRUCT, el);
+  }catch(e){
+    el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable offline; the CIF and JSON downloads above hold the same relaxed geometry.</div>';
+  }
 }
-
 const INCAR_TXT={
- "HSE+SOC":`Static HSE06+SOC single point on the relaxed geometry (vasp_ncl):<br>
-GGA = PS · LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · LSORBIT = .TRUE.<br>
-ENCUT = 400 eV · NSW = 0 · IBRION = −1 · LOPTICS = .TRUE. · NEDOS = 2000 · ISMEAR = 0, SIGMA = 0.05<br>
-KPOINTS: Γ-centred mesh from the parent PBEsol run · POTCAR: PBE PAW`,
- "PBEsol":`Static PBEsol single point on the 2×2×1 polymorph screen:<br>
-GGA = PS · PREC = Accurate · ENCUT = 500 eV · EDIFF = 1e−4 · NSW = 0 · IBRION = −1 · ISIF = 0<br>
-ISPIN = 2 · ISMEAR = 0, SIGMA = 0.05 · LORBIT = 11 · NEDOS = 2000 · LVTOT = .TRUE.<br>
+ "HSE+SOC":`Static HSE06+SOC single point on the relaxed geometry (vasp_ncl):
+GGA = PS · LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · LSORBIT = .TRUE.
+ENCUT = 400 eV · NSW = 0 · IBRION = -1 · LOPTICS = .TRUE. · NEDOS = 2000 · ISMEAR = 0, SIGMA = 0.05
+KPOINTS: Γ-centred mesh from the parent PBEsol run · POTCAR: PBE PAW (VASP 5.4 recommended set)`,
+ "PBEsol":`Static PBEsol single point on the 2×2×1 polymorph screen:
+GGA = PS · PREC = Accurate · ENCUT = 500 eV · EDIFF = 1e-4 · NSW = 0 · IBRION = -1 · ISIF = 0
+ISPIN = 2 · ISMEAR = 0, SIGMA = 0.05 · LORBIT = 11 · NEDOS = 2000 · LVTOT = .TRUE.
 KPOINTS: Γ-centred 2×2×2 (1×1×1 for the largest cells)`,
- "PBE":`Static PBE single point on the relaxed host cell:<br>
-GGA = PE · ENCUT = 500 eV · EDIFF = 1e−6 · ISMEAR = 0, SIGMA = 0.05 · KSPACING ≈ 0.03 2π/Å`,
- "HSE06":`Static HSE06 single point on the relaxed host cell:<br>
+ "PBE":`Static PBE single point on the relaxed host cell:
+GGA = PE · ENCUT = 500 eV · EDIFF = 1e-6 · ISMEAR = 0, SIGMA = 0.05 · KSPACING ≈ 0.03 2π/Å`,
+ "HSE06":`Static HSE06 single point on the relaxed host cell:
 LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · GGA = PS · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`,
- "HSE06 (no PS)":`Static HSE06 single point (PBE exchange parent, GGA tag unset):<br>
+ "HSE06 (no PS)":`Static HSE06 single point (PBE exchange parent, GGA tag unset):
 LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`};
-function openIncar(theory){
-  document.getElementById("incartitle").textContent=theory;
-  document.getElementById("incarbody").innerHTML=INCAR_TXT[theory]||"—";
-  document.getElementById("incarmodal").classList.add("on");
-  document.getElementById("modalback").classList.add("on");
-}
-function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
 
-/* ---------- stability map ---------- */
-const KB=8.617333e-5;
-function decompParts(r,ord){
-  const R=REFS[r.f]; if(!R||!R.bin||!Object.keys(R.bin).length) return null;
-  const v=r.o[ord]; if(em(v[1])) return null;
-  const comp=compOf(r.n);
-  const XS=["S","Se","Te"],AK=["Na","K","Rb","Cs","Ag","Cu"],BK=["Mg","Ca","Ba","Sr","Cd","Zn"],
-        CK=["Sn","Ge","Zr"],BC=["Al","Ga","In"];
-  const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
-  const kes=Math.abs(xsum-4)<.01, abx=Math.abs(xsum-2)<.01;
-  if(!kes&&!abx) return null;
-  let ent=0; const addf=f=>{ if(f>0) ent+=f*Math.log(f); };
-  if(kes){ for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) addf((comp[a]/2)*(comp[x]/4));
-    for(const b of BK) if(comp[b]) for(const x of XS) if(comp[x]) addf(comp[b]*(comp[x]/4));
-    for(const c of CK) if(comp[c]) for(const x of XS) if(comp[x]) addf(comp[c]*(comp[x]/4)); }
-  else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) addf(comp[a]*(comp[x]/2));
-    for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) addf(comp[b]*(comp[x]/2)); }
-  return {d0:v[1]-0.0257*ent, ent};
-}
-async function drawStabilityMap(r,ord){
-  const el=document.getElementById("cmap"), note=document.getElementById("cmapnote"),
-        head=document.getElementById("cmaphead");
-  const parts=decompParts(r,ord);
-  if(!parts){ if(window.Plotly) Plotly.purge(el); el.innerHTML=""; el.style.height="0";
-    head.style.display="none"; note.style.display="none"; return; }
-  el.style.height="220px"; head.style.display=""; note.style.display="";
-  await loadPlotly();
-  const Ts=[],Ps=[];
-  for(let T=300;T<=2000;T+=25) Ts.push(T);
-  for(let lp=-12;lp<=2;lp+=0.5) Ps.push(lp);
-  const row=Ts.map(T=>parts.d0+KB*T*parts.ent), z=Ps.map(()=>row);
-  const zmin=Math.min(...row), zmax=Math.max(...row);
-  const traces=[{type:"contour",x:Ts,y:Ps,z,colorscale:[[0,"#0b3954"],[0.5,"#4f81a0"],[1,"#e8e2c9"]],
-     colorbar:{thickness:7,len:.82,tickfont:{size:8.5}},
-     contours:{coloring:"heatmap",showlabels:true,labelfont:{size:9,color:"#fff"}},
-     line:{color:"rgba(255,255,255,.5)",width:1},
-     hovertemplate:"T=%{x} K, log₁₀p=%{y}<br>ΔG=%{z:.2f} eV/f.u.<extra></extra>"}];
-  if(zmin<0&&zmax>0) traces.push({type:"contour",x:Ts,y:Ps,z,showscale:false,
-      contours:{start:0,end:0,size:1,coloring:"lines"},line:{color:"#c0392b",width:2.5},hoverinfo:"skip"});
-  Plotly.react(el,traces,{margin:{l:44,r:4,t:4,b:32},font:{family:"IBM Plex Mono",size:9},
-    xaxis:{title:{text:"T (K)",font:{size:9.5}},nticks:5},
-    yaxis:{title:{text:"log₁₀ p(X₂)",font:{size:9.5}},nticks:5},
-    paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
-  note.innerHTML=(parts.ent!==0
-    ? `ΔG(T) = ΔE<sub>dec</sub> + k<sub>B</sub>T·Σf ln f. ${zmin<0&&zmax>0
-        ? 'The red contour marks ΔG = 0 — above it the compound is stable against the binaries.'
-        : (zmax<=0?"Stable against the binaries across the whole range.":"Metastable across the whole range.")}`
-    : `No mixing-entropy term for this ordered stoichiometry, so ΔG is temperature-independent at ${parts.d0.toFixed(2)} eV/f.u.`)+
-    ` Colour: ΔG in eV/f.u.; the decomposition exchanges no gas, so pressure does not shift it.`;
-}
 
-function provenanceShort(r,ord){
-  const v=r.o[ord], F=v[5], nat=v[6], th=r.f, R=REFS[th], L=[];
-  if(!em(F)) L.push(`F = ${F.toFixed(2)} eV · ${nat} atoms`);
-  if(r.ref){
-    const els=(r.n.match(/[A-Z][a-z]?/g)||[]);
-    L.push(els.length===1
-      ? `elemental standard state · μ = ${em(F)?"—":(F/nat).toFixed(2)} eV/atom · E<sub>f</sub> ≡ 0`
-      : `binary reference phase · competing phase in the decomposition analysis`);
-    L.push(`gap: EIGENVAL band counting with NELECT`);
-    return L.join("<br>");
+function hydrate(st){
+  const m=st.lattice.matrix;
+  if(st.lattice.a===undefined) Object.assign(st.lattice, latParams(m));
+  st.sites.forEach(s=>{
+    if(!s.xyz) s.xyz=[s.abc[0]*m[0][0]+s.abc[1]*m[1][0]+s.abc[2]*m[2][0],
+                      s.abc[0]*m[0][1]+s.abc[1]*m[1][1]+s.abc[2]*m[2][1],
+                      s.abc[0]*m[0][2]+s.abc[1]*m[1][2]+s.abc[2]*m[2][2]];
+    if(!s.properties) s.properties={};
+    if(!s.label) s.label=s.species[0].element;
+  });
+  if(!st.properties) st.properties={};
+  if(st.charge===undefined) st.charge=0;
+  return st;
+}
+const MV_VIEWS=[["Perspective",null],["Front",[0,0,1]],["Top",[0,1,0]],["Right",[1,0,0]]];
+function freeMV(el){
+  el.querySelectorAll("canvas").forEach(c=>{
+    const gl=c.getContext("webgl2")||c.getContext("webgl");
+    gl&&gl.getExtension("WEBGL_lose_context")&&gl.getExtension("WEBGL_lose_context").loseContext();
+  });
+}
+let MVBUSY=false;
+function renderGrid(st, el){
+  freeMV(el);
+  const h=(el.clientHeight||460);
+  const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c);
+  const dist=1.9*L;
+  el.replaceChildren();
+  const grid=document.createElement("div");
+  grid.style.cssText=`display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;width:100%;height:${h}px`;
+  el.appendChild(grid);
+  MV_VIEWS.forEach(([label,dir])=>{
+    const cell=document.createElement("div");
+    cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:6px;overflow:hidden;background:#fff";
+    const tag=document.createElement("div");
+    tag.textContent=label;
+    tag.style.cssText="position:absolute;top:5px;left:9px;z-index:5;font-size:13px;color:var(--wbg-ink);pointer-events:none";
+    const host=document.createElement("div");
+    host.className="mvhost";
+    host.style.height=Math.floor((h-6)/2)+"px";
+    cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
+    const props = dir ? {scene_props:{camera_position:dir.map(x=>x*dist)}} : {};
+    try{ window.renderMatterViz(st, host, props); }catch(e){}
+  });
+}
+/* ---------- relaxation movie: XDATCAR frames + energies + forces ---------- */
+let TRAJ=null, TFRAME=0, TTIMER=null, TSPECIES=null, TPFX="trajbox_";
+function latParams(m){
+  const n=v=>Math.hypot(v[0],v[1],v[2]);
+  const ang=(u,v)=>{const c=(u[0]*v[0]+u[1]*v[1]+u[2]*v[2])/(n(u)*n(v));
+    return Math.acos(Math.max(-1,Math.min(1,c)))*180/Math.PI;};
+  const vol=Math.abs(m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])
+                    -m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])
+                    +m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]));
+  return {a:n(m[0]),b:n(m[1]),c:n(m[2]),
+          alpha:ang(m[1],m[2]),beta:ang(m[0],m[2]),gamma:ang(m[0],m[1]),volume:vol};
+}
+function trajStructure(fr){
+  const lat = fr.lat || TRAJ.lat;
+  const lp = latParams(lat);
+  return {"@module":"pymatgen.core.structure","@class":"Structure","charge":0,"properties":{},
+    "lattice":Object.assign({"matrix":lat,"pbc":[true,true,true]},lp),
+    "sites":fr.p.map((abc,i)=>({species:[{element:TSPECIES[i],occu:1}],abc,
+      xyz:[abc[0]*lat[0][0]+abc[1]*lat[1][0]+abc[2]*lat[2][0],
+           abc[0]*lat[0][1]+abc[1]*lat[1][1]+abc[2]*lat[2][1],
+           abc[0]*lat[0][2]+abc[1]*lat[1][2]+abc[2]*lat[2][2]],
+      label:TSPECIES[i],properties:{}}))};
+}
+async function showFrame(i){
+  if(!TRAJ||!TRAJ.frames) return;
+  TFRAME=Math.max(0,Math.min(TRAJ.frames.length-1,i));
+  const fr=TRAJ.frames[TFRAME];
+  const host=document.getElementById(TPFX+"struct");
+  const info=document.getElementById(TPFX+"info");
+  if(!host||!info){ stopTraj(); return; }
+  try{
+    await loadMV(trajStructure(fr));
+    if(document.getElementById(TPFX+"struct")!==host) return;   // panel changed under us
+    const fresh=document.createElement("div");
+    fresh.className="mvhost";
+    fresh.style.height=(host.clientHeight||340)+"px";
+    host.replaceChildren(fresh);
+    window.renderMatterViz(trajStructure(fr), fresh, {});
+  }catch(e){}
+  info.innerHTML =
+    `step <b>${fr.i+1}</b> of ${TRAJ.nframes} &nbsp;·&nbsp; E = <b>${fr.e!==null&&fr.e!==undefined?fr.e.toFixed(2):"—"}</b> eV`+
+    `&nbsp;·&nbsp; F<sub>max</sub> = <b>${fr.f!==null&&fr.f!==undefined?fr.f.toFixed(2):"—"}</b> eV/Å`;
+  const sl=document.getElementById(TPFX+"slider"); if(sl) sl.value=TFRAME;
+  const pl=document.getElementById(TPFX+"plot");
+  if(window.Plotly&&pl&&pl.data&&pl.data.length>=4)
+    Plotly.restyle(TPFX+"plot",{x:[[fr.i],[fr.i]],y:[[fr.e],[fr.f]]},[2,3]);
+}
+function playTraj(){
+  const btn=document.getElementById(TPFX+"play"); if(!btn) return;
+  if(TTIMER){clearInterval(TTIMER);TTIMER=null;btn.textContent="▶ play";return;}
+  btn.textContent="⏸ pause";
+  TTIMER=setInterval(()=>{
+    if(!TRAJ){clearInterval(TTIMER);TTIMER=null;return;}
+    showFrame(TFRAME>=TRAJ.frames.length-1?0:TFRAME+1);
+  },420);
+}
+function stopTraj(){ if(TTIMER){clearInterval(TTIMER);TTIMER=null;} TRAJ=null; }
+async function mountTraj(key,sub,label,boxId){
+  const box=document.getElementById(boxId||"trajbox");
+  stopTraj();
+  if(!HAVE_TRAJ.has(key)){
+    box.innerHTML='<div class="notebox">No ionic steps archived for this run — only the final '+
+      'single-point calculation on the relaxed geometry was kept, so there is no movie to play.</div>';
+    return;
   }
-  const comp=compOf(r.n), apfu=Object.values(comp).reduce((a,b)=>a+b,0), nfu=nat/apfu;
-  if(R&&!em(F)){
-    let refsum=0, ok=true; const mus=[];
-    for(const el in comp){ const mu=R.el[el];
-      if(mu===undefined){ok=false;break;} refsum+=comp[el]*nfu*mu; mus.push(`${el} ${mu.toFixed(2)}`);}
-    if(ok){
-      L.push(`Σn<sub>i</sub>μ<sub>i</sub> = ${refsum.toFixed(2)} eV (${mus.join(" · ")})`);
-      L.push(`E<sub>f</sub> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = <b>${((F-refsum)/nat).toFixed(2)}</b> eV/atom`);
+  box.innerHTML='<div class="notebox">loading relaxation trajectory…</div>';
+  let data=null;
+  try{
+    const r=await fetch(`trajs/${encodeURIComponent(key)}.json.gz`);
+    if(r.ok){
+      if(typeof DecompressionStream!=="undefined"){
+        const ds=new DecompressionStream("gzip");
+        data=JSON.parse(await new Response(r.body.pipeThrough(ds)).text());
+      }else{
+        box.innerHTML='<div class="notebox">This browser cannot inflate the trajectory payload '+
+          '(needs DecompressionStream). Use a recent Chrome, Edge, Safari 16.4+ or Firefox 113+.</div>';
+        return;
+      }
     }
+  }catch(e){ data=null; }
+  const t=data&&(sub&&data[sub]?data[sub]:(data.bulk||data[Object.keys(data)[0]]));
+  if(!t||!t.frames||t.frames.length<2){
+    box.innerHTML='<div class="notebox">No ionic steps archived for this run — only the final '+
+      'single-point calculation on the relaxed geometry was kept, so there is no movie to play. '+
+      'The relaxed structure itself is shown above.</div>';
+    return;
   }
-  if(decompParts(r,ord)&&!em(v[1]))
-    L.push(`ΔE<sub>dec</sub> = E<sub>f.u.</sub> − Σf·E(binary) + k<sub>B</sub>T·Σf ln f = <b>${v[1].toFixed(2)}</b> eV/f.u.`);
-  L.push(`gap: EIGENVAL band counting · ε<sub>∞</sub>: LOPTICS at E = 0 · SLME: vaspkit, max over thickness`);
-  return L.join("<br>");
-}
-
-function cOpenDetail(r,ord){
-  if(cSel===r&&!ord){closeModals();return;}
-  cSel=r; cOrd=ord||r.b;
-  const v=r.o[cOrd], ords=Object.keys(r.o);
-  document.getElementById("cdetail").classList.add("on");
-  document.getElementById("modalback").classList.add("on");
-  document.getElementById("cd-formula").innerHTML=subHTML(r.n);
-  document.getElementById("cd-theory").textContent=r.f;
-  const oname=o=>`Ordering ${ords.indexOf(o)+1}`;
-  document.getElementById("cd-ordwrap").innerHTML = ords.length>1
-    ? `<select id="ordsel">${ords.map(o=>`<option value="${o}"${o===cOrd?" selected":""}>${oname(o)}${o===r.b?" — lowest E":""}</option>`).join("")}</select>`
-    : "";
-  const os=document.getElementById("ordsel");
-  if(os) os.onchange=ev=>{ev.stopPropagation();cOpenDetail(r,os.value);};
-  const stp=document.getElementById("cd-status"), dec=v[1];
-  if(em(dec)) stp.style.display="none";
-  else { stp.style.display=""; stp.className="cd-pill "+(dec<=0?"ok":"warn");
-    stp.textContent=(dec<=0?"stable ":"metastable +")+dec.toFixed(2)+" eV/f.u."; }
-  document.getElementById("ckv").innerHTML=`
-    <div><span>Formation energy</span><span class="${em(v[0])?"muted":""}">${em(v[0])?"—":fmt(v[0])+" eV/atom"}</span></div>
-    <div><span>Decomposition energy</span><span class="${em(v[1])?"muted":(v[1]>0?"warn":"")}">${em(v[1])?"—":fmt(v[1])+" eV/f.u."}</span></div>
-    <div><span>Band gap</span><span class="${em(v[2])?"muted":""}">${em(v[2])?"—":fmt(v[2])+" eV"}</span></div>
-    <div><span>ε<sub>∞</sub></span><span class="${em(v[3])?"muted":""}">${em(v[3])?"—":fmt(v[3])}</span></div>
-    <div><span>SLME</span><span class="${em(v[4])?"muted":""}">${em(v[4])?"—":fmt(v[4])+" %"}</span></div>
-    <div><span>Supercell</span><span>${cellLabel(v).replace(" · ","<br>")} Å</span></div>
-    <div><span>Level of theory</span><span>${r.f}</span></div>`;
-  document.getElementById("cnote").innerHTML=provenanceShort(r,cOrd);
-  const comp=compOf(r.n), apfu=Object.values(comp).reduce((a,b)=>a+b,0);
-  document.getElementById("cd-chips").innerHTML=chipHTML(comp, v[6]?v[6]/apfu:1);
-  mountStructure(r,cOrd);
-  drawStabilityMap(r,cOrd);
-}
-
-async function dOpenDetail(r){
-  if(dSel===r){closeModals();return;}
-  dSel=r;
-  document.getElementById("ddetail").classList.add("on");
-  document.getElementById("modalback").classList.add("on");
-  document.getElementById("dd-formula").innerHTML=defHTML(r.d);
-  document.getElementById("dd-host").innerHTML="in "+subHTML(r.h);
-  document.getElementById("dd-theory").textContent=THEORY[r.f];
-  const sp=document.getElementById("dd-src"), raw=r.src&&r.src.startsWith("raw");
-  sp.textContent=raw?"raw DFT":"campaign table";
-  sp.className="cd-pill"+(raw?" ok":"");
-  document.getElementById("dkv").innerHTML=`
-    <div><span>Cd-rich · E<sup>f</sup>@VBM</span><span class="${em(r.efVc)?"muted":""}">${em(r.efVc)?"—":fmt(r.efVc)+" eV ("+fq(r.qVc)+")"}</span></div>
-    <div><span>Cd-rich · E<sup>f</sup>@mid-gap</span><span class="${em(r.efMc)?"muted":""}">${em(r.efMc)?"—":fmt(r.efMc)+" eV ("+fq(r.qMc)+")"}</span></div>
-    <div><span>Te-rich · E<sup>f</sup>@VBM</span><span class="${em(r.efVt)?"muted":""}">${em(r.efVt)?"—":fmt(r.efVt)+" eV ("+fq(r.qVt)+")"}</span></div>
-    <div><span>Te-rich · E<sup>f</sup>@mid-gap</span><span class="${em(r.efMt)?"muted":""}">${em(r.efMt)?"—":fmt(r.efMt)+" eV ("+fq(r.qMt)+")"}</span></div>
-    <div><span>Class</span><span>${[...r.clset].join(", ")}</span></div>
-    <div><span>Band gap · VBM</span><span>${fmt(r.g)} · ${fmt(r.v)} eV</span></div>`;
-  document.getElementById("dqtbl").innerHTML=
-    QS.filter(q=>q in r.e).map(q=>`q = ${+q>0?"+"+q:q} &nbsp; ΔE + E<sub>corr</sub> = ${r.e[q].toFixed(2)} eV`).join("<br>")+
-    (r.u?`<br><span style="color:var(--amber)">uncorrected: `+
-      Object.keys(r.u).map(q=>`q = ${+q>0?"+"+q:q} (${r.u[q].toFixed(2)} eV)`).join(", ")+`</span>`:"");
-  document.getElementById("dprov").innerHTML=
-    `E<sup>f</sup>(q,E<sub>F</sub>) = E<sub>def,q</sub> − E<sub>pristine</sub> + Σnμ + q(E<sub>VBM</sub>+E<sub>F</sub>) + E<sub>corr</sub><br>`+
-    `Σnμ: Cd-rich ${em(r.mc)?"—":r.mc.toFixed(2)} · Te-rich ${em(r.mt)?"—":r.mt.toFixed(2)} eV<br>`+
-    (raw ? `energies: raw OSZICAR F · charge from NELECT · edges from raw EIGENVAL${r.src.includes("library")?" · library bulk reference":""}`
-         : `energies: original campaign table (raw runs not retained)`)+
-    `<br>E<sub>corr</sub>: Kumagai–Oba eFNV from the original campaign`;
-  const dk=`${r.f}__${r.h}__${r.d}`, qopts=QS.filter(q=>q in r.e).map(q=>({sub:q,name:`q = ${+q>0?"+"+q:q}`}));
-  document.getElementById("dfoot").innerHTML = HAVE_TRAJ.has(dk)
-    ? `<button class="cd-btn" id="dmovie">▶ relaxation movie</button>`
-    : `<span class="cd-italic" style="margin:0">no ionic steps archived for this defect</span>`;
-  const db=document.getElementById("dmovie");
-  if(db) db.onclick=()=>openMovie(dk,qopts,`${defHTML(r.d)} in ${subHTML(r.h)} — ${THEORY[r.f]}`);
+  TRAJ=t; TSPECIES=t.species; TFRAME=0;
+  const P=(boxId||"trajbox")+"_";
+  box.innerHTML=
+    `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+       <button class="cpill" id="${P}play" onclick="playTraj()">▶ play</button>
+       <input type="range" id="${P}slider" min="0" max="${t.frames.length-1}" value="0" style="flex:1 1 180px"
+              oninput="showFrame(+this.value)">
+       <span id="${P}info" style="font-size:13.5px;color:var(--wbg-muted)"></span>
+     </div>
+     <div id="${P}struct" style="width:100%;height:340px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
+     <div id="${P}plot" style="width:100%;height:210px;margin-top:8px"></div>
+     <div class="notebox">${label} — ${t.nframes} ionic steps from XDATCAR; energies from OSZICAR (F),
+       forces are max |F| per step from OUTCAR. ${t.frames.length<t.nframes?`Showing ${t.frames.length} evenly sampled frames.`:""}</div>`;
+  const xs=t.frames.map(f=>f.i), es=t.frames.map(f=>f.e), fs=t.frames.map(f=>f.f);
   await loadPlotly();
-  const g=r.g||1.5, traces=[];
-  for(const [cond,name,dash] of [["mc","Cd-rich",""],["mt","Te-rich","dash"]]){
-    const mu=cond==="mc"?r.mc:r.mt; if(em(mu)) continue;
-    const xs=[],ys=[];
-    for(let i=0;i<=60;i++){const x=g*i/60; xs.push(x); ys.push(envelope(r,cond,x)[0]);}
-    traces.push({x:xs,y:ys,mode:"lines",name,line:{width:2,color:"#0e7490",dash}});
-  }
-  Plotly.react("efplot",traces,{
-    margin:{l:50,r:8,t:6,b:38},font:{family:"IBM Plex Mono",size:9.5},
-    xaxis:{title:{text:"E_F − E_VBM (eV)",font:{size:10}},range:[0,g],zeroline:false},
-    yaxis:{title:{text:"E_f (eV)",font:{size:10}},zeroline:true,zerolinecolor:"#e3e6eb"},
-    legend:{x:.02,y:.98,font:{size:10}},plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},
-    {responsive:true,displaylogo:false,displayModeBar:false});
+  Plotly.newPlot(P+"plot",[
+    {x:xs,y:es,name:"energy",mode:"lines+markers",line:{width:2,color:"#0e7490"},marker:{size:4}},
+    {x:xs,y:fs,name:"max force",yaxis:"y2",mode:"lines+markers",line:{width:2,color:"#de9e3a"},marker:{size:4}},
+    {x:[xs[0]],y:[es[0]],mode:"markers",marker:{size:11,color:"#0e7490"},showlegend:false},
+    {x:[xs[0]],y:[fs[0]],yaxis:"y2",mode:"markers",marker:{size:11,color:"#de9e3a"},showlegend:false}],
+    {margin:{l:52,r:48,t:6,b:36},font:{family:"Arial Narrow",size:12},
+     xaxis:{title:{text:"ionic step",font:{size:12}}},
+     yaxis:{title:{text:"E (eV)",font:{size:12}}},
+     yaxis2:{title:{text:"F<sub>max</sub> (eV/Å)",font:{size:12}},overlaying:"y",side:"right"},
+     legend:{orientation:"h",y:1.18},plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},
+    {responsive:true,displaylogo:false});
+  TPFX=P;
+  showFrame(0);
 }
 
-/* ---------- relaxation movie ---------- */
-let MVM={data:null,opts:[],cur:null,frame:0,timer:null};
+
+/* ---------- Kosmos-style relaxation movie overlay ---------- */
+let MVM={data:null,opts:[],cur:null,frame:0,timer:null,label:""};
 async function openMovie(key,options,label){
+  // options: [{sub:"0",name:"q = 0"},...] or [{sub:"bulk",name:"PBEsol"}]
   closeMovie();
   document.getElementById("moviemodal").classList.add("on");
   document.getElementById("modalback").classList.add("on");
-  document.getElementById("mvm-title").innerHTML=label;
+  document.getElementById("mvm-title").innerHTML="relaxation movie — "+label;
+  MVM.label=label;
   let data=null;
-  try{ const r=await fetch(`trajs/${encodeURIComponent(key)}.json.gz`);
-    if(r.ok&&typeof DecompressionStream!=="undefined"){
+  try{
+    const r=await fetch(`trajs/${encodeURIComponent(key)}.json.gz`);
+    if(r.ok && typeof DecompressionStream!=="undefined"){
       const ds=new DecompressionStream("gzip");
-      data=JSON.parse(await new Response(r.body.pipeThrough(ds)).text());}
+      data=JSON.parse(await new Response(r.body.pipeThrough(ds)).text());
+    }
   }catch(e){}
   if(!data){ document.getElementById("mvm-meta").textContent="payload unavailable"; return; }
   MVM.data=data;
   MVM.opts=options.filter(o=>data[o.sub]&&data[o.sub].frames&&data[o.sub].frames.length>=2);
   const sel=document.getElementById("mvm-sel");
-  sel.innerHTML=MVM.opts.map(o=>`<option value="${o.sub}">${o.name} (${data[o.sub].nframes} steps)</option>`).join("");
+  sel.innerHTML=MVM.opts.map((o,i)=>`<option value="${o.sub}">${o.name} (${data[o.sub].nframes} steps)</option>`).join("");
   sel.onchange=()=>mvmLoad(sel.value);
   if(!MVM.opts.length){ document.getElementById("mvm-meta").textContent="no multi-step relaxation archived"; return; }
   mvmLoad(MVM.opts[0].sub);
 }
 function closeMovie(){
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
-  MVM.cur=null;
   document.getElementById("moviemodal").classList.remove("on");
 }
 async function mvmLoad(sub){
@@ -890,43 +973,49 @@ async function mvmLoad(sub){
   const t=MVM.data[sub]; MVM.cur=t; MVM.frame=0;
   const fr=t.frames, eL=fr[fr.length-1].e;
   const de=fr.map(f=>f.e!==null&&eL!==null?f.e-eL:null);
-  document.getElementById("mvm-meta").textContent=`${t.nframes} steps · ΔE ${de[0]!==null?(-de[0]).toFixed(2):"—"} eV`;
-  const CLIP=5.0, xs=fr.map(f=>f.i);
-  const deC=de.map(v=>v===null?null:Math.min(v,CLIP)), clipped=de.some(v=>v!==null&&v>CLIP);
+  document.getElementById("mvm-meta").textContent=
+    `${t.nframes} steps · ΔE ${de[0]!==null?(-de[0]).toFixed(2):"—"} eV`;
+  // full-width convergence chart, ΔE clipped at 5 eV like Kosmos
+  const CLIP=5.0;
+  const xs=fr.map(f=>f.i);
+  const deC=de.map(v=>v===null?null:Math.min(v,CLIP));
+  const clipped=de.some(v=>v!==null&&v>CLIP);
   Plotly.react("mvm-conv",[
-    {x:xs,y:deC,mode:"lines",line:{width:2,color:"#0e7490"}},
-    {x:xs,y:fr.map(f=>f.f),mode:"lines",yaxis:"y2",line:{width:2,color:"#de9e3a"}}],
-    {margin:{l:52,r:52,t:6,b:30},showlegend:false,font:{family:"IBM Plex Mono",size:10},
-     xaxis:{dtick:xs.length<=8?1:undefined,range:[-0.3,xs[xs.length-1]+0.3]},
+    {x:xs,y:deC,mode:"lines",name:"ΔE vs final (eV)",line:{width:2.4,color:"#0e7490"}},
+    {x:xs,y:fr.map(f=>f.f),mode:"lines",name:"F max (eV/Å)",yaxis:"y2",line:{width:2.4,color:"#de9e3a"}}],
+    {margin:{l:56,r:56,t:8,b:34},showlegend:false,font:{family:"Arial Narrow",size:13},
+     xaxis:{title:{text:""},dtick:xs.length<=8?1:undefined,range:[-0.3,xs[xs.length-1]+0.3]},
      yaxis:{color:"#0e7490",rangemode:"tozero",nticks:5},
      yaxis2:{overlaying:"y",side:"right",color:"#de9e3a",rangemode:"tozero",nticks:4,tickformat:".2~g"},
-     annotations:clipped?[{x:1,y:1,xref:"paper",yref:"paper",text:"≥5.0 clipped",showarrow:false,
-       font:{color:"#0e7490",size:10},xanchor:"right"}]:[],
+     annotations:clipped?[{x:1,y:1,xref:"paper",yref:"paper",text:"≥"+CLIP.toFixed(1)+" clipped",
+       showarrow:false,font:{color:"#0e7490",size:13},xanchor:"right"}]:[],
      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
   document.getElementById("mvm-caption").innerHTML=
     `ionic step — <span style="color:#0e7490">ΔE vs final (eV)</span> · <span style="color:#de9e3a">F max (eV/Å)</span>`+
     (clipped?` — initial spike clipped to show the approach`:``)+
     (fr.length<t.nframes?` · ${fr.length} of ${t.nframes} steps stored`:``);
+  // subsampled frame chart
   Plotly.react("mvm-frame",[
-    {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",line:{color:"#3b82c4"},marker:{size:5}},
-    {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",yaxis:"y2",line:{color:"#2e8b57"},marker:{size:5}},
-    {x:[0],y:[de[0]],mode:"markers",marker:{size:11,color:"#3b82c4"}},
-    {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:11,color:"#2e8b57"}}],
-    {margin:{l:54,r:54,t:6,b:40},showlegend:false,font:{family:"IBM Plex Mono",size:10},
-     xaxis:{title:{text:"Frame (subsampled)",font:{size:10}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
-     yaxis:{title:{text:"ΔE vs final (eV)",font:{size:10}},color:"#3b82c4",nticks:6},
-     yaxis2:{title:{text:"F max (eV/Å)",font:{size:10}},overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g"},
+    {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",name:"ΔE vs final (eV)",line:{color:"#3b82c4"},marker:{size:6}},
+    {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"F max (eV/Å)",yaxis:"y2",line:{color:"#2e8b57"},marker:{size:6}},
+    {x:[0],y:[de[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
+    {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false}],
+    {margin:{l:58,r:58,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
+     xaxis:{title:{text:"Frame (subsampled)",font:{size:13}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
+     yaxis:{title:{text:"ΔE vs final (eV)",font:{size:13}},color:"#3b82c4",nticks:6},
+     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13}},overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g"},
      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
-  const sl=document.getElementById("mvm-slider"); sl.max=String(fr.length-1); sl.value="0";
+  const sl=document.getElementById("mvm-slider");
+  sl.max=String(fr.length-1); sl.value="0";
   mvmShow(0);
   if(MVM.timer) clearInterval(MVM.timer);
   MVM.timer=setInterval(()=>{ mvmShow(MVM.frame>=fr.length-1?0:MVM.frame+1); },900);
   document.getElementById("mvm-play").textContent="⏸ Pause";
 }
 function mvmStructure(f){
-  const t=MVM.cur, lat=f.lat||t.lat;
+  const t=MVM.cur, lat=f.lat||t.lat, lp=latParams(lat);
   return hydrate({"@module":"pymatgen.core.structure","@class":"Structure",charge:0,properties:{},
-    lattice:Object.assign({matrix:lat,pbc:[true,true,true]},latParams(lat)),
+    lattice:Object.assign({matrix:lat,pbc:[true,true,true]},lp),
     sites:f.p.map((abc,i)=>({species:[{element:t.species[i],occu:1}],abc,label:t.species[i],properties:{}}))});
 }
 async function mvmShow(i){
@@ -934,63 +1023,168 @@ async function mvmShow(i){
   MVBUSY=true;
   MVM.frame=Math.max(0,Math.min(t.frames.length-1,i));
   const f=t.frames[MVM.frame];
-  const sl=document.getElementById("mvm-slider"); if(sl) sl.value=String(MVM.frame);
-  const ct=document.getElementById("mvm-count");
-  if(ct) ct.textContent=`frame ${MVM.frame+1} / ${t.frames.length}`;
-  try{ const st=mvmStructure(f); await loadMV(st); renderGrid(st, document.getElementById("mvm-grid")); }catch(e){}
-  const eL=t.frames[t.frames.length-1].e, de=f.e!==null&&eL!==null?f.e-eL:null;
-  const pl=document.getElementById("mvm-frame");
-  if(pl&&pl.data&&pl.data.length>=4) Plotly.restyle("mvm-frame",{x:[[MVM.frame],[MVM.frame]],y:[[de],[f.f]]},[2,3]);
+  document.getElementById("mvm-slider").value=String(MVM.frame);
+  document.getElementById("mvm-count").textContent=`frame ${MVM.frame+1} / ${t.frames.length}`;
+  try{
+    const st=mvmStructure(f);
+    await loadMV(st);
+    renderGrid(st, document.getElementById("mvm-grid"));
+  }catch(e){}
+  const eL=t.frames[t.frames.length-1].e;
+  const de=f.e!==null&&eL!==null?f.e-eL:null;
+  if(document.getElementById("mvm-frame").data)
+    Plotly.restyle("mvm-frame",{x:[[MVM.frame],[MVM.frame]],y:[[de],[f.f]]},[2,3]);
   MVBUSY=false;
 }
 function mvmPlay(){
-  const b=document.getElementById("mvm-play"); if(!b) return;
+  const b=document.getElementById("mvm-play");
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;b.textContent="▶ Play";}
   else{MVM.timer=setInterval(()=>{const t=MVM.cur;if(!t)return;
     mvmShow(MVM.frame>=t.frames.length-1?0:MVM.frame+1);},900);b.textContent="⏸ Pause";}
 }
 
-function closeModals(){
-  cSel=null; dSel=null; closeMovie(); closeIncar();
-  document.getElementById("cdetail").classList.remove("on");
-  document.getElementById("ddetail").classList.remove("on");
-  document.getElementById("modalback").classList.remove("on");
-}
-document.getElementById("modalback").onclick=closeModals;
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModals(); });
 
+/* ---------- P–T stability map ---------- */
+const KB=8.617333e-5;
+function decompParts(r,ord){
+  const R=REFS[r.f]; if(!R) return null;
+  const v=r.o[ord]; if(!v||v[1]===null||v[1]===undefined) return null;
+  const comp={};
+  for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0],parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
+    comp[el]=(comp[el]||0)+n;
+  const XS=["S","Se","Te"],AK=["Na","K","Rb","Cs","Ag","Cu"],BK=["Mg","Ca","Ba","Sr","Cd","Zn"],CK=["Sn","Ge","Zr"],BC=["Al","Ga","In"];
+  const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
+  let ent=0; const kes=Math.abs(xsum-4)<.01, abx=Math.abs(xsum-2)<.01;
+  if(!kes&&!abx) return null;
+  const addf=f=>{ if(f>0) ent+=f*Math.log(f); };
+  if(kes){ for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) addf((comp[a]/2)*(comp[x]/4));
+    for(const b of BK) if(comp[b]) for(const x of XS) if(comp[x]) addf(comp[b]*(comp[x]/4));
+    for(const c of CK) if(comp[c]) for(const x of XS) if(comp[x]) addf(comp[c]*(comp[x]/4)); }
+  else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) addf(comp[a]*(comp[x]/2));
+    for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) addf(comp[b]*(comp[x]/2)); }
+  return { d0: v[1]-0.0257*ent, ent };   // stored value is at kT = 0.0257 eV (298 K)
+}
+async function drawStabilityMap(r,ord){
+  const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
+  const head=document.getElementById("cmaphead");
+  const parts=decompParts(r,ord);
+  if(!parts){
+    if(window.Plotly) Plotly.purge(el);
+    el.innerHTML=""; el.style.height="0";
+    head.style.display="none"; note.style.display="none";
+    return;
+  }
+  el.style.height="240px"; head.style.display=""; note.style.display="";
+  const Ts=[],Ps=[]; for(let T=300;T<=2000;T+=25) Ts.push(T);
+  for(let lp=-12;lp<=2;lp+=0.5) Ps.push(lp);
+  const row=Ts.map(T=>parts.d0+KB*T*parts.ent);
+  const z=Ps.map(()=>row);
+  const zmin=Math.min(...row), zmax=Math.max(...row);
+  const traces=[
+    {type:"contour",x:Ts,y:Ps,z,colorscale:[[0,"#0b3954"],[0.5,"#4f81a0"],[1,"#e8e2c9"]],
+     colorbar:{thickness:11,len:.85,tickfont:{size:11}},
+     contours:{coloring:"heatmap",showlabels:true,labelfont:{size:11,color:"#fff"}},
+     line:{color:"rgba(255,255,255,.55)",width:1},
+     hovertemplate:"T=%{x} K, log₁₀p=%{y}<br>ΔG=%{z:.2f} eV/f.u.<extra></extra>"}];
+  if(zmin<0&&zmax>0)
+    traces.push({type:"contour",x:Ts,y:Ps,z,showscale:false,
+      contours:{start:0,end:0,size:1,coloring:"lines"},
+      line:{color:"#c0392b",width:2.5},hoverinfo:"skip"});
+  await loadPlotly();
+  Plotly.react(el,traces,{
+    margin:{l:56,r:4,t:6,b:38},font:{family:"Arial Narrow",size:12},
+    xaxis:{title:{text:"Temperature (K)",font:{size:13}}},
+    yaxis:{title:{text:"log₁₀ p(X₂) / atm",font:{size:13}}},
+    paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+  note.innerHTML=(parts.ent!==0
+    ? `ΔG<sub>decomp</sub>(T) = ΔE<sub>decomp</sub> + k<sub>B</sub>T·Σf·ln f (ideal-mixing entropy of the
+       binary decomposition products). ${zmin<0&&zmax>0?'The <span style="color:#c0392b">red contour</span> marks ΔG = 0 — the compound stabilizes against the binaries above that temperature.':(zmax<=0?"Stable against the binary decomposition over the whole range.":"Metastable over the whole range shown.")}`
+    : `This composition has no mixing-entropy term (ordered stoichiometry), so ΔG<sub>decomp</sub> is
+       temperature-independent at this level of theory: ${parts.d0.toFixed(2)} eV/f.u. everywhere.`)+
+    ` Colour scale: ΔG<sub>decomp</sub> in eV/f.u. The balanced solid-state decomposition exchanges no gas, so pressure does not shift ΔG — the p(X₂) axis reads growth conditions alongside the temperature dependence.`;
+}
+
+/* ---------- provenance arithmetic ---------- */
+function provenanceHTML(r,ord){
+  const th = r.f;
+  const v = r.o[ord]; const F = v[5], nat = v[6];
+  if(r.ref){
+    const els=(r.n.match(/[A-Z][a-z]?/g)||[]);
+    return `<b>Level of theory: ${th}.</b><br>
+      Total energy: OSZICAR free energy F = <span class="mono">${F!==null&&F!==undefined?F.toFixed(2):"—"}</span> eV
+      for the ${nat}-atom reference cell.<br>
+      ${els.length===1
+        ? `Elemental standard state — its energy per atom (μ<sub>${els[0]}</sub> = ${F!==null?(F/nat).toFixed(2):"—"} eV/atom) is the reference all formation energies are measured against; its own formation energy is zero by definition.`
+        : `Binary reference phase — computed at the same level of theory; it serves as a competing phase in the decomposition analysis of the ternary and quaternary compounds.`}`;
+  }
+  const R = REFS[th]; if(!R) return "";
+  const comp = {};
+  for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0], parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
+    comp[el]=(comp[el]||0)+n;
+  const apfu = Object.values(comp).reduce((a,b)=>a+b,0);
+  const nfu = nat/apfu, epfu = F/nfu;
+  let terms=[], refsum=0;
+  for(const el in comp){ const mu=R.el[el]; refsum+=comp[el]*nfu*mu;
+    terms.push(`${comp[el]*nfu}·μ<sub>${el}</sub> = ${(comp[el]*nfu*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(2)} eV/atom)`); }
+  const eform=(F-refsum)/nat;
+  // decomposition
+  const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
+  const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
+  let sc=0, ent=0, bins=[], kes=Math.abs(xsum-4)<.01;
+  const add=(f,key)=>{ const E=R.bin[key]; if(E===undefined||f<=0) return false;
+    sc+=f*E; ent+=f*Math.log(f); bins.push(`${f.toFixed(2)} · E(${subHTML(key)}) = ${(f*E).toFixed(2)} eV  [E(${subHTML(key)}) = ${E.toFixed(2)} eV/f.u.]`); return true; };
+  if(kes){ for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add((comp[a]/2)*(comp[x]/4),`${a}2${x}`);
+    for(const b of BK) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/4),`${b}${x}`);
+    for(const c of CK) if(comp[c]) for(const x of XS) if(comp[x]) add(comp[c]*(comp[x]/4),`${c}${x}2`); }
+  else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add(comp[a]*(comp[x]/2),`${a}2${x}`);
+    for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/2),`${b}2${x}3`); }
+  const edec = kes? epfu-sc+0.0257*ent : epfu-0.5*sc+0.0257*ent;
+  if(!bins.length) return `<b>Level of theory: ${th}.</b><br>
+    Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
+    for the ${nat}-atom supercell.<br>
+    <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
+    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>
+    &nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    Band gap from occupied-band counting on EIGENVAL with NELECT. No binary decomposition is
+    published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`;
+  return `<b>Level of theory: ${th}.</b><br>
+    Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
+    for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
+    <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F!==null?F.toFixed(2):"—"} − (${refsum.toFixed(2)}))/${nat}
+    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    <b>Decomposition energy</b> = E<sub>f.u.</sub> − ${kes?"":"½"}Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
+    = ${epfu.toFixed(2)} − ${(kes?sc:0.5*sc).toFixed(2)} + ${(0.0257*ent).toFixed(2)}
+    = <span class="mono">${edec.toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
+    ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
+    Band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness.`;
+}
+
+function closeModals(){dSel=null;cSel=null;stopTraj();closeIncar();closeMovie();
+  document.getElementById("detail").classList.remove("on");
+  document.getElementById("cdetail").classList.remove("on");
+  document.getElementById("modalback").classList.remove("on");
+  dRenderRows();cRenderRows();}
+document.getElementById("modalback").onclick=closeModals;
+/* ---------- boot: payload lives in data.json so the page itself stays small ---------- */
 async function boot(){
-  const r=await fetch("data.json");
-  const D=await r.json();
+  const D = await (await fetch("data.json")).json();
   DEFECTS=D.defects; COMPOUNDS=D.compounds; REFS=D.refs;
   HAVE_STRUCT=new Set(D.structKeys); HAVE_TRAJ=new Set(D.trajKeys);
   DEFECTS.forEach(r=>{
-    r.cls=classify(r); r.clset=structClasses(r);
-    const mid=r.g/2;
+    r.cls = classify(r);
+    r.clset = structClasses(r);
+    r.nq = QS.filter(q=>q in r.e).length;
+    const mid = r.g/2;
     [r.efVc,r.qVc]=envelope(r,"mc",0); [r.efVt,r.qVt]=envelope(r,"mt",0);
     [r.efMc,r.qMc]=envelope(r,"mc",mid); [r.efMt,r.qMt]=envelope(r,"mt",mid);
-    r.spont=(r.efMc!==null&&r.efMc<0)||(r.efMt!==null&&r.efMt<0);
-    r.nq=QS.filter(q=>q in r.e).length;});
-  const th=[...new Set(COMPOUNDS.map(r=>r.f))].sort();
-  const sel=document.getElementById("ctheory");
-  th.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent="Theory: "+t;sel.appendChild(o);});
-  const byTh={}; COMPOUNDS.forEach(r=>byTh[r.f]=(byTh[r.f]||0)+1);
-  document.getElementById("ccov").textContent=
-    ["PBE","PBEsol","HSE06","HSE06 (no PS)","HSE+SOC"].filter(k=>byTh[k])
-      .map(k=>`${k} ${byTh[k].toLocaleString()}`).join(" · ");
-  const dTh={}; DEFECTS.forEach(r=>dTh[THEORY[r.f]]=(dTh[THEORY[r.f]]||0)+1);
-  document.getElementById("dcov").textContent=Object.entries(dTh).map(([k,v])=>`${k} ${v}`).join(" · ");
-  document.getElementById("dnote2").innerHTML=
-    `Formation energies are lower envelopes over q = −2 … +2 at the published chemical-potential limits; `+
-    `"—" means that limit is not published for the host. Energies come from raw OSZICAR free energies, `+
-    `charge states from NELECT and band edges from the raw bulk EIGENVAL; eFNV corrections are carried `+
-    `from the original campaign. Click any row for the full diagram, per-charge energies and the relaxation movie.`;
-  document.getElementById("topstats").innerHTML=
-    `<b>${DEFECTS.length.toLocaleString()}</b> defects · <b>${new Set(DEFECTS.map(r=>r.h)).size}</b> hosts · `+
-    `<b>${COMPOUNDS.length.toLocaleString()}</b> DFT compounds`;
-  const t0=new URLSearchParams(location.search).get("tab");
-  if(t0&&document.querySelector(`#tabs button[data-v="${t0}"]`)) showTab(t0);
-  cFilter(); dFilter();
+    r.spont = (r.efMc!==null&&r.efMc<0)||(r.efMt!==null&&r.efMt<0);
+    r.de0 = "0" in r.e ? r.e["0"] : null;
+  });
+  document.getElementById("topstats").textContent=
+    `${DEFECTS.length.toLocaleString()} defect entries across ${new Set(DEFECTS.map(r=>r.h)).size} hosts · `+
+    `${COMPOUNDS.length.toLocaleString()} DFT compounds — PBEsol · HSE+SOC — all-DFT`;
+  dApplyFilters();
+  cApplyFilters();
 }
 boot();
 </script>
