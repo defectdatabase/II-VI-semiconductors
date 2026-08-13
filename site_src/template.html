@@ -262,7 +262,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
           <div class="kv" id="ckv"></div>
           <h4 style="margin-top:16px">How these numbers are computed</h4>
           <div class="notebox" id="cnote"></div>
-          <h4 style="margin-top:16px">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
+          <h4 style="margin-top:16px" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
           <div id="cmap" style="width:100%;height:240px"></div>
           <div class="notebox" id="cmapnote"></div>
         </div>
@@ -1066,10 +1066,14 @@ function decompParts(r,ord){
 }
 function drawStabilityMap(r,ord){
   const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
+  const head=document.getElementById("cmaphead");
   const parts=decompParts(r,ord);
-  if(!parts){ Plotly.purge(el); el.innerHTML=""; note.innerHTML=
-    r.ref?"Reference phase — the decomposition analysis applies to the quaternary and ternary compounds."
-         :"No decomposition energy available for this row."; return; }
+  if(!parts){
+    Plotly.purge(el); el.innerHTML=""; el.style.height="0";
+    head.style.display="none"; note.style.display="none";
+    return;
+  }
+  el.style.height="240px"; head.style.display=""; note.style.display="";
   const Ts=[],Ps=[]; for(let T=300;T<=2000;T+=25) Ts.push(T);
   for(let lp=-12;lp<=2;lp+=0.5) Ps.push(lp);
   const row=Ts.map(T=>parts.d0+KB*T*parts.ent);
@@ -1104,8 +1108,17 @@ const HAVE_STRUCT = new Set(/*__STRUCTKEYS__*/);
 const HAVE_TRAJ = new Set(/*__TRAJKEYS__*/);
 function provenanceHTML(r,ord){
   const th = r.f;
-  const R = REFS[th]; if(!R) return "";
   const v = r.o[ord]; const F = v[5], nat = v[6];
+  if(r.ref){
+    const els=(r.n.match(/[A-Z][a-z]?/g)||[]);
+    return `<b>Level of theory: ${th}.</b><br>
+      Total energy: OSZICAR free energy F = <span class="mono">${F!==null&&F!==undefined?F.toFixed(2):"—"}</span> eV
+      for the ${nat}-atom reference cell.<br>
+      ${els.length===1
+        ? `Elemental standard state — its energy per atom (μ<sub>${els[0]}</sub> = ${F!==null?(F/nat).toFixed(2):"—"} eV/atom) is the reference all formation energies are measured against; its own formation energy is zero by definition.`
+        : `Binary reference phase — computed at the same level of theory; it serves as a competing phase in the decomposition analysis of the ternary and quaternary compounds.`}`;
+  }
+  const R = REFS[th]; if(!R) return "";
   const comp = {};
   for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0], parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
     comp[el]=(comp[el]||0)+n;
@@ -1127,12 +1140,6 @@ function provenanceHTML(r,ord){
   else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add(comp[a]*(comp[x]/2),`${a}2${x}`);
     for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/2),`${b}2${x}3`); }
   const edec = kes? epfu-sc+0.0257*ent : epfu-0.5*sc+0.0257*ent;
-  if(r.ref) return `<b>Level of theory: ${th}.</b><br>
-    Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
-    for the ${nat}-atom reference cell.<br>
-    ${Object.keys(comp).length===1
-      ? `Elemental standard state — its energy per atom (μ<sub>${Object.keys(comp)[0]}</sub> = ${(F/nat).toFixed(2)} eV/atom) is the reference all formation energies are measured against; its own formation energy is zero by definition.`
-      : `<b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat} = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>This binary is itself a competing phase in the decomposition analysis of the quaternary and ternary compounds.`}`;
   return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
