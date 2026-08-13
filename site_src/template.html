@@ -144,6 +144,20 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #moviemodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:92%;max-height:94vh;overflow-y:auto;z-index:95;background:#fff;border:1px solid var(--wbg-border);
   border-radius:14px;padding:18px 22px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.4)}
 #moviemodal.on{display:block}
+#mvm-head{display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--wbg-border)}
+#mvm-info{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--wbg-surface);
+  border:1px solid var(--wbg-border);border-radius:8px;padding:7px 12px;margin:10px 0;
+  font-family:'Arial Narrow',Arial,sans-serif;font-size:13.5px;color:#475569}
+#mvm-info .sep{color:#c9ced8}
+#mvm-info b{font-weight:700}
+#mvm-legend{margin-left:auto;display:flex;gap:12px;align-items:center;font-size:13px;color:var(--wbg-ink)}
+#mvm-legend i{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;
+  border:1px solid #0002;vertical-align:middle}
+.mvm-panel{border:1px solid var(--wbg-border);border-radius:8px;padding:10px 12px 12px}
+#mvm-controls{display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:nowrap}
+#mvm-controls .play{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700;padding:8px 16px;border-radius:8px}
+#mvm-controls input[type=range]{flex:1 1 80px;accent-color:#2563eb;height:6px}
+#mvm-count{font-family:'Arial Narrow',Arial,sans-serif;color:#475569;white-space:nowrap}
 .mvm-chip{display:inline-block;padding:2px 9px;border:1px solid var(--wbg-border);border-radius:999px;
   font-size:12.5px;color:#475569;background:var(--wbg-surface);margin-right:6px;white-space:nowrap}
 .mvm-chip.ok{color:#15803d;border-color:#c3e6c9;background:#eefaf0}
@@ -161,10 +175,8 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 .mvm-bar{height:7px;border-radius:999px;background:#eef1f5;overflow:hidden;margin:6px 0 4px}
 .mvm-bar>i{display:block;height:100%;background:#2e8b57}
 .mvm-note{font-size:12.5px;color:var(--wbg-muted);line-height:1.5;margin-top:8px;text-align:justify}
-.mvpane-head{position:absolute;top:0;left:0;right:0;z-index:6;pointer-events:none;
-  display:flex;align-items:center;justify-content:space-between;padding:4px 10px;
-  border-bottom:1px solid var(--wbg-border);border-radius:8px 8px 0 0;
-  font-size:12.5px;color:var(--wbg-ink);background:#fbfcfdf2}
+.mvpane-head{position:absolute;top:5px;left:10px;z-index:6;pointer-events:none;
+  font-size:12.5px;color:var(--wbg-ink)}
 #incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:90;
   background:#fff;border:1px solid var(--wbg-border);border-radius:12px;padding:20px 24px;
   max-width:640px;width:88%;box-shadow:0 20px 60px rgba(10,25,50,.35)}
@@ -358,31 +370,31 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 
 <div id="modalback"></div>
 <div id="moviemodal">
-  <div style="display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--wbg-border);padding-bottom:8px;margin-bottom:10px">
-    <span style="font-size:16px;color:var(--wbg-accent)" id="mvm-title">relaxation movie</span>
-    <span style="margin-left:auto"><button class="cpill" onclick="closeMovie()">✕ close</button></span>
+  <div id="mvm-head">
+    <span style="font-size:16px;color:var(--wbg-ink)">relaxation movie</span>
+    <span style="color:var(--wbg-muted)">—</span>
+    <span style="font-size:16px;color:var(--wbg-accent)" id="mvm-title"></span>
+    <span style="margin-left:auto;display:flex;gap:10px;align-items:center">
+      <select id="mvm-sel"></select>
+      <button class="cpill" onclick="closeMovie()">✕ close</button>
+    </span>
   </div>
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-    <span id="mvm-sellabel" style="color:var(--wbg-muted)">engine / charge</span>
-    <select id="mvm-sel"></select>
-    <span id="mvm-chips"></span>
-    <span id="mvm-meta" style="color:var(--wbg-muted)"></span>
-  </div>
+  <div id="mvm-info"><span id="mvm-summary"></span><span id="mvm-legend"></span></div>
   <div id="mvm-body">
     <div id="mvm-grid"></div>
-    <div>
-      <div id="mvm-frame" style="width:100%;height:380px"></div>
+    <div class="mvm-panel" id="mvm-panel">
+      <div id="mvm-frame" style="width:100%;height:360px"></div>
       <div id="mvm-controls">
+        <button class="cpill play" id="mvm-play" onclick="mvmPlay()">▶ Play</button>
         <button class="cpill" id="mvm-prev" onclick="mvmStep(-1)">⏮</button>
-        <button class="cpill" id="mvm-play" onclick="mvmPlay()">⏸ Pause</button>
         <button class="cpill" id="mvm-next" onclick="mvmStep(1)">⏭</button>
         <input type="range" id="mvm-slider" min="0" max="1" value="0" oninput="mvmShow(+this.value)">
-        <span id="mvm-count" style="color:var(--wbg-muted);white-space:nowrap"></span>
+        <span id="mvm-count"></span>
         <select id="mvm-speed" onchange="mvmSpeed(this.value)">
           <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option>
         </select>
       </div>
-      <div class="mvm-card" id="mvm-card" style="display:none"></div>
+      <div class="mvm-card" id="mvm-card" style="display:none;border:none;padding:0"></div>
     </div>
   </div>
 </div>
@@ -395,6 +407,21 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 <script>
 let DEFECTS=[], COMPOUNDS=[], REFS={}, HAVE_STRUCT=new Set(), HAVE_TRAJ=new Set(), HAVE_DOS=new Set();
 let plotlyP=null;
+let OPTICS=null, opticsP=null;
+function loadOptics(){                       // 0.7 MB gzipped, fetched only when a modal needs it
+  if(!opticsP) opticsP=(async()=>{
+    try{
+      const r=await fetch("optics.json.gz");
+      if(r.ok&&typeof DecompressionStream!=="undefined"){
+        const ds=new DecompressionStream("gzip");
+        OPTICS=JSON.parse(await new Response(r.body.pipeThrough(ds)).text());
+      }
+    }catch(e){ OPTICS={}; }
+    if(!OPTICS) OPTICS={};
+    return OPTICS;
+  })();
+  return opticsP;
+}
 function loadPlotly(){
   if(!plotlyP) plotlyP=new Promise((res,rej)=>{
     const s=document.createElement("script");
@@ -702,6 +729,8 @@ function cOpenDetail(r,ord){
      <div><span>Lattice parameter</span><span>${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"—"}</span></div>
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
+  if(!OPTICS && r.o[cOrd] && r.o[cOrd].length>14 && r.o[cOrd][14])
+    loadOptics().then(()=>{ if(cSel===r&&cOrd) document.getElementById("cnote").innerHTML=provenanceHTML(r,cOrd); });
   mountStructure(r,cOrd);
   drawInsight(r,cOrd);
   const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
@@ -858,7 +887,7 @@ function renderGrid(st, el){
     cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:8px;overflow:visible;background:#fff";
     const tag=document.createElement("div");
     tag.className="mvpane-head";
-    tag.innerHTML=`<span>${label}</span><span style="color:var(--wbg-muted)">${st.sites.length} sites</span>`;
+    tag.textContent=label;
     const host=document.createElement("div");
     host.className="mvhost";
     host.style.height=Math.floor((h-6)/2*1.22)+"px";   // unchanged mount geometry (.mvhost zoom 1/1.22)
@@ -990,9 +1019,11 @@ let MVM={data:null,opts:[],cur:null,frame:0,timer:null,label:""};
 async function openMovie(key,options,label){
   // options: [{sub:"0",name:"q = 0"},...] or [{sub:"bulk",name:"PBEsol"}]
   closeMovie();
+  parkStructure();
   document.getElementById("moviemodal").classList.add("on");
   document.getElementById("modalback").classList.add("on");
-  document.getElementById("mvm-title").innerHTML="relaxation movie — "+label;
+  document.getElementById("mvm-title").innerHTML=label;
+  document.getElementById("mvm-legend").innerHTML="";
   MVM.label=label;
   let data=null;
   try{
@@ -1002,53 +1033,61 @@ async function openMovie(key,options,label){
       data=JSON.parse(await new Response(r.body.pipeThrough(ds)).text());
     }
   }catch(e){}
-  if(!data){ document.getElementById("mvm-meta").textContent="payload unavailable"; return; }
+  if(!data){ document.getElementById("mvm-summary").textContent="payload unavailable"; return; }
   MVM.data=data;
   MVM.opts=options.filter(o=>data[o.sub]&&data[o.sub].frames&&data[o.sub].frames.length>=2);
   const sel=document.getElementById("mvm-sel");
-  sel.innerHTML=MVM.opts.map((o,i)=>`<option value="${o.sub}">${o.name} (${data[o.sub].nframes} steps)</option>`).join("");
+  sel.innerHTML=MVM.opts.map(o=>{
+    const n=data[o.sub].frames.length;
+    return `<option value="${o.sub}">${MVM.opts.length>1?o.name+" · ":"ionic relaxation · "}${n} frames</option>`;}).join("");
   sel.onchange=()=>mvmLoad(sel.value);
-  const one=MVM.opts.length<=1;
-  sel.style.display=one?"none":"";
-  document.getElementById("mvm-sellabel").style.display=one?"none":"";
-  if(!MVM.opts.length){ document.getElementById("mvm-meta").textContent="no multi-step relaxation archived"; return; }
+  if(!MVM.opts.length){ document.getElementById("mvm-summary").textContent="no multi-step relaxation archived"; return; }
   mvmLoad(MVM.opts[0].sub);
+}
+const JMOL={H:"#FFFFFF",Li:"#CC80FF",C:"#909090",N:"#3050F8",O:"#FF0D0D",F:"#90E050",Na:"#AB5CF2",
+ Mg:"#8AFF00",Al:"#BFA6A6",Si:"#F0C8A0",P:"#FF8000",S:"#FFFF30",Cl:"#1FF01F",K:"#8F40D4",Ca:"#3DFF00",
+ Sc:"#E6E6E6",Ti:"#BFC2C7",Cr:"#8A99C7",Mn:"#9C7AC7",Fe:"#E06633",Co:"#F090A0",Ni:"#50D050",Cu:"#C88033",
+ Zn:"#7D80B0",Ga:"#C28F8F",Ge:"#668F8F",As:"#BD80E3",Se:"#FFA100",Br:"#A62929",Rb:"#702EB0",Sr:"#00FF00",
+ Y:"#94FFFF",Zr:"#94E0E0",Nb:"#73C2C9",Mo:"#54B5B5",Pd:"#006985",Ag:"#C0C0C0",Cd:"#FFD98F",In:"#A67573",
+ Sn:"#668080",Sb:"#9E63B5",Te:"#D47A00",Cs:"#57178F",Ba:"#00C900",La:"#70D4FF",Hf:"#4DC2FF",Pt:"#D0D0E0",
+ Bi:"#9E4FB5",Yb:"#26C6C6"};
+function legendHTML(st){
+  const els=[...new Set(st.sites.map(s=>s.species[0].element))];
+  return els.map(e=>`<span><i style="background:${JMOL[e]||"#9aa3af"}"></i>${e}</span>`).join("");
 }
 const EDIFFG=0.05;   // |F| convergence criterion of these campaigns (eV/Å)
 async function openStaticMovie(key,label,E,fmax,info){
   closeMovie();
+  parkStructure();
   document.getElementById("moviemodal").classList.add("on");
   document.getElementById("modalback").classList.add("on");
-  document.getElementById("mvm-title").innerHTML="relaxed geometry — "+label;
+  document.getElementById("mvm-title").innerHTML=label;
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
   MVM.cur=null; MVM.data=null;
   // one configuration: nothing to animate, so the chart and transport controls stand down
   document.getElementById("mvm-body").classList.add("static");
   document.getElementById("mvm-frame").style.display="none";
   document.getElementById("mvm-controls").style.display="none";
-  document.getElementById("mvm-sel").style.display="none";
-  document.getElementById("mvm-sellabel").style.display="none";
-  document.getElementById("mvm-meta").textContent="";
+  document.getElementById("mvm-sel").innerHTML=`<option>static run · 1 configuration</option>`;
   const conv=fmax!==null&&fmax!==undefined&&fmax<=EDIFFG;
-  document.getElementById("mvm-chips").innerHTML=
-    `<span class="mvm-chip">static run · NSW = 0</span><span class="mvm-chip">1 configuration</span>`+
-    (fmax!==null&&fmax!==undefined?`<span class="mvm-chip ${conv?"ok":"warn"}">F max ${fmax.toFixed(3)} eV/Å ${conv?"≤":">"} ${EDIFFG}</span>`:"");
+  document.getElementById("mvm-summary").innerHTML=
+    `static run (NSW = 0) · single configuration <span class="sep">|</span> `+
+    `E = <b style="color:#3b82c4">${E!==null&&E!==undefined?E.toFixed(3):"—"} eV</b> <span class="sep">|</span> `+
+    `F<sub>max</sub> = <b style="color:${conv?"#2e8b57":"#a5541a"}">${fmax!==null&&fmax!==undefined?fmax.toFixed(3)+" eV/Å":"not archived"}</b>`;
   let st=null;
   try{
     const r=await fetch(`structures/${encodeURIComponent(key)}.json`);
     if(r.ok&&(r.headers.get("content-type")||"").includes("json")) st=await r.json();
   }catch(e){}
-  if(!st){ document.getElementById("mvm-meta").textContent="structure payload unavailable"; return; }
+  if(!st){ document.getElementById("mvm-summary").textContent="structure payload unavailable"; return; }
   const hst=hydrate(st), L=hst.lattice;
   const nfo=info||{};
   const pct=fmax!==null&&fmax!==undefined?Math.min(100,100*fmax/(EDIFFG*2)):null;
   const card=document.getElementById("mvm-card");
   card.style.display="";
   card.innerHTML=`<h5>Run summary</h5>
-    <div class="row"><span>Total energy F</span><span class="mono">${E!==null&&E!==undefined?E.toFixed(4)+" eV":"—"}</span></div>
-    <div class="row"><span>Max force on any atom</span><span class="mono">${fmax!==null&&fmax!==undefined?fmax.toFixed(3)+" eV/Å":"not archived"}</span></div>
-    ${pct!==null?`<div class="mvm-bar"><i style="width:${pct.toFixed(0)}%;background:${conv?"#2e8b57":"#a5541a"}"></i></div>
-      <div style="font-size:12px;color:var(--wbg-muted)">0 ————— EDIFFG = ${EDIFFG} eV/Å ————— ${(EDIFFG*2).toFixed(2)}</div>`:""}
+    ${pct!==null?`<div class="row"><span>Residual force vs EDIFFG = ${EDIFFG} eV/Å</span><span class="mono">${fmax.toFixed(3)}</span></div>
+      <div class="mvm-bar"><i style="width:${pct.toFixed(0)}%;background:${conv?"#2e8b57":"#a5541a"}"></i></div>`:""}
     <div class="row"><span>Atoms</span><span class="mono">${hst.sites.length}</span></div>
     <div class="row"><span>Lattice a × b × c</span><span class="mono">${L.a.toFixed(2)} × ${L.b.toFixed(2)} × ${L.c.toFixed(2)} Å</span></div>
     <div class="row"><span>Cell volume</span><span class="mono">${L.volume?L.volume.toFixed(1)+" Å³":"—"}</span></div>
@@ -1057,11 +1096,23 @@ async function openStaticMovie(key,label,E,fmax,info){
     <div class="mvm-note">This run is a single point (NSW = 0) on the geometry produced by its parent
       relaxation, so there are no ionic steps to animate — the four views show that relaxed geometry and
       the force above is the residual on it, read from the OUTCAR TOTAL-FORCE block.</div>`;
+  document.getElementById("mvm-legend").innerHTML=legendHTML(hst);
   await loadMV(hst);
   renderGrid(hst, document.getElementById("mvm-grid"));
 }
+function parkStructure(){                        // free the dashboard's viewers (context budget is ~8)
+  const el=document.getElementById("cstruct");
+  if(el&&el.querySelector("canvas")){ freeMV(el); el.dataset.parked="1"; el.replaceChildren(); }
+}
+async function unparkStructure(){
+  const el=document.getElementById("cstruct");
+  if(el&&el.dataset.parked==="1"&&CURSTRUCT&&cSel){ el.dataset.parked=""; renderGrid(CURSTRUCT, el); }
+}
 function closeMovie(){
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
+  const g=document.getElementById("mvm-grid");
+  if(g){ freeMV(g); g.replaceChildren(); }        // hand back 4 WebGL contexts
+  if(document.getElementById("moviemodal").classList.contains("on")) unparkStructure();
   document.getElementById("moviemodal").classList.remove("on");
 }
 async function mvmLoad(sub){
@@ -1071,15 +1122,14 @@ async function mvmLoad(sub){
   document.getElementById("mvm-frame").style.display="";
   document.getElementById("mvm-controls").style.display="";
   document.getElementById("mvm-card").style.display="none";
-  document.getElementById("mvm-meta").textContent="";
   const fr=t.frames, eL=fr[fr.length-1].e;
   const de=fr.map(f=>f.e!==null&&eL!==null?f.e-eL:null);
   const fLast=fr[fr.length-1].f, conv=fLast!==null&&fLast!==undefined&&fLast<=EDIFFG;
-  document.getElementById("mvm-chips").innerHTML=
-    `<span class="mvm-chip">${t.nframes} ionic steps</span>`+
-    (de[0]!==null?`<span class="mvm-chip">ΔE ${(-de[0]).toFixed(2)} eV</span>`:"")+
-    (fLast!==null&&fLast!==undefined?`<span class="mvm-chip ${conv?"ok":"warn"}">final F max ${fLast.toFixed(3)} eV/Å ${conv?"≤":">"} ${EDIFFG}</span>`:"")+
-    (fr.length<t.nframes?`<span class="mvm-chip">${fr.length} frames stored</span>`:"");
+  document.getElementById("mvm-summary").innerHTML=
+    `ionic relaxation (NSW = ${t.nframes}) · ${conv?"converged":"not converged"} <span class="sep">|</span> `+
+    `E = <b style="color:#3b82c4">${eL!==null&&eL!==undefined?eL.toFixed(3):"—"} eV</b> <span class="sep">|</span> `+
+    `F<sub>max</sub> = <b style="color:${conv?"#2e8b57":"#a5541a"}">${fLast!==null&&fLast!==undefined?fLast.toFixed(3)+" eV/Å":"—"}</b>`+
+    (fr.length<t.nframes?` <span class="sep">|</span> ${fr.length} frames stored`:"");
   // subsampled frame chart
   const es=fr.map(f=>f.e);
   Plotly.react("mvm-frame",[
@@ -1092,7 +1142,9 @@ async function mvmLoad(sub){
      yaxis:{title:{text:"E (eV)",font:{size:13},standoff:12},color:"#3b82c4",nticks:6,tickformat:".2f"},
      yaxis2:{title:{text:"F max (eV/Å)",font:{size:13},standoff:10},overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g",rangemode:"tozero"},
      shapes:[{type:"line",xref:"paper",x0:0,x1:1,yref:"y2",y0:EDIFFG,y1:EDIFFG,
-              line:{color:"#2e8b57",width:1,dash:"dot"}}],
+              line:{color:"#2e8b57",width:1,dash:"dot"}},
+             {type:"line",xref:"x",x0:0,x1:0,yref:"paper",y0:0,y1:1,
+              line:{color:"#9aa3af",width:1,dash:"dot"}}],
      annotations:[{xref:"paper",x:1,yref:"y2",y:EDIFFG,text:`EDIFFG ${EDIFFG}`,showarrow:false,
               font:{size:11,color:"#2e8b57"},xanchor:"right",yanchor:"bottom"}],
      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
@@ -1115,6 +1167,8 @@ async function mvmShow(i){
   const f=t.frames[MVM.frame];
   document.getElementById("mvm-slider").value=String(MVM.frame);
   document.getElementById("mvm-count").textContent=`frame ${MVM.frame+1} / ${t.frames.length}`;
+  if(MVM.frame===0){ const g=document.getElementById("mvm-legend");
+    if(g&&!g.innerHTML) g.innerHTML=`<span>${t.species?[...new Set(t.species)].map(e=>`<span><i style="background:${JMOL[e]||"#9aa3af"}"></i>${e}</span>`).join(" "):""}</span>`; }
   try{
     const st=mvmStructure(f);
     await loadMV(st);
@@ -1276,7 +1330,7 @@ function edgesHTML(v){
     CBM = <span class="mono">${v[12].toFixed(2)}</span> eV (lowest unoccupied) →
     band gap = ${v[12].toFixed(2)} − ${v[11].toFixed(2)} = <span class="mono">${(v[12]-v[11]).toFixed(2)}</span> eV.`;
 }
-function opticsHTML(v){
+function opticsHTML(v,key){
   if(!(v.length>13&&v[13])) return v[3]!==null&&v[3]!==undefined
     ? `<br><b>Dielectric constant</b> — real part of the density–density dielectric function of the LOPTICS run
        at zero frequency: ε<sub>∞</sub> = (ε<sub>xx</sub> + ε<sub>yy</sub> + ε<sub>zz</sub>)/3 = Re ε(E = 0) averaged over the
@@ -1291,14 +1345,16 @@ function opticsHTML(v){
     ε<sub>zz</sub> = <span class="mono">${e[2].toFixed(2)}</span> →
     ε<sub>∞</sub> = (${e[0].toFixed(2)} + ${e[1].toFixed(2)} + ${e[2].toFixed(2)})/3
     = <span class="mono">${mean.toFixed(2)}</span>.`;
+  const side=(OPTICS&&key&&OPTICS[key])||null;
+  const slmeCurve=side?side.slme:null, absCurve=side?side.abs:null;
   if(v.length>14&&v[14]){
-    if(v[16]&&v[16].length){
-      const pick=v[16].filter(a=>a[1]>0).filter((a,i)=>i%2===0).slice(0,6);
+    if(absCurve&&absCurve.length){
+      const pick=absCurve.filter(a=>a[1]>0).filter((a,i)=>i%2===0).slice(0,6);
       out+=`<br><b>Absorption</b> — α(E) from the LOPTICS dielectric (Im ε → α = 2ωk/c, vaspkit):
         ${pick.map(a=>`α(${a[0].toFixed(2)} eV) = ${Number(a[1]).toExponential(1)} cm<sup>−1</sup>`).join(" · ")}.`;
     }
-    if(v[15]&&v[15].length){
-      const pk=v[15].filter((a,i)=>i%3===0).slice(0,4);
+    if(slmeCurve&&slmeCurve.length){
+      const pk=slmeCurve.filter((a,i)=>i%3===0).slice(0,4);
       out+=`<br><b>SLME</b> (Yu–Zunger, from α(E) and E<sub>g</sub> at 293.15 K) vs absorber thickness L:
         ${pk.map(a=>`SLME(${a[0].toFixed(1)} µm) = ${a[1].toFixed(1)}%`).join(" · ")} →
         maximum <span class="mono">${v[14][1].toFixed(2)}%</span> at L = ${v[14][0].toFixed(1)} µm (published value).`;
@@ -1348,7 +1404,7 @@ function provenanceHTML(r,ord){
     = ${epfu.toFixed(2)} − (${sc2.toFixed(2)}) + ${(0.0257*v[9]).toFixed(2)}
     = <span class="mono">${edec2.toFixed(2)}</span> eV/f.u. versus the same-library end-member binaries:<br>&nbsp;&nbsp;${bins2.join("<br>&nbsp;&nbsp;")}<br>
     f are the site fractions of the mixed sublattice; k<sub>B</sub>T = 0.0257 eV. ${v[1]<=0?"Entropy-stabilized against demixing at 298 K.":"Positive ΔE<sub>decomp</sub> — demixing is enthalpy-favoured; the map shows where mixing entropy wins."}
-    ${edgesHTML(v)}${opticsHTML(v)}${setupHTML(r,v)}`;
+    ${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
   }
   // decomposition
   const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
@@ -1373,7 +1429,7 @@ function provenanceHTML(r,ord){
       ? `The stoichiometric binary decomposition needs ${miss} binary phase(s) not archived at this level
          of theory (e.g. GeTe<sub>2</sub>/SnTe<sub>2</sub>), so ΔE<sub>decomp</sub> is left blank rather than mixed across theories.`
       : `No binary decomposition is published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`}
-    ${edgesHTML(v)}${opticsHTML(v)}${setupHTML(r,v)}`;
+    ${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
   return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), ${r.rk==="HSE06 (A2BCX4)"
@@ -1385,10 +1441,12 @@ function provenanceHTML(r,ord){
     = ${epfu.toFixed(2)} − ${(kes?sc:0.5*sc).toFixed(2)} + ${(0.0257*ent).toFixed(2)}
     = <span class="mono">${edec.toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
     ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
-    ${edgesHTML(v)}${opticsHTML(v)}${setupHTML(r,v)}`;
+    ${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
 }
 
-function closeModals(){dSel=null;cSel=null;stopTraj();closeIncar();closeMovie();
+function closeModals(){dSel=null;stopTraj();closeIncar();closeMovie();
+  const cs=document.getElementById("cstruct"); if(cs){freeMV(cs);cs.replaceChildren();cs.dataset.parked="";}
+  cSel=null;
   document.getElementById("detail").classList.remove("on");
   document.getElementById("cdetail").classList.remove("on");
   document.getElementById("modalback").classList.remove("on");
