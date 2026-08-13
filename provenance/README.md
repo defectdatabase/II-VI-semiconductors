@@ -70,6 +70,17 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
   keys) is fetched at boot and Plotly loads only when a plot is opened. Live median load 0.58 s.
 - 13,700 relaxed structures in `structures/`, 872 gzipped relaxation trajectories in `trajs/`.
 
+## UI pass 2026-08-13 (user-directed, all browser-verified live 10/10)
+- MatterViz panes forced white (`--page-bg`/`--pane-bg` — the bundle hardcodes `--page-bg:#090019`);
+  control/info/export panes escape the small grid cells (overflow visible), capped 340px, scroll inside.
+- HSE06 (no PS) merged into HSE06: 5 duplicate II-VI rows dropped (GGA=PS row kept), 4 alloy-only rows
+  relabeled with a structure-key override (`fk:"hse_no_ps"`) so their geometries still resolve.
+- Modal: theory suffix out of the title, provenance and map notes without gray cards, justified text,
+  both bottom sections scroll so the two columns end level; static rows say "static run (NSW = 0) on
+  the relaxed geometry" (verified on disk: XDATCAR has 1 configuration — no movie is possible there).
+- Table: Compounds Explorer tab, No. of atoms + Lattice parameter columns, "Dielectric constant",
+  sentence-case filter labels, search inputs with icon, crisp selects, download buttons removed.
+
 ## Mistakes & corrections log (append-only)
 - **2026-08-13 — redesigned the site instead of only fixing it.** WHAT I DID WRONG: to cure a slow
   page I shipped a whole new dark-header/three-column layout. WHY IT WAS WRONG: his words — "well I
