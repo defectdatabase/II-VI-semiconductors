@@ -141,7 +141,7 @@ select:focus{outline:none;border-color:var(--wbg-accent);box-shadow:0 0 0 3px rg
 .showing{font-weight:400}
 body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.tab,.cpill,.dhead,#attr .who
   {font-weight:400 !important;font-family:'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif !important}
-#moviemodal{display:none;position:fixed;inset:3% 4%;z-index:95;background:#fff;border:1px solid var(--wbg-border);
+#moviemodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:92%;max-height:94vh;overflow-y:auto;z-index:95;background:#fff;border:1px solid var(--wbg-border);
   border-radius:14px;padding:18px 22px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.4)}
 #moviemodal.on{display:block}
 #incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:90;
@@ -162,6 +162,8 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #detail,#cdetail{color:var(--wbg-ink)}
 .mvhost{width:100%;overflow:visible;position:relative;display:block;zoom:calc(1/1.22)}
 .mvhost .draggable-pane{max-height:340px !important;overflow-y:auto;z-index:60}
+.mvhost .control-buttons{zoom:1.45}
+.mvhost .control-buttons button{color:#475569}
 .mvhost>*{height:100% !important}
 #cstruct,#trajbox_struct,#trajbox2_struct{overflow:visible}
 #dqsel .cpill,#incarbtn,#ctitle .cpill{text-transform:none}
@@ -289,7 +291,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
           <h4>DFT-optimized structure</h4>
           <div id="cstruct" style="width:100%;height:330px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
           <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center" id="cmoviebtn"></div>
-          <h4 style="margin-top:12px" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
+          <h4 style="margin-top:12px" id="cmaphead">Stability — ΔG<sub>decomp</sub>(T)</h4>
           <div id="cmap" style="width:100%;height:210px"></div>
           <div class="notebox" id="cmapnote"></div>
         </div>
@@ -364,7 +366,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 <a id="reportbtn" href="https://github.com/defectdatabase/chalcogenide-defects/issues">⚑ report an issue</a>
 
 <script>
-let DEFECTS=[], COMPOUNDS=[], REFS={}, HAVE_STRUCT=new Set(), HAVE_TRAJ=new Set();
+let DEFECTS=[], COMPOUNDS=[], REFS={}, HAVE_STRUCT=new Set(), HAVE_TRAJ=new Set(), HAVE_DOS=new Set();
 let plotlyP=null;
 function loadPlotly(){
   if(!plotlyP) plotlyP=new Promise((res,rej)=>{
@@ -551,7 +553,7 @@ async function dOpenDetail(r){
          id="dmovie-open">▶ relaxation movie</button>`
     : `<span class="notebox" style="display:inline-block">No ionic steps archived for this defect's runs.</span>`;
   const dbtn=document.getElementById("dmovie-open");
-  if(dbtn) dbtn.onclick=()=>openMovie(dkey,qopts,`${r.d} in ${r.n||r.h} — ${THEORY[r.f]}`);
+  if(dbtn) dbtn.onclick=()=>openMovie(dkey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`);
   await loadPlotly();
   Plotly.react("efdetailplot",traces,{
     xaxis:{title:{text:"E<sub>F</sub> − E<sub>VBM</sub> (eV)",font:{size:13}},range:[0,r.g],zeroline:false},
@@ -674,17 +676,17 @@ function cOpenDetail(r,ord){
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
   mountStructure(r,cOrd);
-  drawStabilityMap(r,cOrd);
+  drawInsight(r,cOrd);
   const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
   const mkey = r.rk==="HSE06 (A2BCX4)" ? `host__hse2x2x1__${r.n}_${cOrd}` : `host__${r.fk||FKEY}__${r.n}`;
   document.getElementById("cmoviebtn").innerHTML = HAVE_TRAJ.has(mkey)
     ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
-         onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(r.n+" — "+r.f)})'>▶ relaxation movie</button>
+         onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(subHTML(r.n))})'>▶ relaxation movie</button>
        <button class="cpill" id="incarbtn">calculation inputs</button>`
     : (()=>{const sk=structKeyOf(r,cOrd), v=r.o[cOrd];
         return sk&&HAVE_STRUCT.has(sk)
         ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
-             onclick='openStaticMovie(${JSON.stringify(sk)},${JSON.stringify(r.n+" — "+r.f)},${v[5]},${v.length>10&&v[10]!==null&&v[10]!==undefined?v[10]:null})'>▶ relaxation movie</button>
+             onclick='openStaticMovie(${JSON.stringify(sk)},${JSON.stringify(subHTML(r.n))},${v[5]},${v.length>10&&v[10]!==null&&v[10]!==undefined?v[10]:null})'>▶ relaxation movie</button>
            <button class="cpill" id="incarbtn">calculation inputs</button>`
         : `<button class="cpill" id="incarbtn">calculation inputs</button>`;})();
   const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.rk||r.f,r,cOrd);
@@ -1005,10 +1007,10 @@ async function openStaticMovie(key,label,E,fmax){
   await loadPlotly();
   const lay={margin:{l:58,r:58,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
     xaxis:{dtick:1,range:[-0.5,0.5],title:{text:"Frame",font:{size:13}}},
-    yaxis:{title:{text:"ΔE vs final (eV)",font:{size:13}},color:"#3b82c4",zeroline:true},
+    yaxis:{title:{text:"E (eV)",font:{size:13},standoff:12},color:"#3b82c4",tickformat:".2f"},
     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13}},overlaying:"y",side:"right",color:"#2e8b57",rangemode:"tozero"},
     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"};
-  Plotly.react("mvm-frame",[{x:[0],y:[0],mode:"markers",marker:{size:11,color:"#3b82c4"}},
+  Plotly.react("mvm-frame",[{x:[0],y:[E],mode:"markers",marker:{size:11,color:"#3b82c4"}},
     {x:[0],y:[fmax],yaxis:"y2",mode:"markers",marker:{size:11,color:"#2e8b57"}}],lay,
     {responsive:true,displaylogo:false,displayModeBar:false});
   const hst=hydrate(st);
@@ -1027,15 +1029,16 @@ async function mvmLoad(sub){
   document.getElementById("mvm-meta").textContent=
     `${t.nframes} steps · ΔE ${de[0]!==null?(-de[0]).toFixed(2):"—"} eV`;
   // subsampled frame chart
+  const es=fr.map(f=>f.e);
   Plotly.react("mvm-frame",[
-    {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",name:"ΔE vs final (eV)",line:{color:"#3b82c4"},marker:{size:6}},
+    {x:fr.map((f,i)=>i),y:es,mode:"lines+markers",name:"E (eV)",line:{color:"#3b82c4"},marker:{size:6}},
     {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"F max (eV/Å)",yaxis:"y2",line:{color:"#2e8b57"},marker:{size:6}},
-    {x:[0],y:[de[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
+    {x:[0],y:[es[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
     {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false}],
-    {margin:{l:58,r:58,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
-     xaxis:{title:{text:"Frame (subsampled)",font:{size:13}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
-     yaxis:{title:{text:"ΔE vs final (eV)",font:{size:13}},color:"#3b82c4",nticks:6},
-     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13}},overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g"},
+    {margin:{l:80,r:64,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
+     xaxis:{title:{text:"Ionic step",font:{size:13}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
+     yaxis:{title:{text:"E (eV)",font:{size:13},standoff:12},color:"#3b82c4",nticks:6,tickformat:".2f"},
+     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13},standoff:10},overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g"},
      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
   const sl=document.getElementById("mvm-slider");
   sl.max=String(fr.length-1); sl.value="0";
@@ -1065,7 +1068,7 @@ async function mvmShow(i){
   const eL=t.frames[t.frames.length-1].e;
   const de=f.e!==null&&eL!==null?f.e-eL:null;
   if(document.getElementById("mvm-frame").data)
-    Plotly.restyle("mvm-frame",{x:[[MVM.frame],[MVM.frame]],y:[[de],[f.f]]},[2,3]);
+    Plotly.restyle("mvm-frame",{x:[[MVM.frame],[MVM.frame]],y:[[f.e],[f.f]]},[2,3]);
   MVBUSY=false;
 }
 function mvmPlay(){
@@ -1097,7 +1100,54 @@ function decompParts(r,ord){
     for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) addf(comp[b]*(comp[x]/2)); }
   return { d0: v[1]-0.0257*ent, ent };   // stored value is at kT = 0.0257 eV (298 K)
 }
+const DOS_COLORS=["#0e7490","#de9e3a","#7c5cbf","#2e8b57","#c0392b","#3b82c4","#8a6d3b","#d1608f"];
+async function drawInsight(r,ord){
+  const key=structKeyOf(r,ord);
+  if(key&&HAVE_DOS.has(key)){ if(await drawDOS(r,ord,key)) return; }
+  drawStabilityMap(r,ord);
+}
+async function drawDOS(r,ord,key){
+  const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
+  const head=document.getElementById("cmaphead");
+  let d=null;
+  try{
+    const resp=await fetch(`dos/${encodeURIComponent(key)}.json.gz`);
+    if(resp.ok&&typeof DecompressionStream!=="undefined"){
+      const ds=new DecompressionStream("gzip");
+      d=JSON.parse(await new Response(resp.body.pipeThrough(ds)).text());
+    }
+  }catch(e){ d=null; }
+  if(!d||!d.e||!d.e.length) return false;
+  head.style.display=""; note.style.display="";
+  head.innerHTML="Density of states — element-projected";
+  el.style.height="250px";
+  const traces=[];
+  Object.keys(d.el).forEach((elname,i)=>{
+    const c=DOS_COLORS[i%DOS_COLORS.length];
+    traces.push({x:d.e,y:d.el[elname],name:elname,mode:"lines",fill:"tozeroy",
+      line:{color:c,width:1.6},fillcolor:c+"33",
+      hovertemplate:elname+": %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"});
+  });
+  traces.push({x:d.e,y:d.total,name:"total",mode:"lines",line:{color:"#6b7280",width:1.2,dash:"dot"},
+    hovertemplate:"total: %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"});
+  await loadPlotly();
+  Plotly.react(el,traces,{
+    margin:{l:56,r:8,t:6,b:40},font:{family:"Arial Narrow",size:12},
+    xaxis:{title:{text:"E − E<sub>F</sub> (eV)",font:{size:13}},range:[-6,6],zeroline:false},
+    yaxis:{title:{text:"DOS (states/eV)",font:{size:13}},rangemode:"tozero"},
+    shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1.2,dash:"dash"}}],
+    legend:{orientation:"h",y:1.14,font:{size:12}},
+    plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+  const parts=decompParts(r,ord);
+  const Tstar=(parts&&parts.ent!==0&&parts.d0>0&&parts.ent<0)?-parts.d0/(KB*parts.ent):null;
+  note.innerHTML=`Element-projected DOS from this run's DOSCAR (per-atom orbital projections summed by
+    element); energies relative to E<sub>F</sub> = ${d.ef.toFixed(2)} eV (dashed red). Click legend
+    entries to toggle elements; drag to zoom.`+
+    (parts?` Stability: ${r.o[ord][1]<=0?"stable against the binary decomposition at 298 K":(Tstar&&Tstar<2000?`metastable at 298 K, entropy-stabilized above ~${Tstar.toFixed(0)} K`:"metastable (positive ΔE<sub>decomp</sub>)")} .`:"");
+  return true;
+}
 async function drawStabilityMap(r,ord){
+  document.getElementById("cmaphead").innerHTML="Stability — ΔG<sub>decomp</sub>(T)";
   const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
   const head=document.getElementById("cmaphead");
   const parts=decompParts(r,ord);
@@ -1108,34 +1158,34 @@ async function drawStabilityMap(r,ord){
     return;
   }
   head.style.display=""; note.style.display="";
-  el.style.height="240px"; head.style.display=""; note.style.display="";
-  const Ts=[],Ps=[]; for(let T=300;T<=2000;T+=25) Ts.push(T);
-  for(let lp=-12;lp<=2;lp+=0.5) Ps.push(lp);
-  const row=Ts.map(T=>parts.d0+KB*T*parts.ent);
-  const z=Ps.map(()=>row);
-  const zmin=Math.min(...row), zmax=Math.max(...row);
-  const traces=[
-    {type:"contour",x:Ts,y:Ps,z,colorscale:[[0,"#0b3954"],[0.5,"#4f81a0"],[1,"#e8e2c9"]],
-     colorbar:{thickness:11,len:.85,tickfont:{size:11}},
-     contours:{coloring:"heatmap",showlabels:true,labelfont:{size:11,color:"#fff"}},
-     line:{color:"rgba(255,255,255,.55)",width:1},
-     hovertemplate:"T=%{x} K, log₁₀p=%{y}<br>ΔG=%{z:.2f} eV/f.u.<extra></extra>"}];
-  if(zmin<0&&zmax>0)
-    traces.push({type:"contour",x:Ts,y:Ps,z,showscale:false,
-      contours:{start:0,end:0,size:1,coloring:"lines"},
-      line:{color:"#c0392b",width:2.5},hoverinfo:"skip"});
+  el.style.height="230px";
+  const Ts=[],ys=[]; for(let T=300;T<=2000;T+=20){Ts.push(T);ys.push(parts.d0+KB*T*parts.ent);}
+  const ymin=Math.min(...ys), ymax=Math.max(...ys);
+  const Tstar=(parts.ent!==0&&ymin<0&&ymax>0)?-parts.d0/(KB*parts.ent):null;
+  const traces=[{x:Ts,y:ys,mode:"lines",line:{color:"#0e7490",width:2.6},
+    hovertemplate:"T = %{x} K<br>ΔG = %{y:.3f} eV/f.u.<extra></extra>"}];
+  const shapes=[{type:"line",x0:300,x1:2000,y0:0,y1:0,line:{color:"#c0392b",width:1.4,dash:"dot"}}];
+  const ann=[];
+  if(Tstar){
+    shapes.push({type:"line",x0:Tstar,x1:Tstar,y0:Math.min(ymin,0),y1:Math.max(ymax,0),
+      line:{color:"#c0392b",width:1.2,dash:"dash"}});
+    ann.push({x:Tstar,y:0,text:`ΔG = 0 at ${Tstar.toFixed(0)} K`,showarrow:true,arrowhead:0,ax:40,ay:-26,
+      font:{size:12,color:"#c0392b"}});
+  }
   await loadPlotly();
   Plotly.react(el,traces,{
-    margin:{l:56,r:4,t:6,b:38},font:{family:"Arial Narrow",size:12},
-    xaxis:{title:{text:"Temperature (K)",font:{size:13}}},
-    yaxis:{title:{text:"log₁₀ p(X₂) / atm",font:{size:13}}},
-    paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+    margin:{l:64,r:10,t:6,b:38},font:{family:"Arial Narrow",size:12},showlegend:false,
+    xaxis:{title:{text:"Temperature (K)",font:{size:13}},range:[300,2000]},
+    yaxis:{title:{text:"ΔG<sub>decomp</sub> (eV/f.u.)",font:{size:13}},zeroline:false},
+    shapes,annotations:ann,
+    plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
   note.innerHTML=(parts.ent!==0
     ? `ΔG<sub>decomp</sub>(T) = ΔE<sub>decomp</sub> + k<sub>B</sub>T·Σf·ln f (ideal-mixing entropy of the
-       binary decomposition products). ${zmin<0&&zmax>0?'The <span style="color:#c0392b">red contour</span> marks ΔG = 0 — the compound stabilizes against the binaries above that temperature.':(zmax<=0?"Stable against the binary decomposition over the whole range.":"Metastable over the whole range shown.")}`
+       binary decomposition products). ${Tstar
+         ? `The compound stabilizes against the binaries above <b>${Tstar.toFixed(0)} K</b> (dashed red crossing).`
+         : (ymax<=0?"Stable against the binary decomposition over the whole range.":"Metastable over the whole range shown.")}`
     : `This composition has no mixing-entropy term (ordered stoichiometry), so ΔG<sub>decomp</sub> is
-       temperature-independent at this level of theory: ${parts.d0.toFixed(2)} eV/f.u. everywhere.`)+
-    ` Colour scale: ΔG<sub>decomp</sub> in eV/f.u. The balanced solid-state decomposition exchanges no gas, so pressure does not shift ΔG — the p(X₂) axis reads growth conditions alongside the temperature dependence.`;
+       temperature-independent at this level of theory: ${parts.d0.toFixed(2)} eV/f.u. at every temperature.`);
 }
 
 /* ---------- provenance arithmetic ---------- */
@@ -1279,7 +1329,7 @@ document.getElementById("modalback").onclick=closeModals;
 async function boot(){
   const D = await (await fetch("data.json")).json();
   DEFECTS=D.defects; COMPOUNDS=D.compounds; REFS=D.refs;
-  HAVE_STRUCT=new Set(D.structKeys); HAVE_TRAJ=new Set(D.trajKeys);
+  HAVE_STRUCT=new Set(D.structKeys); HAVE_TRAJ=new Set(D.trajKeys); HAVE_DOS=new Set(D.dosKeys||[]);
   DEFECTS.forEach(r=>{
     r.cls = classify(r);
     r.clset = structClasses(r);
