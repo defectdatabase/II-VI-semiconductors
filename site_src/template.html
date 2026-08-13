@@ -1337,18 +1337,20 @@ function typeInto(el, html){
   if(TYPETIMER){clearInterval(TYPETIMER);TYPETIMER=null;}
   const gen=++TYPEGEN;
   const tokens=html.split(/(<[^>]+>|\s+)/).filter(t=>t!=="");
+  if(document.hidden){ el.innerHTML=html; return; }
+  const perTick=Math.max(3, Math.ceil(tokens.length/220));   // finishes in ~3 s however long the panel
   let i=0, buf="";
   el.innerHTML="";
   TYPETIMER=setInterval(()=>{
     if(gen!==TYPEGEN){clearInterval(TYPETIMER);return;}
     let words=0;
-    while(i<tokens.length&&words<3){
+    while(i<tokens.length&&words<perTick){
       const t=tokens[i++]; buf+=t;
       if(!/^</.test(t)&&t.trim()) words++;
     }
     el.innerHTML=i<tokens.length?buf+'<span class="caret"></span>':buf;
     if(i>=tokens.length){clearInterval(TYPETIMER);TYPETIMER=null;}
-  },28);
+  },14);
 }
 /* ---------- provenance arithmetic ---------- */
 function setupHTML(r,v){
