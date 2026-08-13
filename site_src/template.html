@@ -633,7 +633,8 @@ function cRenderMeta(){
     `Coverage — ${COMPOUNDS.length.toLocaleString()} rows over ${uniq.toLocaleString()} unique compounds ·
      ${parts.join(" · ")} · cation orderings selectable per row ·
      ground-state configurations from a 21,242-calculation PBEsol polymorph screen · all pure DFT.
-     The A2BCX4/ABX2 HSE06 campaign is being restored from archive and is not in this table yet.`;
+     The HSE06 rows are the A2BCX4/ABX2 relaxation campaign restored from archive (converged runs only;
+     no LOPTICS in that campaign, so ε<sub>∞</sub> and SLME are blank there).`;
 }
 function cOpenDetail(r,ord){
   if(cSel===r&&!ord){cSel=null;document.getElementById("cdetail").classList.remove("on");cRenderRows();return;}
@@ -662,14 +663,14 @@ function cOpenDetail(r,ord){
   mountStructure(r,cOrd);
   drawStabilityMap(r,cOrd);
   const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
-  const mkey=`host__${FKEY}__${r.n}`;
+  const mkey = r.rk==="HSE06 (A2BCX4)" ? `host__hse2x2x1__${r.n}_${cOrd}` : `host__${FKEY}__${r.n}`;
   document.getElementById("cmoviebtn").innerHTML = HAVE_TRAJ.has(mkey)
     ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
          onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(r.n+" — "+r.f)})'>▶ relaxation movie</button>
        <button class="cpill" id="incarbtn">calculation inputs</button>`
     : `<button class="cpill" id="incarbtn">calculation inputs</button>
        <span style="font-size:13px;color:var(--wbg-muted)">single-point static — no ionic steps archived</span>`;
-  const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.f);
+  const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.rk||r.f);
   cRenderRows();
 }
 document.getElementById("csearch").addEventListener("input",cApplyFilters);
@@ -731,7 +732,8 @@ async function mountStructure(r,ord){
   const key = r.ref            ? `ref__${RK}__${r.n}`
             : ord==="zinc blende" ? `${FK}__${r.n}`
             : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
-            : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}` : null;
+            : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}`
+            : r.rk==="HSE06 (A2BCX4)" ? `HSE06__${r.n}_${ord}` : null;
   CURKEY=key; CURSTRUCT=null; dl.innerHTML="";
   if(!key){
     el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-geometry payload published for this level of theory yet.</div>';
@@ -772,7 +774,11 @@ GGA = PE · ENCUT = 500 eV · EDIFF = 1e-6 · ISMEAR = 0, SIGMA = 0.05 · KSPACI
  "HSE06":`Static HSE06 single point on the relaxed host cell:
 LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · GGA = PS · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`,
  "HSE06 (no PS)":`Static HSE06 single point (PBE exchange parent, GGA tag unset):
-LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`};
+LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`,
+ "HSE06 (A2BCX4)":`HSE06 full relaxation of the A2BCX4/ABX2 2×2×1 cell (archived campaign):
+GGA = PS · LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · PREC = Normal, PRECFOCK = Fast
+ENCUT = 400 eV · EDIFF = 1e-5 · NSW = 100, IBRION = 2, ISIF = 3, EDIFFG = -0.05
+Same-theory references: A2BCX4_ABX2_v1/reference/HSE (identical INCAR family). No LOPTICS.`};
 
 
 function hydrate(st){
@@ -1117,7 +1123,7 @@ function provenanceHTML(r,ord){
         ? `Elemental standard state — its energy per atom (μ<sub>${els[0]}</sub> = ${F!==null?(F/nat).toFixed(2):"—"} eV/atom) is the reference all formation energies are measured against; its own formation energy is zero by definition.`
         : `Binary reference phase — computed at the same level of theory; it serves as a competing phase in the decomposition analysis of the ternary and quaternary compounds.`}`;
   }
-  const R = REFS[th]; if(!R) return "";
+  const R = REFS[r.rk||th]; if(!R) return "";
   const comp = {};
   for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0], parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
     comp[el]=(comp[el]||0)+n;
@@ -1130,8 +1136,9 @@ function provenanceHTML(r,ord){
   // decomposition
   const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
   const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
-  let sc=0, ent=0, bins=[], kes=Math.abs(xsum-4)<.01;
-  const add=(f,key)=>{ const E=R.bin[key]; if(E===undefined||f<=0) return false;
+  let sc=0, ent=0, bins=[], miss=0, kes=Math.abs(xsum-4)<.01;
+  const add=(f,key)=>{ const E=R.bin[key]; if(f<=0) return false;
+    if(E===undefined){ miss++; return false; }
     sc+=f*E; ent+=f*Math.log(f); bins.push(`${f.toFixed(2)} · E(${subHTML(key)}) = ${(f*E).toFixed(2)} eV  [E(${subHTML(key)}) = ${E.toFixed(2)} eV/f.u.]`); return true; };
   if(kes){ for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add((comp[a]/2)*(comp[x]/4),`${a}2${x}`);
     for(const b of BK) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/4),`${b}${x}`);
@@ -1139,24 +1146,30 @@ function provenanceHTML(r,ord){
   else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add(comp[a]*(comp[x]/2),`${a}2${x}`);
     for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/2),`${b}2${x}3`); }
   const edec = kes? epfu-sc+0.0257*ent : epfu-0.5*sc+0.0257*ent;
-  if(!bins.length) return `<b>Level of theory: ${th}.</b><br>
+  if(!bins.length||miss) return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
     = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>
     &nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
-    Band gap from occupied-band counting on EIGENVAL with NELECT. No binary decomposition is
-    published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`;
+    Band gap from occupied-band counting on EIGENVAL with NELECT. ${miss
+      ? `The stoichiometric binary decomposition needs ${miss} binary phase(s) not archived at this level
+         of theory (e.g. GeTe<sub>2</sub>/SnTe<sub>2</sub>), so ΔE<sub>decomp</sub> is left blank rather than mixed across theories.`
+      : `No binary decomposition is published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`}`;
   return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
-    for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
+    for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), ${r.rk==="HSE06 (A2BCX4)"
+      ? "HSE06 (AEXX=0.25, HFSCREEN=0.2, GGA=PS, ENCUT 400) full relaxation (ISIF=3)"
+      : "static "+(th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)")} run.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F!==null?F.toFixed(2):"—"} − (${refsum.toFixed(2)}))/${nat}
     = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> = E<sub>f.u.</sub> − ${kes?"":"½"}Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
     = ${epfu.toFixed(2)} − ${(kes?sc:0.5*sc).toFixed(2)} + ${(0.0257*ent).toFixed(2)}
     = <span class="mono">${edec.toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
     ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
-    Band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness.`;
+    Band gap from occupied-band counting on EIGENVAL${v[3]!==null&&v[3]!==undefined
+      ?"; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness":
+      " with NELECT; no LOPTICS in this campaign, so ε<sub>∞</sub> and SLME are not published"}.`;
 }
 
 function closeModals(){dSel=null;cSel=null;stopTraj();closeIncar();closeMovie();
@@ -1182,7 +1195,7 @@ async function boot(){
   });
   document.getElementById("topstats").textContent=
     `${DEFECTS.length.toLocaleString()} defect entries across ${new Set(DEFECTS.map(r=>r.h)).size} hosts · `+
-    `${COMPOUNDS.length.toLocaleString()} DFT compounds — PBEsol · HSE+SOC — all-DFT`;
+    `${COMPOUNDS.length.toLocaleString()} DFT compounds — PBEsol · HSE06 · HSE+SOC — all-DFT`;
   dApplyFilters();
   cApplyFilters();
 }
