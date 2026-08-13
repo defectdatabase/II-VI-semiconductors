@@ -19,7 +19,7 @@ body{margin:0;background:var(--wbg-bg);color:var(--wbg-ink);font-size:15px;line-
 a{color:var(--wbg-accent);text-decoration:none}
 a:hover{text-decoration:underline}
 sub{font-size:.72em}
-.mono,.num{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace}
+.mono,.num{font-family:'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif}
 
 /* ---- green citation banner ---- */
 #attr{background:#eefaf0;color:#15803d;font-size:15.5px;font-weight:600;text-align:center;
@@ -76,9 +76,9 @@ sub{font-size:.72em}
 .trow:hover{background:var(--wbg-surface)}
 .trow.sel{background:#eaf5f7}
 .trow .c{padding:0 8px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
-.trow .c.num{text-align:right;font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-size:13.5px}
+.trow .c.num{text-align:right;font-variant-numeric:tabular-nums;font-size:14px}
 .trow .c.hostc{font-weight:700}
-.trow .c.defc{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-size:13.5px}
+.trow .c.defc{font-size:14px}
 .cls-amber{color:var(--wbg-ion)}
 .cls-teal{color:var(--wbg-accent)}
 .spontv{color:var(--wbg-spont)}
@@ -96,8 +96,8 @@ sub{font-size:.72em}
 .dcol h4{margin:0 0 8px;font-size:14px;font-weight:700;color:var(--wbg-accent)}
 .minitbl{border-collapse:collapse;width:100%;font-size:13.5px}
 .minitbl th{text-align:left;color:var(--wbg-muted);font-weight:700;border-bottom:1px solid var(--wbg-border);padding:4px 8px}
-.minitbl td{border-bottom:1px solid #eceff3;padding:4px 8px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px}
-.minitbl td:first-child{font-family:'Arial Narrow',Arial,sans-serif;font-size:13.5px}
+.minitbl td{border-bottom:1px solid #eceff3;padding:4px 8px;font-variant-numeric:tabular-nums;font-size:13.5px}
+
 .kv{font-size:14px;margin-top:12px}
 .kv div{display:flex;justify-content:space-between;border-bottom:1px solid #eceff3;padding:5px 0}
 .kv span:first-child{color:var(--wbg-muted)}
@@ -119,6 +119,10 @@ sub{font-size:.72em}
 #reportbtn:hover{color:var(--wbg-accent);text-decoration:none}
 
 .showing{font-weight:400}
+#incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:90;
+  background:#fff;border:1px solid var(--wbg-border);border-radius:12px;padding:20px 24px;
+  max-width:640px;width:88%;box-shadow:0 20px 60px rgba(10,25,50,.35)}
+#incarmodal.on{display:block}
 /* MatterViz ships a dark theme; keep it inside the viewer only */
 #detail table.minitbl,#cdetail table.minitbl{background:#fff !important}
 #detail .minitbl tr,#cdetail .minitbl tr{background:#fff !important}
@@ -132,7 +136,7 @@ sub{font-size:.72em}
 .mvhost>*{width:100% !important;height:100% !important;max-height:100% !important;min-height:0 !important}
 .mvhost canvas{width:100% !important;height:100% !important;display:block}
 #cstruct,#trajbox_struct,#trajbox2_struct{overflow:hidden}
-#dqsel .cpill{text-transform:none}
+#dqsel .cpill,#cdl .cpill,#incarbtn,#ctitle .cpill{text-transform:none}
 </style>
 </head>
 <body>
@@ -261,8 +265,7 @@ sub{font-size:.72em}
           <div id="cdl" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></div>
           <h4 style="margin-top:16px">Relaxation movie — energies and forces</h4>
           <div id="trajbox"></div>
-          <h4 style="margin-top:16px">Calculation inputs</h4>
-          <div class="notebox" id="cincar"></div>
+          <div style="margin-top:14px"><button class="cpill" id="incarbtn">view calculation inputs (INCAR / KPOINTS)</button></div>
         </div>
       </div>
     </div>
@@ -305,6 +308,10 @@ sub{font-size:.72em}
 </div>
 
 <div id="modalback"></div>
+<div id="incarmodal"><button class="mclose" onclick="closeIncar()">✕ close</button>
+  <div class="dhead">Calculation inputs <span class="sub" id="incartitle"></span></div>
+  <div class="notebox" id="incarbody" style="font-size:13.5px;line-height:1.6"></div>
+</div>
 <a id="reportbtn" href="https://github.com/defectdatabase/chalcogenide-defects/issues">⚑ report an issue</a>
 
 <script>
@@ -598,12 +605,16 @@ function cOpenDetail(r,ord){
   const v=r.o[cOrd];
   document.getElementById("cdetail").classList.add("on");document.getElementById("modalback").classList.add("on");
   const ords=Object.keys(r.o);
-  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)} — ${r.f}` +
-    `<span style="margin-left:14px">`+
-    ords.map(o=>`<button class="cpill${o===cOrd?" on":""}" data-o="${o}" style="margin-right:6px">${o}${o===r.b?" (ground state)":""}</button>`).join("")+`</span>`;
-  document.querySelectorAll("#ctitle .cpill").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();cOpenDetail(r,b.dataset.o);});
+  const oname=o=>ords.length>1?`Ordering ${ords.indexOf(o)+1}`:"Ordering 1";
+  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)} — ${r.f}` + (ords.length>1
+    ? `<span style="margin-left:14px">cation ordering
+        <select id="ordsel" style="margin-left:6px">${ords.map(o=>
+          `<option value="${o}"${o===cOrd?" selected":""}>${oname(o)}${o===r.b?" — lowest energy":""}</option>`).join("")}</select></span>`
+    : "");
+  const os=document.getElementById("ordsel");
+  if(os) os.onchange=(ev)=>{ev.stopPropagation();cOpenDetail(r,os.value);};
   document.getElementById("ckv").innerHTML=
-    `<div><span>Cation ordering</span><span>${cOrd}${cOrd===r.b?" — lowest energy":""}</span></div>
+    `<div><span>Cation ordering</span><span>${oname(cOrd)}${cOrd===r.b?" — lowest energy":""} of ${ords.length}</span></div>
      <div><span>Formation energy</span><span>${fmt(v[0])} eV/atom</span></div>
      <div><span>Decomposition energy</span><span>${fmt(v[1])} eV/f.u.</span></div>
      <div><span>Band gap</span><span>${fmt(v[2])} eV</span></div>
@@ -612,8 +623,7 @@ function cOpenDetail(r,ord){
      <div><span>Supercell</span><span>${v[7]||"—"}${v[6]?`, ${v[6]} atoms`:""}</span></div>
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
-  document.getElementById("cincar").innerHTML =
-    `<pre style="margin:0;white-space:pre-wrap;font-family:'IBM Plex Mono',monospace;font-size:12.5px">${INCAR_TXT[r.f]||"—"}</pre>`;
+  document.getElementById("incarbtn").onclick=()=>openIncar(r.f);
   mountStructure(r,cOrd);
   const FKEY={"PBE (GGA)":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
   mountTraj(`host__${FKEY}__${r.n}`,null,`${subHTML(r.n)} — ${r.f} relaxation`);
@@ -623,10 +633,17 @@ document.getElementById("csearch").addEventListener("input",cApplyFilters);
 ["ck-stable","ck-gap1"].forEach(id=>document.getElementById(id).addEventListener("change",cApplyFilters));
 
 
+function openIncar(theory){
+  document.getElementById("incartitle").textContent=theory;
+  document.getElementById("incarbody").innerHTML=(INCAR_TXT[theory]||"—").replace(/\n/g,"<br>");
+  document.getElementById("incarmodal").classList.add("on");
+}
+function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
 /* ---------- MatterViz structure viewer ---------- */
 const MV_BASE="https://cdn.jsdelivr.net/gh/defectdatabase/chalcogenide-defects@main/matterviz";
 let mvMod=null, CURSTRUCT=null, CURKEY=null;
-function loadMV(){
+function loadMV(seed){
+  if(seed) window.MV_STRUCTURE=seed;
   if(!mvMod){
     if(!document.getElementById("mv-css")){
       const l=document.createElement("link"); l.id="mv-css"; l.rel="stylesheet";
@@ -639,11 +656,6 @@ function loadMV(){
       v.style.cssText="position:absolute;left:-99999px;top:0;width:240px;height:240px;overflow:hidden";
       document.body.appendChild(v);
     }
-    window.MV_STRUCTURE=window.MV_STRUCTURE||{"@module":"pymatgen.core.structure","@class":"Structure",
-      charge:0,properties:{},
-      lattice:{matrix:[[3,0,0],[0,3,0],[0,0,3]],pbc:[true,true,true],
-               a:3,b:3,c:3,alpha:90,beta:90,gamma:90,volume:27},
-      sites:[{species:[{element:"Cd",occu:1}],abc:[0,0,0],xyz:[0,0,0],label:"Cd",properties:{}}]};
     mvMod=import(MV_BASE+"/mv-app.js");
   }
   return mvMod;
@@ -678,6 +690,10 @@ async function mountStructure(r,ord){
     el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-geometry payload published for this level of theory yet.</div>';
     return;
   }
+  if(!HAVE_STRUCT.has(key)){
+    el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-geometry payload published for this row yet.</div>';
+    return;
+  }
   el.innerHTML='<div class="notebox" style="margin:12px">loading structure…</div>';
   let st=null;
   try{
@@ -685,16 +701,12 @@ async function mountStructure(r,ord){
     if(resp.ok && (resp.headers.get("content-type")||"").includes("json")) st=await resp.json();
   }catch(e){ st=null; }
   if(!st){ el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-structure payload for this ordering.</div>'; return; }
-  CURSTRUCT=st;
+  CURSTRUCT=hydrate(st);
   dl.innerHTML=`<button class="cpill" onclick="dlText(toCIF(CURKEY,CURSTRUCT),CURKEY+'.cif')">download CIF</button>`+
     `<a class="cpill" style="text-decoration:none" href="structures/${encodeURIComponent(key)}.json" download>download structure (JSON)</a>`;
   try{
-    await loadMV();
-    const holder=document.createElement("div");
-    holder.className="mvhost";
-    holder.style.height=(el.clientHeight||460)+"px";
-    el.replaceChildren(holder);
-    window.renderMatterViz(st, holder, {});
+    await loadMV(CURSTRUCT);
+    renderGrid(CURSTRUCT, el);
   }catch(e){
     el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable offline; the CIF and JSON downloads above hold the same relaxed geometry.</div>';
   }
@@ -716,6 +728,40 @@ LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · GGA = PS · ENCUT = 500 eV 
 LHFCALC = .TRUE. · AEXX = 0.25 · HFSCREEN = 0.2 · ENCUT = 500 eV · ISMEAR = 0, SIGMA = 0.05`};
 
 
+const MV_VIEWS=[["perspective",[9,7,11]],["front",[0,0,14]],["top",[0,14,0]],["side",[14,0,0]]];
+function hydrate(st){
+  const m=st.lattice.matrix;
+  if(st.lattice.a===undefined) Object.assign(st.lattice, latParams(m));
+  st.sites.forEach(s=>{
+    if(!s.xyz) s.xyz=[s.abc[0]*m[0][0]+s.abc[1]*m[1][0]+s.abc[2]*m[2][0],
+                      s.abc[0]*m[0][1]+s.abc[1]*m[1][1]+s.abc[2]*m[2][1],
+                      s.abc[0]*m[0][2]+s.abc[1]*m[1][2]+s.abc[2]*m[2][2]];
+    if(!s.properties) s.properties={};
+    if(!s.label) s.label=s.species[0].element;
+  });
+  if(!st.properties) st.properties={};
+  if(st.charge===undefined) st.charge=0;
+  return st;
+}
+function renderGrid(st, el){
+  const h=(el.clientHeight||460);
+  el.replaceChildren();
+  const grid=document.createElement("div");
+  grid.style.cssText=`display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;width:100%;height:${h}px`;
+  el.appendChild(grid);
+  MV_VIEWS.forEach(([label,cam])=>{
+    const cell=document.createElement("div");
+    cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:6px;overflow:hidden;background:#fff";
+    const tag=document.createElement("div");
+    tag.textContent=label;
+    tag.style.cssText="position:absolute;top:4px;left:6px;z-index:5;font-size:12px;font-weight:700;color:var(--wbg-muted);pointer-events:none";
+    const host=document.createElement("div");
+    host.className="mvhost";
+    host.style.height=Math.floor((h-6)/2)+"px";
+    cell.appendChild(tag); cell.appendChild(host); grid.appendChild(cell);
+    try{ window.renderMatterViz(st, host, {scene_props:{camera_position:cam}}); }catch(e){}
+  });
+}
 /* ---------- relaxation movie: XDATCAR frames + energies + forces ---------- */
 let TRAJ=null, TFRAME=0, TTIMER=null, TSPECIES=null, TPFX="trajbox_";
 function latParams(m){
@@ -747,7 +793,7 @@ async function showFrame(i){
   const info=document.getElementById(TPFX+"info");
   if(!host||!info){ stopTraj(); return; }
   try{
-    await loadMV();
+    await loadMV(trajStructure(fr));
     if(document.getElementById(TPFX+"struct")!==host) return;   // panel changed under us
     const fresh=document.createElement("div");
     fresh.className="mvhost";
@@ -775,7 +821,13 @@ function playTraj(){
 function stopTraj(){ if(TTIMER){clearInterval(TTIMER);TTIMER=null;} TRAJ=null; }
 async function mountTraj(key,sub,label,boxId){
   const box=document.getElementById(boxId||"trajbox");
-  stopTraj(); box.innerHTML='<div class="notebox">loading relaxation trajectory…</div>';
+  stopTraj();
+  if(!HAVE_TRAJ.has(key)){
+    box.innerHTML='<div class="notebox">No ionic steps archived for this run — only the final '+
+      'single-point calculation on the relaxed geometry was kept, so there is no movie to play.</div>';
+    return;
+  }
+  box.innerHTML='<div class="notebox">loading relaxation trajectory…</div>';
   let data=null;
   try{
     const r=await fetch(`trajs/${encodeURIComponent(key)}.json.gz`);
@@ -828,6 +880,8 @@ async function mountTraj(key,sub,label,boxId){
 
 /* ---------- provenance arithmetic ---------- */
 const REFS = /*__REFS__*/;
+const HAVE_STRUCT = new Set(/*__STRUCTKEYS__*/);
+const HAVE_TRAJ = new Set(/*__TRAJKEYS__*/);
 function provenanceHTML(r,ord){
   const th = r.f;
   const R = REFS[th]; if(!R) return "";
@@ -855,18 +909,17 @@ function provenanceHTML(r,ord){
   const edec = kes? epfu-sc+0.0257*ent : epfu-0.5*sc+0.0257*ent;
   return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
-    for the ${nat}-atom ${ord} supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
+    for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F!==null?F.toFixed(2):"—"} − (${refsum.toFixed(2)}))/${nat}
     = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> = E<sub>f.u.</sub> − ${kes?"":"½"}Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
     = ${epfu.toFixed(2)} − ${(kes?sc:0.5*sc).toFixed(2)} + ${(0.0257*ent).toFixed(2)}
     = <span class="mono">${edec.toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
     ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
-    Band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness.
-    Raw outputs on Purdue Anvil, mirrored on ALCF Eagle.`;
+    Band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness.`;
 }
 
-function closeModals(){dSel=null;cSel=null;stopTraj();
+function closeModals(){dSel=null;cSel=null;stopTraj();closeIncar();
   document.getElementById("detail").classList.remove("on");
   document.getElementById("cdetail").classList.remove("on");
   document.getElementById("modalback").classList.remove("on");
