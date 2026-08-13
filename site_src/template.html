@@ -86,25 +86,27 @@ sub{font-size:.72em}
 .spontv{color:var(--wbg-spont)}
 
 /* ---- detail panel (inline inside table box) ---- */
-#detail,#cdetail{display:none;position:fixed;inset:5% 6%;z-index:80;background:#fff;border:1px solid var(--wbg-border);border-radius:14px;padding:20px 24px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.35)}
+#detail,#cdetail{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;
+  width:min(1240px,94vw);max-height:92vh;background:#fff;border:1px solid var(--wbg-border);
+  border-radius:14px;padding:16px 20px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.35)}
 #modalback{display:none;position:fixed;inset:0;background:rgba(15,25,40,.45);z-index:70}
 #modalback.on{display:block}
 .mclose{position:absolute;top:12px;right:16px;border:1px solid var(--wbg-border);background:#fff;border-radius:8px;padding:4px 12px;font-weight:700;cursor:pointer}
 #detail.on,#cdetail.on{display:block}
-.dhead{font-size:16px;font-weight:800;margin-bottom:12px}
+.dhead{font-size:16px;margin-bottom:8px}
 .dhead .sub{font-weight:400;color:var(--wbg-muted);font-size:14px;margin-left:10px}
 .dgrid{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(380px,1.6fr) minmax(260px,1fr);gap:20px}
 @media(max-width:1100px){.dgrid{grid-template-columns:1fr}}
-.dcol h4{margin:0 0 8px;font-size:14px;font-weight:700;color:var(--wbg-accent)}
+.dcol h4{margin:0 0 6px;font-size:14px;color:var(--wbg-accent)}
 .minitbl{border-collapse:collapse;width:100%;font-size:13.5px}
 .minitbl th{text-align:left;color:var(--wbg-muted);font-weight:700;border-bottom:1px solid var(--wbg-border);padding:4px 8px}
 .minitbl td{border-bottom:1px solid #eceff3;padding:4px 8px;font-variant-numeric:tabular-nums;font-size:13.5px}
 
-.kv{font-size:14px;margin-top:12px}
-.kv div{display:flex;justify-content:space-between;border-bottom:1px solid #eceff3;padding:5px 0}
+.kv{font-size:14px;margin-top:6px}
+.kv div{display:flex;justify-content:space-between;border-bottom:1px solid #eceff3;padding:3px 0}
 .kv span:first-child{color:var(--wbg-muted)}
 .notebox{background:var(--wbg-surface);border:1px solid var(--wbg-border);border-radius:7px;
-  padding:8px 12px;font-size:13.5px;color:#475569;margin-top:10px}
+  padding:7px 10px;font-size:13.2px;line-height:1.45;color:#475569;margin-top:6px}
 #efdetailplot{width:100%;height:360px}
 
 /* ---- footnote + references ---- */
@@ -256,22 +258,21 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
     </div>
     <div id="cdetail"><button class="mclose" onclick="closeModals()">✕ close</button>
       <div class="dhead">Compound detail <span class="sub" id="ctitle"></span></div>
-      <div class="dgrid" style="grid-template-columns:minmax(340px,1fr) minmax(400px,1.05fr);gap:18px">
+      <div class="dgrid" style="grid-template-columns:minmax(330px,1fr) minmax(390px,1fr);gap:16px">
         <div class="dcol">
           <h4>Computed properties</h4>
           <div class="kv" id="ckv"></div>
-          <h4 style="margin-top:16px">How these numbers are computed</h4>
+          <h4 style="margin-top:12px">How these numbers are computed</h4>
           <div class="notebox" id="cnote"></div>
-          <h4 style="margin-top:16px" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
-          <div id="cmap" style="width:100%;height:240px"></div>
+          <h4 style="margin-top:12px" id="cmaphead">Stability map — ΔG<sub>decomp</sub>(T) with anion-pressure axis</h4>
+          <div id="cmap" style="width:100%;height:210px"></div>
           <div class="notebox" id="cmapnote"></div>
         </div>
         <div class="dcol">
           <h4>DFT-optimized structure — MatterViz</h4>
-          <div id="cstruct" style="width:100%;height:430px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
-          <div id="cdl" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></div>
-          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap" id="cmoviebtn"></div>
-          <div style="margin-top:14px"><button class="cpill" id="incarbtn">view calculation inputs (INCAR / KPOINTS)</button></div>
+          <div id="cstruct" style="width:100%;height:330px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
+          <div id="cdl" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center" id="cmoviebtn"></div>
         </div>
       </div>
     </div>
@@ -663,15 +664,17 @@ function cOpenDetail(r,ord){
      <div><span>Supercell</span><span>${cellLabel(v)}</span></div>
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
-  document.getElementById("incarbtn").onclick=()=>openIncar(r.f);
   mountStructure(r,cOrd);
   drawStabilityMap(r,cOrd);
   const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
   const mkey=`host__${FKEY}__${r.n}`;
   document.getElementById("cmoviebtn").innerHTML = HAVE_TRAJ.has(mkey)
     ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
-         onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(r.n+" — "+r.f)})'>▶ relaxation movie</button>`
-    : `<span class="notebox" style="display:inline-block">No ionic steps archived for this run — the published calculation is a single-point static on the relaxed geometry.</span>`;
+         onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(r.n+" — "+r.f)})'>▶ relaxation movie</button>
+       <button class="cpill" id="incarbtn">calculation inputs</button>`
+    : `<button class="cpill" id="incarbtn">calculation inputs</button>
+       <span style="font-size:13px;color:var(--wbg-muted)">single-point static — no ionic steps archived</span>`;
+  const ib=document.getElementById("incarbtn"); if(ib) ib.onclick=()=>openIncar(r.f);
   cRenderRows();
 }
 document.getElementById("csearch").addEventListener("input",cApplyFilters);
@@ -1140,6 +1143,14 @@ function provenanceHTML(r,ord){
   else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add(comp[a]*(comp[x]/2),`${a}2${x}`);
     for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/2),`${b}2${x}3`); }
   const edec = kes? epfu-sc+0.0257*ent : epfu-0.5*sc+0.0257*ent;
+  if(!bins.length) return `<b>Level of theory: ${th}.</b><br>
+    Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
+    for the ${nat}-atom supercell.<br>
+    <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
+    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>
+    &nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    Band gap from occupied-band counting on EIGENVAL with NELECT. No binary decomposition is
+    published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`;
   return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), static ${th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)"} run.<br>
