@@ -33,7 +33,36 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
 - Finite-size corrections are Kumagai eFNV; the generating script and dielectric tensor are not
   archived — corrections are reproducible in-method (pydefect + literature ε), not bit-reproducible.
 
+## A2BCX4/ABX2 HSE06 campaign — restored from archive 2026-08-13 (LIVE)
+- Source: `gautschi_scratch_2026-05-26.tar` → `Projects_22_May_2025/A2BCX4_ABX2/hse/2x2x1/bulk`
+  (7,049 dirs, 937 GB) extracted on Anvil; references `A2BCX4_ABX2_v1/reference/HSE` (identical INCAR
+  family: LHFCALC, AEXX 0.25, HFSCREEN 0.2, GGA=PS, ENCUT 400, ISIF 3, EDIFFG -0.05).
+- Published: **3,531 converged relaxations over 2,433 compounds** (runs whose OSZICAR ends on an
+  ionic F line; 3,518 unconverged/incomplete dirs excluded). eform from raw F with same-theory raw
+  elemental mus; edec versus same-theory binaries per f.u.; gaps by NELECT band counting on EIGENVAL
+  with the occupancy column as an independent cross-check (3,229/3,552 agree exactly; smeared-edge
+  cases resolved by the NELECT convention; 3 hand-checked).
+- Anchor cross-checked by a second, fully independent route on Anvil (direct OSZICAR/CONTCAR reads):
+  Cu2ZnSnS4 kesterite eform -0.598699 eV/atom, edec -0.679923 eV/f.u., gap 1.4397 eV — exact match.
+- GeTe2/SnTe2 are not archived in ANY reference tree, so (Ge|Sn)+Te kesterites keep edec blank —
+  disclosed in the row provenance, never mixed across theories. No LOPTICS in this campaign →
+  dielectric/SLME blank. 3,531 relaxed structures + 3,169 relaxation movies published.
+- Sweep scripts: `sweep_hse2x2x1.py`, `gaps_hse2x2x1.py`, `hse_struct_traj.py` (Anvil
+  `defectdb_recompute/`).
+
+## II-VI alloy pseudo-binary decomposition (2026-08-13)
+- 27 II-VI alloy rows (CdSeTe / CdZnTe at PBEsol/PBE/HSE06/HSE06-noPS) now carry
+  edec = E/f.u. - Sum f*E(end-member binary) + kT*Sum f ln f, with end-member energies taken from the
+  SAME library's binary rows (never the A2BCX4 reference trees — the two HSE trees differ by
+  0.06-0.42 eV/atom in elemental mus and must not be mixed). Mixing entropy stored per row (index 9)
+  drives the dG(T) stability map.
+
 ## Website (docs/)
+- Stability-map section shows on every compound: real dG_decomp(T) map with labeled contours (red
+  contour at dG=0 when it crosses), or an explicit note when no binary decomposition is archived.
+- Table: No. of atoms + Lattice parameter columns (Supercell column removed), "Dielectric constant"
+  label, Compounds Explorer tab name; compound-modal download buttons removed on request; modal
+  columns bottom-aligned (flex-grow noteboxes).
 - `index.html` (68 KB) is the Kosmos-style shell: green citation banner, grouped pill tabs,
   virtualized sortable tables, two-column detail with the 4-panel MatterViz grid, the arithmetic
   provenance panel and the ΔG_decomp(T) stability map. `site_src/template.html` is the same file.
