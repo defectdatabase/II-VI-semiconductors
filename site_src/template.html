@@ -153,8 +153,8 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #mvm-legend{margin-left:auto;display:flex;gap:12px;align-items:center;font-size:13px;color:var(--wbg-ink)}
 #mvm-legend i{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;
   border:1px solid #0002;vertical-align:middle}
-.mvm-panel{border:1px solid var(--wbg-border);border-radius:8px;padding:10px 12px 12px}
-#mvm-controls{display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:nowrap}
+.mvm-panel{border:1px solid var(--wbg-border);border-radius:8px;padding:10px 12px 12px;display:flex;flex-direction:column;height:520px;box-sizing:border-box}
+#mvm-controls{display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:nowrap;flex:0 0 auto}
 #mvm-controls .play{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700;padding:8px 16px;border-radius:8px}
 #mvm-controls input[type=range]{flex:1 1 80px;accent-color:#2563eb;height:6px}
 #mvm-count{font-family:'Arial Narrow',Arial,sans-serif;color:#475569;white-space:nowrap}
@@ -162,7 +162,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
   font-size:12.5px;color:#475569;background:var(--wbg-surface);margin-right:6px;white-space:nowrap}
 .mvm-chip.ok{color:#15803d;border-color:#c3e6c9;background:#eefaf0}
 .mvm-chip.warn{color:#a5541a;border-color:#f0d9bf;background:#fdf5ec}
-#mvm-body{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:start}
+#mvm-body{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:stretch}
 #mvm-body.static{grid-template-columns:1.85fr .8fr}
 #mvm-grid{height:520px}
 #mvm-controls{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
@@ -379,11 +379,11 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
       <button class="cpill" onclick="closeMovie()">✕ close</button>
     </span>
   </div>
-  <div id="mvm-info"><span id="mvm-summary"></span><span id="mvm-legend"></span></div>
+  <div id="mvm-info"><span id="mvm-summary"></span></div>
   <div id="mvm-body">
     <div id="mvm-grid"></div>
     <div class="mvm-panel" id="mvm-panel">
-      <div id="mvm-frame" style="width:100%;height:360px"></div>
+      <div id="mvm-frame" style="width:100%;flex:1 1 auto;min-height:220px"></div>
       <div id="mvm-controls">
         <button class="cpill play" id="mvm-play" onclick="mvmPlay()">▶ Play</button>
         <button class="cpill" id="mvm-prev" onclick="mvmStep(-1)">⏮</button>
@@ -729,6 +729,7 @@ function cOpenDetail(r,ord){
      <div><span>Lattice parameter</span><span>${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"—"}</span></div>
      <div><span>Level of theory</span><span>${r.f}</span></div>`;
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
+  document.getElementById("cnote").scrollTop=0;
   if(!OPTICS && r.o[cOrd] && r.o[cOrd].length>14 && r.o[cOrd][14])
     loadOptics().then(()=>{ if(cSel===r&&cOrd) document.getElementById("cnote").innerHTML=provenanceHTML(r,cOrd); });
   mountStructure(r,cOrd);
@@ -1023,7 +1024,6 @@ async function openMovie(key,options,label){
   document.getElementById("moviemodal").classList.add("on");
   document.getElementById("modalback").classList.add("on");
   document.getElementById("mvm-title").innerHTML=label;
-  document.getElementById("mvm-legend").innerHTML="";
   MVM.label=label;
   let data=null;
   try{
@@ -1044,17 +1044,6 @@ async function openMovie(key,options,label){
   if(!MVM.opts.length){ document.getElementById("mvm-summary").textContent="no multi-step relaxation archived"; return; }
   mvmLoad(MVM.opts[0].sub);
 }
-const JMOL={H:"#FFFFFF",Li:"#CC80FF",C:"#909090",N:"#3050F8",O:"#FF0D0D",F:"#90E050",Na:"#AB5CF2",
- Mg:"#8AFF00",Al:"#BFA6A6",Si:"#F0C8A0",P:"#FF8000",S:"#FFFF30",Cl:"#1FF01F",K:"#8F40D4",Ca:"#3DFF00",
- Sc:"#E6E6E6",Ti:"#BFC2C7",Cr:"#8A99C7",Mn:"#9C7AC7",Fe:"#E06633",Co:"#F090A0",Ni:"#50D050",Cu:"#C88033",
- Zn:"#7D80B0",Ga:"#C28F8F",Ge:"#668F8F",As:"#BD80E3",Se:"#FFA100",Br:"#A62929",Rb:"#702EB0",Sr:"#00FF00",
- Y:"#94FFFF",Zr:"#94E0E0",Nb:"#73C2C9",Mo:"#54B5B5",Pd:"#006985",Ag:"#C0C0C0",Cd:"#FFD98F",In:"#A67573",
- Sn:"#668080",Sb:"#9E63B5",Te:"#D47A00",Cs:"#57178F",Ba:"#00C900",La:"#70D4FF",Hf:"#4DC2FF",Pt:"#D0D0E0",
- Bi:"#9E4FB5",Yb:"#26C6C6"};
-function legendHTML(st){
-  const els=[...new Set(st.sites.map(s=>s.species[0].element))];
-  return els.map(e=>`<span><i style="background:${JMOL[e]||"#9aa3af"}"></i>${e}</span>`).join("");
-}
 const EDIFFG=0.05;   // |F| convergence criterion of these campaigns (eV/Å)
 async function openStaticMovie(key,label,E,fmax,info){
   closeMovie();
@@ -1064,10 +1053,15 @@ async function openStaticMovie(key,label,E,fmax,info){
   document.getElementById("mvm-title").innerHTML=label;
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
   MVM.cur=null; MVM.data=null;
-  // one configuration: nothing to animate, so the chart and transport controls stand down
-  document.getElementById("mvm-body").classList.add("static");
-  document.getElementById("mvm-frame").style.display="none";
-  document.getElementById("mvm-controls").style.display="none";
+  // one archived configuration: same chart and transport as a trajectory, frozen at frame 1
+  document.getElementById("mvm-body").classList.remove("static");
+  document.getElementById("mvm-frame").style.display="";
+  document.getElementById("mvm-controls").style.display="";
+  const sl=document.getElementById("mvm-slider"); sl.max="0"; sl.value="0";
+  document.getElementById("mvm-count").textContent="frame 1 / 1";
+  document.getElementById("mvm-play").textContent="▶ Play";
+  ["mvm-play","mvm-prev","mvm-next","mvm-speed"].forEach(id=>{
+    const e=document.getElementById(id); e.disabled=true; e.style.opacity=".45"; e.style.cursor="default";});
   document.getElementById("mvm-sel").innerHTML=`<option>static run · 1 configuration</option>`;
   const conv=fmax!==null&&fmax!==undefined&&fmax<=EDIFFG;
   document.getElementById("mvm-summary").innerHTML=
@@ -1085,6 +1079,10 @@ async function openStaticMovie(key,label,E,fmax,info){
   const pct=fmax!==null&&fmax!==undefined?Math.min(100,100*fmax/(EDIFFG*2)):null;
   const card=document.getElementById("mvm-card");
   card.style.display="";
+  card.style.borderTop="1px solid var(--wbg-border)";
+  card.style.paddingTop="10px"; card.style.marginTop="10px";
+  card.style.flex="0 0 auto"; card.style.overflowY="auto"; card.style.maxHeight="290px";
+  document.getElementById("mvm-frame").style.minHeight="150px";
   card.innerHTML=`<h5>Run summary</h5>
     ${pct!==null?`<div class="row"><span>Residual force vs EDIFFG = ${EDIFFG} eV/Å</span><span class="mono">${fmax.toFixed(3)}</span></div>
       <div class="mvm-bar"><i style="width:${pct.toFixed(0)}%;background:${conv?"#2e8b57":"#a5541a"}"></i></div>`:""}
@@ -1096,7 +1094,26 @@ async function openStaticMovie(key,label,E,fmax,info){
     <div class="mvm-note">This run is a single point (NSW = 0) on the geometry produced by its parent
       relaxation, so there are no ionic steps to animate — the four views show that relaxed geometry and
       the force above is the residual on it, read from the OUTCAR TOTAL-FORCE block.</div>`;
-  document.getElementById("mvm-legend").innerHTML=legendHTML(hst);
+  await loadPlotly();
+  Plotly.react("mvm-frame",[
+    {x:[0],y:[E],mode:"markers",marker:{size:12,color:"#3b82c4"},
+     hovertemplate:"E = %{y:.3f} eV<extra></extra>"},
+    {x:[0],y:[fmax],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},
+     hovertemplate:"F max = %{y:.3f} eV/Å<extra></extra>"}],
+    {margin:{l:80,r:64,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
+     xaxis:{title:{text:"frame",font:{size:13}},dtick:1,range:[-0.5,0.5]},
+     yaxis:{title:{text:"E (eV)",font:{size:13},standoff:12},color:"#3b82c4",tickformat:".2f"},
+     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13},standoff:10},overlaying:"y",side:"right",
+             color:"#2e8b57",rangemode:"tozero"},
+     shapes:[{type:"line",xref:"paper",x0:0,x1:1,yref:"y2",y0:EDIFFG,y1:EDIFFG,
+              line:{color:"#2e8b57",width:1,dash:"dot"}},
+             {type:"line",xref:"x",x0:0,x1:0,yref:"paper",y0:0,y1:1,
+              line:{color:"#9aa3af",width:1,dash:"dot"}}],
+     annotations:[{xref:"paper",x:1,yref:"y2",y:EDIFFG,text:`EDIFFG ${EDIFFG}`,showarrow:false,
+              font:{size:11,color:"#2e8b57"},xanchor:"right",yanchor:"bottom"}],
+     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},
+    {responsive:true,displaylogo:false,displayModeBar:false});
+  requestAnimationFrame(()=>{ if(window.Plotly&&document.getElementById("mvm-frame").data) Plotly.Plots.resize("mvm-frame"); });
   await loadMV(hst);
   renderGrid(hst, document.getElementById("mvm-grid"));
 }
@@ -1117,11 +1134,15 @@ function closeMovie(){
 }
 async function mvmLoad(sub){
   await loadPlotly();
+  await new Promise(r=>requestAnimationFrame(r));
   const t=MVM.data[sub]; MVM.cur=t; MVM.frame=0;
   document.getElementById("mvm-body").classList.remove("static");
   document.getElementById("mvm-frame").style.display="";
   document.getElementById("mvm-controls").style.display="";
   document.getElementById("mvm-card").style.display="none";
+  document.getElementById("mvm-frame").style.minHeight="220px";
+  ["mvm-play","mvm-prev","mvm-next","mvm-speed"].forEach(id=>{
+    const e=document.getElementById(id); e.disabled=false; e.style.opacity=""; e.style.cursor="";});
   const fr=t.frames, eL=fr[fr.length-1].e;
   const de=fr.map(f=>f.e!==null&&eL!==null?f.e-eL:null);
   const fLast=fr[fr.length-1].f, conv=fLast!==null&&fLast!==undefined&&fLast<=EDIFFG;
@@ -1138,7 +1159,7 @@ async function mvmLoad(sub){
     {x:[0],y:[es[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
     {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false}],
     {margin:{l:80,r:64,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},hovermode:"x unified",
-     xaxis:{title:{text:"Ionic step",font:{size:13}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
+     xaxis:{title:{text:"frame",font:{size:13}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
      yaxis:{title:{text:"E (eV)",font:{size:13},standoff:12},color:"#3b82c4",nticks:6,tickformat:".2f"},
      yaxis2:{title:{text:"F max (eV/Å)",font:{size:13},standoff:10},overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g",rangemode:"tozero"},
      shapes:[{type:"line",xref:"paper",x0:0,x1:1,yref:"y2",y0:EDIFFG,y1:EDIFFG,
@@ -1151,6 +1172,7 @@ async function mvmLoad(sub){
   const sl=document.getElementById("mvm-slider");
   sl.max=String(fr.length-1); sl.value="0";
   mvmShow(0);
+  requestAnimationFrame(()=>{ if(window.Plotly&&document.getElementById("mvm-frame").data) Plotly.Plots.resize("mvm-frame"); });
   mvmTick();
   document.getElementById("mvm-play").textContent="⏸ Pause";
 }
@@ -1167,8 +1189,6 @@ async function mvmShow(i){
   const f=t.frames[MVM.frame];
   document.getElementById("mvm-slider").value=String(MVM.frame);
   document.getElementById("mvm-count").textContent=`frame ${MVM.frame+1} / ${t.frames.length}`;
-  if(MVM.frame===0){ const g=document.getElementById("mvm-legend");
-    if(g&&!g.innerHTML) g.innerHTML=`<span>${t.species?[...new Set(t.species)].map(e=>`<span><i style="background:${JMOL[e]||"#9aa3af"}"></i>${e}</span>`).join(" "):""}</span>`; }
   try{
     const st=mvmStructure(f);
     await loadMV(st);
