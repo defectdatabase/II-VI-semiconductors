@@ -121,6 +121,9 @@ sub{font-size:.72em}
 .showing{font-weight:400}
 body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.tab,.cpill,.dhead,#attr .who
   {font-weight:400 !important;font-family:'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif !important}
+#moviemodal{display:none;position:fixed;inset:3% 4%;z-index:95;background:#fff;border:1px solid var(--wbg-border);
+  border-radius:14px;padding:18px 22px;overflow:auto;box-shadow:0 20px 60px rgba(10,25,50,.4)}
+#moviemodal.on{display:block}
 #incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:90;
   background:#fff;border:1px solid var(--wbg-border);border-radius:12px;padding:20px 24px;
   max-width:640px;width:88%;box-shadow:0 20px 60px rgba(10,25,50,.35)}
@@ -220,9 +223,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
         <div class="dcol">
           <h4>Formation energy vs Fermi level</h4>
           <div id="efdetailplot"></div>
-          <h4 style="margin-top:16px">Relaxation movie</h4>
-          <div id="dqsel" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
-          <div id="trajbox2"></div>
+          <div style="margin-top:14px" id="dmoviebtn"></div>
         </div>
         <div class="dcol">
           <h4>Per-charge-state raw data</h4>
@@ -264,8 +265,10 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
           <h4>DFT-optimized structure — MatterViz</h4>
           <div id="cstruct" style="width:100%;height:460px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
           <div id="cdl" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></div>
-          <h4 style="margin-top:16px">Relaxation movie — energies and forces</h4>
-          <div id="trajbox"></div>
+          <div style="margin-top:14px" id="cmoviebtn"></div>
+          <h4 style="margin-top:16px">Stability map — decomposition energy vs temperature &amp; anion pressure</h4>
+          <div id="cmap" style="width:100%;height:300px"></div>
+          <div class="notebox" id="cmapnote"></div>
           <div style="margin-top:14px"><button class="cpill" id="incarbtn">view calculation inputs (INCAR / KPOINTS)</button></div>
         </div>
       </div>
@@ -309,6 +312,31 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 </div>
 
 <div id="modalback"></div>
+<div id="moviemodal">
+  <div style="display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--wbg-border);padding-bottom:8px;margin-bottom:10px">
+    <span style="font-size:16px;color:var(--wbg-accent)" id="mvm-title">relaxation movie</span>
+    <span style="margin-left:auto"><button class="cpill" onclick="closeMovie()">✕ close</button></span>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+    <span style="color:var(--wbg-muted)">engine / charge</span>
+    <select id="mvm-sel"></select>
+    <span id="mvm-meta" style="color:var(--wbg-muted)"></span>
+  </div>
+  <div id="mvm-conv" style="width:100%;height:230px"></div>
+  <p style="text-align:center;color:var(--wbg-muted);font-size:13.5px;margin:2px 0 10px" id="mvm-caption"></p>
+  <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:14px">
+    <div id="mvm-grid" style="height:520px"></div>
+    <div>
+      <div id="mvm-frame" style="width:100%;height:380px"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
+        <button class="cpill" id="mvm-play" onclick="mvmPlay()">⏸ Pause</button>
+        <input type="range" id="mvm-slider" min="0" max="1" value="0" style="flex:1"
+               oninput="mvmShow(+this.value)">
+        <span id="mvm-count" style="color:var(--wbg-muted);white-space:nowrap"></span>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="incarmodal"><button class="mclose" onclick="closeIncar()">✕ close</button>
   <div class="dhead">Calculation inputs <span class="sub" id="incartitle"></span></div>
   <div class="notebox" id="incarbody" style="font-size:13.5px;line-height:1.6"></div>
@@ -501,15 +529,14 @@ function dOpenDetail(r){
     for(let i=0;i<=60;i++){const x=r.g*i/60;xs.push(x);ys.push(envelope(r,cond,x)[0]);}
     traces.push({x:xs,y:ys,mode:"lines",name,line:{width:2.4,color:"#0e7490",dash}});
   }
-  const qs=QS.filter(q=>q in r.e);
-  document.getElementById("dqsel").innerHTML=qs.map((q,i)=>
-    `<button class="cpill${i===0?" on":""}" data-q="${q}">q = ${+q>0?"+"+q:q}</button>`).join("");
-  document.querySelectorAll("#dqsel .cpill").forEach(b=>b.onclick=()=>{
-    document.querySelectorAll("#dqsel .cpill").forEach(x=>x.classList.remove("on"));
-    b.classList.add("on");
-    mountTraj(`${r.f}__${r.h}__${r.d}`,b.dataset.q,`${defHTML(r.d)} in ${subHTML(r.h)}, q = ${b.dataset.q}`,"trajbox2");
-  });
-  if(qs.length) document.querySelector("#dqsel .cpill").click();
+  const dkey=`${r.f}__${r.h}__${r.d}`;
+  const qopts=QS.filter(q=>q in r.e).map(q=>({sub:q,name:`q = ${+q>0?"+"+q:q}`}));
+  document.getElementById("dmoviebtn").innerHTML = HAVE_TRAJ.has(dkey)
+    ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
+         id="dmovie-open">▶ relaxation movie</button>`
+    : `<span class="notebox" style="display:inline-block">No ionic steps archived for this defect's runs.</span>`;
+  const dbtn=document.getElementById("dmovie-open");
+  if(dbtn) dbtn.onclick=()=>openMovie(dkey,qopts,`${r.d} in ${r.n||r.h} — ${THEORY[r.f]}`);
   Plotly.react("efdetailplot",traces,{
     xaxis:{title:{text:"E<sub>F</sub> − E<sub>VBM</sub> (eV)",font:{size:13}},range:[0,r.g],zeroline:false},
     yaxis:{title:{text:"E<sub>f</sub> (eV)",font:{size:13}},zeroline:true,zerolinecolor:"#d4d8e0"},
@@ -636,8 +663,13 @@ function cOpenDetail(r,ord){
   document.getElementById("cnote").innerHTML = provenanceHTML(r,cOrd);
   document.getElementById("incarbtn").onclick=()=>openIncar(r.f);
   mountStructure(r,cOrd);
+  drawStabilityMap(r,cOrd);
   const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
-  mountTraj(`host__${FKEY}__${r.n}`,null,`${subHTML(r.n)} — ${r.f} relaxation`);
+  const mkey=`host__${FKEY}__${r.n}`;
+  document.getElementById("cmoviebtn").innerHTML = HAVE_TRAJ.has(mkey)
+    ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
+         onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(r.n+" — "+r.f)})'>▶ relaxation movie</button>`
+    : `<span class="notebox" style="display:inline-block">No ionic steps archived for this run — the published calculation is a single-point static on the relaxed geometry.</span>`;
   cRenderRows();
 }
 document.getElementById("csearch").addEventListener("input",cApplyFilters);
@@ -757,7 +789,7 @@ function hydrate(st){
   if(st.charge===undefined) st.charge=0;
   return st;
 }
-const MV_VIEWS=[["perspective",null],["front",[0,0,1]],["top",[0,1,0]],["side",[1,0,0]]];
+const MV_VIEWS=[["Perspective",null],["Front",[0,0,1]],["Top",[0,1,0]],["Right",[1,0,0]]];
 function renderGrid(st, el){
   const h=(el.clientHeight||460);
   const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c);
@@ -771,7 +803,7 @@ function renderGrid(st, el){
     cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:6px;overflow:hidden;background:#fff";
     const tag=document.createElement("div");
     tag.textContent=label;
-    tag.style.cssText="position:absolute;bottom:4px;left:8px;z-index:5;font-size:12px;color:var(--wbg-muted);pointer-events:none";
+    tag.style.cssText="position:absolute;top:5px;left:9px;z-index:5;font-size:13px;color:var(--wbg-ink);pointer-events:none";
     const host=document.createElement("div");
     host.className="mvhost";
     host.style.height=Math.floor((h-6)/2)+"px";
@@ -896,6 +928,163 @@ async function mountTraj(key,sub,label,boxId){
   showFrame(0);
 }
 
+
+/* ---------- Kosmos-style relaxation movie overlay ---------- */
+let MVM={data:null,opts:[],cur:null,frame:0,timer:null,label:""};
+async function openMovie(key,options,label){
+  // options: [{sub:"0",name:"q = 0"},...] or [{sub:"bulk",name:"PBEsol"}]
+  closeMovie();
+  document.getElementById("moviemodal").classList.add("on");
+  document.getElementById("modalback").classList.add("on");
+  document.getElementById("mvm-title").innerHTML="relaxation movie — "+label;
+  MVM.label=label;
+  let data=null;
+  try{
+    const r=await fetch(`trajs/${encodeURIComponent(key)}.json.gz`);
+    if(r.ok && typeof DecompressionStream!=="undefined"){
+      const ds=new DecompressionStream("gzip");
+      data=JSON.parse(await new Response(r.body.pipeThrough(ds)).text());
+    }
+  }catch(e){}
+  if(!data){ document.getElementById("mvm-meta").textContent="payload unavailable"; return; }
+  MVM.data=data;
+  MVM.opts=options.filter(o=>data[o.sub]&&data[o.sub].frames&&data[o.sub].frames.length>=2);
+  const sel=document.getElementById("mvm-sel");
+  sel.innerHTML=MVM.opts.map((o,i)=>`<option value="${o.sub}">${o.name} (${data[o.sub].nframes} steps)</option>`).join("");
+  sel.onchange=()=>mvmLoad(sel.value);
+  if(!MVM.opts.length){ document.getElementById("mvm-meta").textContent="no multi-step relaxation archived"; return; }
+  mvmLoad(MVM.opts[0].sub);
+}
+function closeMovie(){
+  if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
+  document.getElementById("moviemodal").classList.remove("on");
+}
+function mvmLoad(sub){
+  const t=MVM.data[sub]; MVM.cur=t; MVM.frame=0;
+  const fr=t.frames, eL=fr[fr.length-1].e;
+  const de=fr.map(f=>f.e!==null&&eL!==null?f.e-eL:null);
+  document.getElementById("mvm-meta").textContent=
+    `${t.nframes} steps · ΔE ${de[0]!==null?(-de[0]).toFixed(2):"—"} eV`;
+  // full-width convergence chart, ΔE clipped at 5 eV like Kosmos
+  const CLIP=5.0;
+  const xs=fr.map(f=>f.i);
+  const deC=de.map(v=>v===null?null:Math.min(v,CLIP));
+  const clipped=de.some(v=>v!==null&&v>CLIP);
+  Plotly.react("mvm-conv",[
+    {x:xs,y:deC,mode:"lines",name:"ΔE vs final (eV)",line:{width:2.4,color:"#0e7490"}},
+    {x:xs,y:fr.map(f=>f.f),mode:"lines",name:"F max (eV/Å)",yaxis:"y2",line:{width:2.4,color:"#de9e3a"}}],
+    {margin:{l:56,r:56,t:8,b:34},showlegend:false,font:{family:"Arial Narrow",size:13},
+     xaxis:{title:{text:""}},
+     yaxis:{color:"#0e7490",rangemode:"tozero"},
+     yaxis2:{overlaying:"y",side:"right",color:"#de9e3a",rangemode:"tozero"},
+     annotations:clipped?[{x:1,y:1,xref:"paper",yref:"paper",text:"≥"+CLIP.toFixed(1)+" clipped",
+       showarrow:false,font:{color:"#0e7490",size:13},xanchor:"right"}]:[],
+     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false});
+  document.getElementById("mvm-caption").innerHTML=
+    `ionic step — <span style="color:#0e7490">ΔE vs final (eV)</span> · <span style="color:#de9e3a">F max (eV/Å)</span>`+
+    (clipped?` — initial spike clipped to show the approach`:``)+
+    (fr.length<t.nframes?` · ${fr.length} of ${t.nframes} steps stored`:``);
+  // subsampled frame chart
+  Plotly.react("mvm-frame",[
+    {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",name:"ΔE vs final (eV)",line:{color:"#3b82c4"},marker:{size:6}},
+    {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"F max (eV/Å)",yaxis:"y2",line:{color:"#2e8b57"},marker:{size:6}},
+    {x:[0],y:[de[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
+    {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false}],
+    {margin:{l:58,r:58,t:8,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},
+     xaxis:{title:{text:"Frame (subsampled)",font:{size:13}}},
+     yaxis:{title:{text:"ΔE vs final (eV)",font:{size:13}},color:"#3b82c4"},
+     yaxis2:{title:{text:"F max (eV/Å)",font:{size:13}},overlaying:"y",side:"right",color:"#2e8b57"},
+     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false});
+  const sl=document.getElementById("mvm-slider");
+  sl.max=String(fr.length-1); sl.value="0";
+  mvmShow(0);
+  if(MVM.timer) clearInterval(MVM.timer);
+  MVM.timer=setInterval(()=>{ mvmShow(MVM.frame>=fr.length-1?0:MVM.frame+1); },450);
+  document.getElementById("mvm-play").textContent="⏸ Pause";
+}
+function mvmStructure(f){
+  const t=MVM.cur, lat=f.lat||t.lat, lp=latParams(lat);
+  return hydrate({"@module":"pymatgen.core.structure","@class":"Structure",charge:0,properties:{},
+    lattice:Object.assign({matrix:lat,pbc:[true,true,true]},lp),
+    sites:f.p.map((abc,i)=>({species:[{element:t.species[i],occu:1}],abc,label:t.species[i],properties:{}}))});
+}
+async function mvmShow(i){
+  const t=MVM.cur; if(!t) return;
+  MVM.frame=Math.max(0,Math.min(t.frames.length-1,i));
+  const f=t.frames[MVM.frame];
+  document.getElementById("mvm-slider").value=String(MVM.frame);
+  document.getElementById("mvm-count").textContent=`frame ${MVM.frame+1} / ${t.frames.length}`;
+  try{
+    const st=mvmStructure(f);
+    await loadMV(st);
+    renderGrid(st, document.getElementById("mvm-grid"));
+  }catch(e){}
+  const eL=t.frames[t.frames.length-1].e;
+  const de=f.e!==null&&eL!==null?f.e-eL:null;
+  if(document.getElementById("mvm-frame").data)
+    Plotly.restyle("mvm-frame",{x:[[MVM.frame],[MVM.frame]],y:[[de],[f.f]]},[2,3]);
+}
+function mvmPlay(){
+  const b=document.getElementById("mvm-play");
+  if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;b.textContent="▶ Play";}
+  else{MVM.timer=setInterval(()=>{const t=MVM.cur;if(!t)return;
+    mvmShow(MVM.frame>=t.frames.length-1?0:MVM.frame+1);},450);b.textContent="⏸ Pause";}
+}
+
+
+/* ---------- P–T stability map ---------- */
+const KB=8.617333e-5;
+function decompParts(r,ord){
+  const R=REFS[r.f]; if(!R) return null;
+  const v=r.o[ord]; if(!v||v[1]===null||v[1]===undefined) return null;
+  const comp={};
+  for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0],parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
+    comp[el]=(comp[el]||0)+n;
+  const XS=["S","Se","Te"],AK=["Na","K","Rb","Cs","Ag","Cu"],BK=["Mg","Ca","Ba","Sr","Cd","Zn"],CK=["Sn","Ge","Zr"],BC=["Al","Ga","In"];
+  const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
+  let ent=0; const kes=Math.abs(xsum-4)<.01, abx=Math.abs(xsum-2)<.01;
+  if(!kes&&!abx) return null;
+  const addf=f=>{ if(f>0) ent+=f*Math.log(f); };
+  if(kes){ for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) addf((comp[a]/2)*(comp[x]/4));
+    for(const b of BK) if(comp[b]) for(const x of XS) if(comp[x]) addf(comp[b]*(comp[x]/4));
+    for(const c of CK) if(comp[c]) for(const x of XS) if(comp[x]) addf(comp[c]*(comp[x]/4)); }
+  else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) addf(comp[a]*(comp[x]/2));
+    for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) addf(comp[b]*(comp[x]/2)); }
+  return { d0: v[1]-0.0257*ent, ent };   // stored value is at kT = 0.0257 eV (298 K)
+}
+function drawStabilityMap(r,ord){
+  const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
+  const parts=decompParts(r,ord);
+  if(!parts){ Plotly.purge(el); el.innerHTML=""; note.innerHTML=
+    r.ref?"Reference phase — the decomposition analysis applies to the quaternary and ternary compounds."
+         :"No decomposition energy available for this row."; return; }
+  const Ts=[],Ps=[]; for(let T=300;T<=2000;T+=25) Ts.push(T);
+  for(let lp=-12;lp<=2;lp+=0.5) Ps.push(lp);
+  const row=Ts.map(T=>parts.d0+KB*T*parts.ent);
+  const z=Ps.map(()=>row);
+  const zmin=Math.min(...row), zmax=Math.max(...row);
+  const traces=[
+    {type:"heatmap",x:Ts,y:Ps,z,colorscale:[[0,"#0b3954"],[0.5,"#4f81a0"],[1,"#e8e2c9"]],
+     colorbar:{title:{text:"ΔG<sub>decomp</sub> (eV/f.u.)",side:"right"},thickness:14,len:.9},
+     hovertemplate:"T=%{x} K, log₁₀p=%{y}<br>ΔG=%{z:.2f} eV/f.u.<extra></extra>"}];
+  if(zmin<0&&zmax>0)
+    traces.push({type:"contour",x:Ts,y:Ps,z,showscale:false,
+      contours:{start:0,end:0,size:1,coloring:"lines"},
+      line:{color:"#c0392b",width:2.5},hoverinfo:"skip"});
+  Plotly.react(el,traces,{
+    margin:{l:64,r:6,t:8,b:42},font:{family:"Arial Narrow",size:12.5},
+    xaxis:{title:{text:"Temperature (K)",font:{size:13}}},
+    yaxis:{title:{text:"log₁₀ p(X₂) / atm",font:{size:13}}},
+    paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false});
+  note.innerHTML=(parts.ent!==0
+    ? `ΔG<sub>decomp</sub>(T) = ΔE<sub>decomp</sub> + k<sub>B</sub>T·Σf·ln f (ideal-mixing entropy of the
+       binary decomposition products). ${zmin<0&&zmax>0?'The <span style="color:#c0392b">red contour</span> marks ΔG = 0 — the compound stabilizes against the binaries above that temperature.':(zmax<=0?"Stable against the binary decomposition over the whole range.":"Metastable over the whole range shown.")}`
+    : `This composition has no mixing-entropy term (ordered stoichiometry), so ΔG<sub>decomp</sub> is
+       temperature-independent at this level of theory: ${parts.d0.toFixed(2)} eV/f.u. everywhere.`)+
+    ` The balanced solid-state decomposition exchanges no gas, so pressure does not shift ΔG — the
+      p(X₂) axis is shown to read growth conditions alongside the temperature dependence.`;
+}
+
 /* ---------- provenance arithmetic ---------- */
 const REFS = /*__REFS__*/;
 const HAVE_STRUCT = new Set(/*__STRUCTKEYS__*/);
@@ -943,7 +1132,7 @@ function provenanceHTML(r,ord){
     Band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> from the LOPTICS dielectric at E=0; SLME from vaspkit at optimal thickness.`;
 }
 
-function closeModals(){dSel=null;cSel=null;stopTraj();closeIncar();
+function closeModals(){dSel=null;cSel=null;stopTraj();closeIncar();closeMovie();
   document.getElementById("detail").classList.remove("on");
   document.getElementById("cdetail").classList.remove("on");
   document.getElementById("modalback").classList.remove("on");
