@@ -222,3 +222,50 @@ A full OSZICAR walk found 1,348 run directories the farm builder had never index
   campaign reported 0 defects because `-?\d+\.\d+` does not match VASP's leading-dot float →
   THE GUARD: parse the token after `F=` with `float()` instead of a numeric regex → GUARD LIVES IN
   `cu2cacd_sweep.py`'s `final_F`.
+
+## Eagle tree rebuilt to the requested scheme + full inventory (2026-08-14)
+
+The DFT archive on Eagle is now exactly `bulk/<theory>/<compound>` and
+`defect/<theory>/<host>/<defect>/<charge>`. No symlinks, no `chempot/` kind, no campaign or
+supercell level, no scripts/slurm/CSV/JSON inside the tree (303,105 such files deleted; 1,654,365
+VASP data files untouched). `00_master` — 148 **empty** family-named folders — is gone.
+
+Measured on disk, never from a CSV:
+
+| | unique | runs | converged | size |
+|---|---|---|---|---|
+| bulk (8,564 compounds; polymorphs separate) | 8,564 | 35,326 | 35,053 (99.2 %) | 6.44 TB |
+| defect (533 hosts) | 4,594 (host, defect) pairs | 57,404 | 56,410 (98.3 %) | 5.96 TB |
+| **total** | | **92,730** | **91,463 (98.6 %)** | **12.11 TB** |
+
+Per theory — bulk: PBEsol 7,356 / HSE+SOC 6,997 / HSE 6,992 / PBE 196 compounds.
+Defect hosts: PBEsol 513 / PBE 12 / HSE+SOC 7 / HSE 1, with 2,999 / 1,198 / 366 / 31 unique
+(host, defect) pairs respectively.
+
+Two Globus transfers fed this: `a2bcx4-3x3x2-defects` (1.67 TB, 314 hosts) and `cdznx-pbe-series`
+(624 GB, the CdSeS/CdZnTe/CdZnSe series — 63 alloy bulks plus 9,544 defect entries).
+
+### Mistakes & corrections log
+
+- **2026-08-14 — I flagged a quota emergency that did not exist.** I warned that 2.29 TB of new data
+  might blow a 5 TB shared Eagle quota → WRONG: `myquota` reports `wbg_defects 35.32T / 100T`. The
+  5 TB soft / 5.5 TB hard figure in my `alcf-polaris-access` skill file is stale → THE GUARD: read
+  the live `myquota` before making any capacity claim, never quote a cap from a skill file →
+  GUARD LIVES IN the Eagle README's quota section, which now records the real numbers and says to
+  correct the skill file.
+- **2026-08-14 — I parked 34,728 real bulk runs as "duplicates".** The target for
+  `bulk/<th>/<comp>/<variant>/<alias>` is `bulk/<th>/<comp>`, which is the source's own ancestor;
+  testing `os.path.exists(target)` was therefore always true and every run was treated as a
+  duplicate → THE GUARD: when a target is an ancestor of the source, promote via a temp sibling
+  (move out, delete the empty shell, move in) and count runs before and after → GUARD LIVES IN
+  `eagle_restore_bulk.py` and the Eagle README's trap list.
+- **2026-08-14 — I collapsed 20 distinct SQS configurations of every Cd-Zn-X defect onto one path.**
+  Stripping the trailing `-N` from `defect-…_As_Cd_C1_Te2.82Cd4.41_0-13` looked like removing an
+  index; it removed the configuration identity and parked 19 of every 20 runs → THE GUARD: never
+  strip a suffix to make a name match a rule — carry it into the level name (`As_Cd-13`), and the
+  same rule protects `_kesterite`/`_stannite`, where stripping would have merged 222 hosts into 111
+  → GUARD LIVES IN `eagle_fixup_dups.py` and the Eagle README.
+- **2026-08-14 — piped Python on Polaris buffers stdout, and I read the silence as a hang.** I killed
+  working jobs and, worse, once read an empty stdout as a successful migration that had done nothing
+  → THE GUARD: `ssh polaris python3 -u -`, and always re-list the target to confirm the mutation →
+  GUARD LIVES IN the Eagle README's trap list.
