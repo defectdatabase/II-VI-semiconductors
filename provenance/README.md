@@ -560,3 +560,32 @@ Optics coverage corrected: **6,877 records over 6,763 unique compounds** carry a
   negative ΔH, capped) and record how many were dropped per host → GUARD LIVES IN
   `build_chempot.py`.
 
+## HSE Cd-Zn-X defects located; derived physics built (2026-08-14, deadline run)
+
+**The HSE Cd-Zn-X defects were found.** They are inside
+`/anvil/projects/x-mat250008/pccp_defectff_paper/Cd-Zn-X.tar` (4.1 TB) under `Cd-Zn-X/HSE/data/`,
+as `defect-<host>-M_<site>-<element>-<config>/{Neutral,Charged±1,Charged±2}/` —
+**39,147 HSE OSZICARs**. The naming matches the PBE set already normalised, so the same parser and
+the `M_<site>-<El>` → `<El>_<site>` rename apply. Selective extraction is running.
+The processed CSVs at `/scratch/gautschi/rahma103/hse_master_data` carry
+Structure/Energy/Forces/Stress but no DOS, which is why the raw tree is required.
+
+**Derived from raw only** (`build_all.py`, one build, no hand-patching, no CSV reuse):
+28,218 bulk rows — 26,201 formation energies, 26,313 gaps, 6,764 dielectric constants,
+6,764 absorption spectra, 22,784 decomposition energies with the phases they decompose to;
+2,875 defect rows with Ef(q, E_F) at every named chem-pot vertex plus transition levels.
+Determinism gate `derived_bulk sha256 = 250a55c1d6caaab8`.
+
+Feeding it: phys_bulk 43,262 · phys_defect 56,257 · dos 40,007 · **steps 88,194** runs carrying
+per-ionic-step energy, max force and its atom index, the INCAR VASP actually used, PAW TITELs and
+the k-mesh.
+
+### Mistakes & corrections log
+
+- **2026-08-14 — an O(n²) build hung silently behind a pipe.** The first decomposition-energy pass
+  scanned all 28k phases for every compound and emitted nothing for 30 minutes; `ssh … | tail`
+  buffered the output so it looked identical to a hang → THE GUARD: index by element set for
+  subset lookups instead of scanning, and always write a long job's stdout to a file on the cluster
+  rather than piping it through `tail` → GUARD LIVES IN `build_all.py` (the `PH` phase index) and
+  the Eagle README trap list.
+
