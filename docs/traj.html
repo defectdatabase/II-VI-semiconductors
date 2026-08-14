@@ -56,7 +56,7 @@ const deltaText=value=>!finite(value)?'Unavailable':Math.abs(value)<.01?`${(valu
 const cart=(lat,f)=>[f[0]*lat[0][0]+f[1]*lat[1][0]+f[2]*lat[2][0],f[0]*lat[0][1]+f[1]*lat[1][1]+f[2]*lat[2][1],f[0]*lat[0][2]+f[1]*lat[1][2]+f[2]*lat[2][2]];
 const lerp=(a,b,t)=>a+(b-a)*t;
 let data=null,index=0,playing=false,raf=0,segmentStart=0,playOrigin=0,duration=700;
-let scene,ctx,chart,slider,count,playButton,sceneObserver,chartObserver,marked=new Set();
+let scene,ctx,chart,slider,count,playButton,sceneObserver,chartObserver,marked=new Set(),vacancies=[];
 /* camera: ours, so it survives every frame change */
 const view={yaw:-.62,pitch:.38,zoom:1,panx:0,pany:0};
 function rotate(p){
@@ -83,7 +83,8 @@ function sceneGeometry(frame){
   const ox=scene.clientWidth/2+view.panx, oy=scene.clientHeight/2+view.pany;
   const zs=pts.concat(corners).map(p=>p[2]), zmin=Math.min(...zs), zmax=Math.max(...zs);
   const project=p=>[ox+p[0]*scale,oy-p[1]*scale,p[2]];
-  return {pts:pts.map(project),corners:corners.map(project),scale,zmin,zmax};
+  const vac=vacancies.map(v=>project(rotate(cart(frame.lat,v.abc)).map((q,j)=>q-center[j])));
+  return {pts:pts.map(project),corners:corners.map(project),vac,scale,zmin,zmax};
 }
 function resizeCanvas(){
   const dpr=Math.min(devicePixelRatio||1,2),r=scene.getBoundingClientRect();
@@ -140,6 +141,17 @@ function drawScene(k,t){
       ctx.strokeStyle='#0a0f1499';ctx.lineWidth=1.2;ctx.stroke();
     }
   });
+  // vacancies: the missing atom of a complex, drawn as a dashed ring at the empty host site
+  if(g.vac.length){
+    const r=Math.max(4,g.scale*.115*1.3);
+    ctx.setLineDash([3.4,2.8]);ctx.lineWidth=1.7;ctx.strokeStyle=DEFECT_COLOR;
+    g.vac.forEach(p=>{
+      ctx.beginPath();ctx.arc(p[0],p[1],r,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(p[0]-r*.5,p[1]);ctx.lineTo(p[0]+r*.5,p[1]);
+      ctx.moveTo(p[0],p[1]-r*.5);ctx.lineTo(p[0],p[1]+r*.5);ctx.stroke();
+    });
+    ctx.setLineDash([]);
+  }
 }
 /* ---------- camera interaction: drag to rotate, wheel to zoom, shift-drag to pan ---------- */
 function bindCamera(wrap){
@@ -206,6 +218,7 @@ function mount(payload){
   if(sceneObserver)sceneObserver.disconnect();if(chartObserver)chartObserver.disconnect();
   data=payload;
   marked=new Set(Array.isArray(payload.marks)?payload.marks:[]);
+  vacancies=Array.isArray(payload.vac)?payload.vac:[];
   document.getElementById('app').innerHTML=`<div class="panel" id="scene-wrap"><canvas id="scene"></canvas><div id="viewhint">drag to rotate · scroll to zoom · shift-drag to pan · double-click to reset</div><div id="legend"></div></div><div class="panel" id="analysis"><svg id="chart" aria-label="Energy and force convergence"></svg><div class="controls"><button id="play">▶ Play</button><input id="slider" type="range" min="0" max="${payload.frames.length-1}" value="0"><span id="count"></span></div><div id="metrics"></div></div>`;
   scene=document.getElementById('scene');ctx=scene.getContext('2d');chart=document.getElementById('chart');
   slider=document.getElementById('slider');count=document.getElementById('count');playButton=document.getElementById('play');
@@ -216,8 +229,13 @@ function mount(payload){
   });
   if(marked.size){
     const s=document.createElement('span');s.className='el';
-    s.textContent=marked.size===1?'defect site':`defect sites (${marked.size})`;
+    s.textContent=marked.size===1?'defect atom':`defect atoms (${marked.size})`;
     s.style.setProperty('--el-color',DEFECT_COLOR);legend.appendChild(s);
+  }
+  if(vacancies.length){
+    const s=document.createElement('span');s.className='el';s.style.borderStyle='dashed';
+    s.textContent=vacancies.length===1?`vacancy (${vacancies[0].el} site)`:`vacancies (${vacancies.length})`;
+    s.style.setProperty('--el-color','#ffffff');legend.appendChild(s);
   }
   playButton.onclick=play;
   slider.oninput=e=>{stop();updateUI(+e.target.value);drawScene(+e.target.value,0)};

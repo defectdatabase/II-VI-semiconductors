@@ -878,7 +878,7 @@ async function dOpenDetail(r){
   if(dbtn) dbtn.onclick=()=>{
     const hostEls=new Set(HOSTELS(r.h)); const dark={};
     r.d.split("+").forEach(part=>{const a=part.split("_")[0]; if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";});
-    openMovie(geomKey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`,dark,DSTRUCT_MARKS);
+    openMovie(geomKey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`,dark,DSTRUCT_MARKS,DSTRUCT_VAC);
   };
   dRedrawPlot();
   mountDefectStructure(r,geomKey).then(()=>{dAlignCols();setTimeout(dAlignCols,1600);});
@@ -982,7 +982,7 @@ async function mountDefectStructure(r,trajKey){
       document.getElementById("dstructhead").textContent="Defect structure · unrelaxed site model";
       try{
         await loadMV(model);
-        renderGrid(model,el,defectSiteIndices(model,await hostSupercell(r),defectColors(r)));
+        renderGrid(model,el,defectSiteIndices(model,await hostSupercell(r),defectColors(r),r.d));
       }catch(e){ el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable.</div>'; }
     }else{
       el.innerHTML='<div class="dos-empty"><div class="dos-empty-inner"><strong>Defect geometry unavailable</strong>No relaxed coordinates are archived, and an interstitial site cannot be inferred reliably from the host structure.</div></div>';
@@ -1013,12 +1013,14 @@ async function mountDefectStructure(r,trajKey){
     lattice:Object.assign({matrix:lat,pbc:[true,true,true]},lp),
     sites:fr.p.map((abc,i)=>({species:[{element:t.species[i],occu:1}],abc,label:t.species[i],properties:{}}))});
   const dark=defectColors(r);
-  const marks=defectSiteIndices(st,await hostSupercell(r),dark);
-  DSTRUCT_MARKS=marks;
+  const host=await hostSupercell(r);
+  const marks=defectSiteIndices(st,host,dark,r.d), vac=vacancySites(st,host,r.d);
+  DSTRUCT_MARKS=marks; DSTRUCT_VAC=vac;
   const base=pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure";
-  document.getElementById("dstructhead").textContent=
-    marks.length?`${base} · defect site enlarged (${marks.length===1?"1 site":marks.length+" sites"})`
-    :`${base} · vacancy only, no atom to enlarge`;
+  const bits=[];
+  if(marks.length) bits.push(`${marks.length} defect ${marks.length===1?"atom":"atoms"} enlarged`);
+  if(vac.length) bits.push(`${vac.length} ${vac.length===1?"vacancy":"vacancies"} — ringed in the movie, no atom to scale here`);
+  document.getElementById("dstructhead").textContent=bits.length?`${base} · ${bits.join(" · ")}`:base;
   el.replaceChildren();
   try{
     await loadMV(st);
@@ -1320,22 +1322,55 @@ function minImageDist(m,d){            // nearest periodic image, Cartesian angs
    supercell instead — a site with no host atom within 1.2 A is an interstitial, a site whose nearest
    host atom is a different element is an antisite or substitution. A vacancy removes an atom, so
    there is nothing to mark. Species matching stays as the fallback when no host cell is archived. */
-function defectSiteIndices(st,host,dark){
+/* The defect label says how many parts to expect, which keeps the geometry honest: V_Se is one
+   vacancy and zero marked atoms, V_Cd+Cd_Se is one of each, Cd_Se+Te_i is two atoms and no vacancy.
+   Candidates are ranked (element mismatch first, then distance from the nearest host atom) and cut
+   to that count, so a neighbour that merely relaxed inwards can never masquerade as the defect. */
+function defectPartCounts(dlabel){
+  const parts=String(dlabel||"").split("+").filter(Boolean);
+  return {atoms:parts.filter(p=>p.split("_")[0]!=="V").length,
+          vac:parts.filter(p=>p.split("_")[0]==="V").length};
+}
+function defectSiteIndices(st,host,dark,dlabel){
+  const want=defectPartCounts(dlabel).atoms;
+  if(dlabel!==undefined&&want===0) return [];
   if(host&&host.sites&&host.sites.length){
-    const m=st.lattice.matrix, out=[];
+    const m=st.lattice.matrix, cand=[];
     st.sites.forEach((s,i)=>{
       const el=s.species[0].element; let bd=1e9,bel=null;
       host.sites.forEach(h=>{
         const q=minImageDist(m,[s.abc[0]-h.abc[0],s.abc[1]-h.abc[1],s.abc[2]-h.abc[2]]);
         if(q<bd){bd=q;bel=h.species[0].element}
       });
-      if(bd>1.2||bel!==el) out.push(i);
+      if(bd>1.2||bel!==el) cand.push({i,score:(bel!==el?10:0)+bd});
     });
-    if(out.length&&out.length<=6) return out;   // more than that means the match drifted, not a defect
+    cand.sort((a,b)=>b.score-a.score);
+    const keep=want||Math.min(cand.length,6);
+    if(cand.length) return cand.slice(0,keep).map(c=>c.i).sort((a,b)=>a-b);
   }
   const out=[];
   if(dark) st.sites.forEach((s,i)=>{ if(dark[s.species[0].element]) out.push(i); });
-  return out;
+  return want?out.slice(0,want):out;
+}
+/* The other half of a complex. V_Cd+Cd_Se has one atom to enlarge (the antisite) and one hole (the
+   vacancy), so marking atoms alone can only ever show half of it. A host site with no defect atom
+   within 1.2 A is a vacancy: its fractional position is passed to the movie, which draws a dashed
+   ring there. The MatterViz panes can only scale atoms that exist, so they say so in the heading. */
+function vacancySites(st,host,dlabel){
+  const want=defectPartCounts(dlabel).vac;
+  if(dlabel!==undefined&&want===0) return [];
+  if(!host||!host.sites||!host.sites.length) return [];
+  const m=st.lattice.matrix, cand=[];
+  host.sites.forEach(h=>{
+    let bd=1e9;
+    st.sites.forEach(sd=>{
+      const q=minImageDist(m,[sd.abc[0]-h.abc[0],sd.abc[1]-h.abc[1],sd.abc[2]-h.abc[2]]);
+      if(q<bd) bd=q;
+    });
+    if(bd>1.2) cand.push({abc:h.abc.slice(),el:h.species[0].element,d:bd});
+  });
+  cand.sort((a,b)=>b.d-a.d);
+  return cand.slice(0,want||Math.min(cand.length,6));
 }
 function defectSiteMark(st,marks){
   if(!st||!marks||!marks.length) return {};
@@ -1502,8 +1537,8 @@ window.addEventListener("message",event=>{
     if(MVM.kosmosPayload) frame.contentWindow.postMessage(MVM.kosmosPayload,location.origin);
   }
 });
-async function openMovie(key,options,label,dark,marks){
-  MVM.dark=dark||null; MVM.marks=marks||[];
+async function openMovie(key,options,label,dark,marks,vac){
+  MVM.dark=dark||null; MVM.marks=marks||[]; MVM.vac=vac||[];
   // options: [{sub:"0",name:"q = 0"},...] or [{sub:"bulk",name:"PBEsol"}]
   closeMovie();
   coverParentDetail();
@@ -1596,7 +1631,7 @@ function mvmMount(st,dark){        // one full-size perspective pane (auto-fit: 
   el.appendChild(buf);
   try{ window.renderMatterViz(st, buf, Object.assign({show_controls:false},defectSiteMark(st,Array.isArray(dark)?dark:null))); }catch(e){}
 }
-let DSTRUCT_MARKS=[];
+let DSTRUCT_MARKS=[], DSTRUCT_VAC=[];
 function parkStructure(){                        // free the dashboard's viewers (context budget is ~8)
   const el=document.getElementById("cstruct");
   if(el&&el.querySelector("canvas")){ freeMV(el); el.dataset.parked="1"; el.replaceChildren(); }
@@ -1654,7 +1689,7 @@ async function mvmLoad(sub){
     ` <span class="sep">|</span> largest atom displacement ${dispText}`+
     (frames.length<t.nframes?` <span class="sep">|</span> ${frames.length} frames stored`:"");
   MVM.kosmosPayload={type:"traj_frames",name:document.getElementById("mvm-title").textContent,
-    dark:MVM.dark||null,marks:MVM.marks||[],species:t.species,defaultLattice:t.lat,
+    dark:MVM.dark||null,marks:MVM.marks||[],vac:MVM.vac||[],species:t.species,defaultLattice:t.lat,
     frames:frames.map((f,i)=>({positions:f.p,lattice:f.lat||t.lat,energy:f.e,fmax:f.f,step:f.i??i}))};
   const viewer=document.getElementById("mvm-kosmos");
   viewer.style.display="";
