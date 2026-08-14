@@ -1023,9 +1023,11 @@ async function mountDefectStructure(r,trajKey){
   document.getElementById("dstructhead").textContent=bits.length?`${base} · ${bits.join(" · ")}`:base;
   if(marks.length) recentreOnSite(st,marks[0]);
   const bulk=host?structureCIF(host):null;
-  sgShow(el,{type:"struct",cif:structureCIF(st),
-    bulkCif:bulk,nparts:defectPartCounts(r.d).atoms+defectPartCounts(r.d).vac,
-    highlight:marks.length?marks:undefined});
+  // No `highlight`: Kosmos derives the marked sites from bulkCif + nparts itself (anomaly-ranked
+  // bulk comparison), which also catches the atom beside a vacancy. Passing highlight overrode that
+  // and marked fewer sites than the reference - verified against the standalone viewer.
+  sgShow(el,{type:"struct",cif:structureCIF(st),bulkCif:bulk,
+    nparts:defectPartCounts(r.d).atoms+defectPartCounts(r.d).vac});
   note.innerHTML="";
 }
 document.getElementById("dsearch").addEventListener("input",dApplyFilters);
