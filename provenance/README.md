@@ -243,7 +243,37 @@ Se22/Cd106/Te87 legend and the ΔE-vs-final / F-max chart. Still open before thi
 prebuilt bundle, which does not forward `scene_props.active_sites`, so they mark the site by radius
 only.
 
+## Every structure pane now runs Kosmos's own viewer (2026-08-14, verified against the reference)
+
+Both Kosmos apps are vendored unchanged from `defect-informatics/kosmos` (private, Pages disabled;
+read with `gh`): `docs/pages/traj/` (13 files, 6.1 MB) drives the relaxation movie and
+`docs/pages/structgrid/` (12 files, 4.3 MB) drives the defect and compound structure panes. Nothing
+of ours renders atoms any more, so their MatterViz settings, theme and background are the
+reference's by construction.
+
+Contracts, read out of the Kosmos bundles:
+- **movie** - `{type:"traj_frames", frames:[{cif, energy, fmax}], dsite, name}` after
+  `{type:"traj_ready"}`; it recentres each frame on `dsite[0]`, highlights the nearest site to each
+  dsite within 4.5 A, and renders with `site_radius_overrides Map(idx -> 1.5)` and
+  `scene_props {active_sites, active_highlight_color:"#000"}`.
+- **structure** - `{type:"struct", cif, bulkCif, nparts}` after `{type:"structgrid_ready"}`; it
+  derives the marked sites itself by comparing the defect CIF against `bulkCif`, keeping `nparts`,
+  and renders with `scene_props {active_sites, active_highlight_color:"#000000"}`,
+  `show_controls:true`, `background_color:"#ffffff"`, four-pane `multi_view`, updating positions in
+  place when the atom ordering matches so its camera survives.
+
+**Snapshot comparison (live GitHub Pages, same defect `V_Cd+Cd_Se in CdSe0.20Te0.80`):** the
+standalone `pages/structgrid/index.html` and our defect pane were fed the identical CIF - string hash
+**3635253991**, `nparts:2` - and both render 4 canvases, the legend `Se22 Cd106 Te87`, the
+`1 x 1 x 1` supercell control, the Perspective/Front/Top/Right panes and **2 black defect sites**.
+
 ## Mistakes & corrections log (append-only)
+- **2026-08-14 - overrode the reference's own defect detection.** WHAT I DID WRONG: after vendoring
+  Kosmos's structgrid I still passed my own `highlight` index list, which takes priority over its
+  bulk comparison, so our pane marked one site where the reference marked two on the identical CIF
+  -> THE GUARD: when a vendored reference computes something itself, send it only its inputs
+  (`bulkCif` + `nparts`) and compare the rendered result against the standalone app before believing
+  the integration matches -> GUARD LIVES IN this section and `mountDefectStructure`'s `sgShow` call.
 - **2026-08-14 — passed `active_sites` at the top level and concluded MatterViz could not highlight a
   site.** WHAT I DID WRONG: my A/B test put `active_sites`/`active_highlight_color` in the props root,
   saw no colour change, and I wrote in this file that the bundle "has no per-site colour hook", then
