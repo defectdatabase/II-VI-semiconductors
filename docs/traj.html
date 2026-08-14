@@ -135,6 +135,14 @@ function play(){
   playing=true;playButton.textContent='⏸ Pause';
   timer=setInterval(tick,duration);
 }
+/* An occluded tab freezes requestAnimationFrame, so a frame can be swapped in before WebGL has
+   drawn it — the pane would read white on return. Hold playback while hidden and repaint on return. */
+let resumeOnShow=false;
+document.addEventListener('visibilitychange',()=>{
+  if(!data) return;
+  if(document.hidden){ if(playing){resumeOnShow=true;stop()} }
+  else showFrame(index).then(()=>{if(resumeOnShow){resumeOnShow=false;play()}});
+});
 function mount(payload){
   stop();index=0;prepared=null;busy=false;
   if(chartObserver)chartObserver.disconnect();
