@@ -11,7 +11,9 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 TEMPLATE = REPO / "site_src" / "template.html"
+TRAJECTORY = REPO / "site_src" / "traj.html"
 OUTPUT = REPO / "docs" / "index.html"
+TRAJECTORY_OUTPUT = REPO / "docs" / "traj.html"
 DATA = REPO / "docs" / "data.json"
 
 
@@ -24,6 +26,7 @@ def main() -> None:
         raise RuntimeError("Template does not load the external data payload")
 
     OUTPUT.write_text(html, encoding="utf-8")
+    TRAJECTORY_OUTPUT.write_text(TRAJECTORY.read_text(encoding="utf-8"), encoding="utf-8")
     print(f"Published {TEMPLATE.relative_to(REPO)} to {OUTPUT.relative_to(REPO)}")
 
 

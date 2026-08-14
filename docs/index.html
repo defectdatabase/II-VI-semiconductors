@@ -244,11 +244,17 @@ body{letter-spacing:-.006em}
 .structure-viewbar button:hover{color:var(--wbg-ink);background:#eef4f6}.structure-viewbar button.on{color:#fff;background:var(--wbg-accent)}
 #moviemodal{padding:0;overflow:hidden;width:min(1080px,calc(100vw - 32px));height:min(620px,calc(100vh - 32px));max-height:none;flex-direction:column}
 #moviemodal.on{display:flex}
+#moviemodal:has(#mvm-body.static){width:min(900px,calc(100vw - 32px));height:auto;max-height:calc(100vh - 32px)}
 #mvm-head{padding:10px 14px;background:#fff;min-height:50px}#mvm-head>span:first-child{font-weight:700;text-transform:none}
 #mvm-info{padding:7px 14px;margin:0;background:#f7fafb;border-bottom:1px solid var(--wbg-border);font-size:12.5px}
 #mvm-conv,#mvm-caption{display:none!important}
 #mvm-body{padding:10px 12px 12px;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:10px;flex:1;min-height:0}
-#mvm-body.static{grid-template-columns:minmax(420px,1.15fr) minmax(320px,.85fr)}
+#mvm-body.static{grid-template-columns:minmax(440px,1.4fr) minmax(270px,.6fr);align-items:center;height:360px;flex:none}
+#mvm-body.static>div:first-child{height:100%}
+#mvm-body.static #mvm-grid .structure{height:100%!important;min-height:0!important}
+#mvm-kosmos{display:none;width:100%;height:100%;min-height:0;border:0;background:#fff;flex:1}
+#moviemodal.continuous #mvm-kosmos{display:block}
+#moviemodal.continuous #mvm-body{display:none}
 #mvm-body>div{min-width:0;min-height:0}
 #mvm-body>div:first-child{position:relative}
 #mvm-grid{height:100%;min-height:0;border:1px solid var(--wbg-border);border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#fff,#f8fbfc)}
@@ -268,6 +274,9 @@ body{letter-spacing:-.006em}
 .mvm-metrics span{min-width:0;padding:7px 8px;background:var(--wbg-surface);border-radius:6px;text-align:left}
 .mvm-metrics small{display:block;color:var(--wbg-muted);font-size:11.5px;line-height:1.2;margin-bottom:2px}
 .mvm-metrics b{display:block;font-size:13.5px;white-space:nowrap}
+#mvm-body.static .mvm-panel{height:auto;align-self:center;padding:12px 14px}
+#mvm-body.static .mvm-card{height:auto;padding:0!important}
+#mvm-body.static .mvm-card .row{padding:7px 0}
 .movie-covered{visibility:hidden!important}
 .dos-empty{height:180px;display:grid;place-items:center;border-top:1px solid var(--wbg-border);border-bottom:1px solid var(--wbg-border);background:var(--wbg-surface);padding:20px}
 .dos-empty-inner{max-width:560px;text-align:center;color:var(--wbg-muted);line-height:1.45}
@@ -471,6 +480,7 @@ body{letter-spacing:-.006em}
   <div id="mvm-info"><span id="mvm-summary"></span></div>
   <div id="mvm-conv" style="width:100%;height:210px"></div>
   <p style="text-align:center;color:var(--wbg-muted);font-size:13px;margin:2px 0 10px" id="mvm-caption"></p>
+  <iframe id="mvm-kosmos" title="Continuous ionic-relaxation trajectory"></iframe>
   <div id="mvm-body">
     <div>
       <div id="mvm-grid"></div>
@@ -1366,12 +1376,18 @@ async function mountTraj(key,sub,label,boxId){
 
 
 /* ---------- Kosmos-style relaxation movie overlay ---------- */
-let MVM={data:null,opts:[],cur:null,frame:0,timer:null,label:""};
+let MVM={data:null,opts:[],cur:null,frame:0,timer:null,label:"",kosmosPayload:null};
+window.addEventListener("message",event=>{
+  const frame=document.getElementById("mvm-kosmos");
+  if(event.origin===location.origin&&event.source===frame.contentWindow&&event.data&&event.data.type==="traj_ready"){
+    frame.dataset.ready="1";
+    if(MVM.kosmosPayload) frame.contentWindow.postMessage(MVM.kosmosPayload,location.origin);
+  }
+});
 async function openMovie(key,options,label,dark){
   MVM.dark=dark||null;
   // options: [{sub:"0",name:"q = 0"},...] or [{sub:"bulk",name:"PBEsol"}]
   closeMovie();
-  parkStructure();
   coverParentDetail();
   document.getElementById("moviemodal").classList.add("on");
   document.getElementById("modalback").classList.add("on");
@@ -1401,9 +1417,10 @@ async function openMovie(key,options,label,dark){
 const EDIFFG=0.05;   // |F| convergence criterion of these campaigns (eV/Å)
 async function openStaticMovie(key,label,E,fmax,info){
   closeMovie();
-  parkStructure();
   coverParentDetail();
   document.getElementById("moviemodal").classList.add("on");
+  document.getElementById("moviemodal").classList.remove("continuous");
+  document.getElementById("mvm-kosmos").style.display="none";
   document.getElementById("modalback").classList.add("on");
   document.getElementById("mvm-kind").textContent="Static calculation";
   document.getElementById("mvm-title").innerHTML=label;
@@ -1480,60 +1497,42 @@ function closeMovie(){
   const g=document.getElementById("mvm-grid");
   if(g){ freeMV(g); g.replaceChildren(); }        // hand back 4 WebGL contexts
   const wasOpen=document.getElementById("moviemodal").classList.contains("on");
-  document.getElementById("moviemodal").classList.remove("on");
+  document.getElementById("moviemodal").classList.remove("on","continuous");
+  const kosmos=document.getElementById("mvm-kosmos");
+  if(kosmos){ kosmos.dataset.ready=""; kosmos.removeAttribute("src"); kosmos.style.display=""; }
+  MVM.kosmosPayload=null;
   ["detail","cdetail"].forEach(id=>document.getElementById(id).classList.remove("movie-covered"));
   if(wasOpen) unparkStructure();
 }
+function postKosmosTrajectory(){
+  const frame=document.getElementById("mvm-kosmos");
+  if(frame.dataset.ready==="1"&&MVM.kosmosPayload) frame.contentWindow.postMessage(MVM.kosmosPayload,location.origin);
+}
 async function mvmLoad(sub){
-  await loadPlotly();
-  await new Promise(r=>requestAnimationFrame(r));
   const t=MVM.data[sub]; MVM.cur=t; MVM.frame=0;
+  const frames=t.frames, eLast=frames[frames.length-1].e;
+  const dE0=frames[0].e!==null&&eLast!==null?frames[0].e-eLast:null;
+  const fLast=frames[frames.length-1].f, converged=fLast!==null&&fLast!==undefined&&fLast<=EDIFFG;
   document.getElementById("mvm-kind").textContent="Relaxation movie";
   document.getElementById("mvm-body").classList.remove("static");
-  document.getElementById("mvm-frame").style.display="";
-  document.getElementById("mvm-controls").style.display="";
-  document.getElementById("mvm-card").style.display="none";
-  document.getElementById("mvm-frame").style.minHeight="220px";
-  ["mvm-play","mvm-prev","mvm-next","mvm-speed"].forEach(id=>{
-    const e=document.getElementById(id); e.disabled=false; e.style.opacity=""; e.style.cursor="";});
-  const fr=t.frames, eL=fr[fr.length-1].e;
-  const de=fr.map(f=>f.e!==null&&eL!==null?f.e-eL:null);
-  const fLast=fr[fr.length-1].f, conv=fLast!==null&&fLast!==undefined&&fLast<=EDIFFG;
+  document.getElementById("moviemodal").classList.add("continuous");
   document.getElementById("mvm-summary").innerHTML=
-    `Ionic relaxation <span class="sep">|</span> ${conv?"force converged":"force not converged"} <span class="sep">|</span> `+
-    `${t.nframes} ionic steps <span class="sep">|</span> total energy change ${de[0]!==null?(-de[0]).toFixed(2):"—"} eV`+
-    (fr.length<t.nframes?` <span class="sep">|</span> ${fr.length} frames stored`:"");
-  {const cv=document.getElementById("mvm-conv"); if(window.Plotly&&cv.data) Plotly.purge(cv); cv.innerHTML="";}
-  document.getElementById("mvm-caption").textContent="";
-  document.getElementById("mvm-note").innerHTML=MVM.dark&&Object.keys(MVM.dark).length
-    ? `◉ defect site highlighted — ${Object.keys(MVM.dark).map(defHTML).join(", ")} in black`
-    : "";
-  // subsampled frame chart
-  const box=document.getElementById("mvm-frame");
-  box.style.overflow="hidden";
-  const W=Math.max(320,box.clientWidth||560), Hh=Math.max(240,(box.clientHeight||380)-14);
-  Plotly.react("mvm-frame",[
-    {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",name:"Energy change from final structure",line:{color:"#2877b8",width:2.2},marker:{size:5},hoverinfo:"skip"},
-    {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"Maximum atomic force",yaxis:"y2",line:{color:"#238554",width:2.2},marker:{size:5},hoverinfo:"skip"},
-    {x:[0],y:[de[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false,hoverinfo:"skip"},
-    {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false,hoverinfo:"skip"}],
-    {width:W,height:Hh,margin:{l:58,r:58,t:60,b:44},showlegend:true,font:{family:"Arial Narrow, Arial, sans-serif",size:12},hovermode:false,
-     legend:{orientation:"h",x:.5,xanchor:"center",y:1.16,yanchor:"bottom",font:{size:11.5}},
-     xaxis:{title:{text:"Stored ionic frame",font:{size:12}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6],showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
-     yaxis:{title:{text:"Energy change (eV)",font:{size:11}},color:"#2877b8",nticks:6,rangemode:"tozero",showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2"},
-     yaxis2:{title:{text:"Maximum force (eV/Å)",font:{size:11}},overlaying:"y",side:"right",color:"#238554",nticks:4,tickformat:".2~g",rangemode:"tozero",showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2"},
-     shapes:[{type:"line",xref:"paper",x0:0,x1:1,yref:"y2",y0:EDIFFG,y1:EDIFFG,
-              line:{color:"#2e8b57",width:1,dash:"dot"}},
-             {type:"line",xref:"x",x0:0,x1:0,yref:"paper",y0:0,y1:1,
-              line:{color:"#9aa3af",width:1,dash:"dot"}}],
-     annotations:[{xref:"paper",x:0.02,yref:"y2",y:EDIFFG,text:`Force convergence threshold ${EDIFFG} eV/Å`,showarrow:false,
-              font:{size:10.5,color:"#2e8b57"},xanchor:"left",yanchor:"bottom"}],
-     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:false,displaylogo:false,displayModeBar:false});
-  const sl=document.getElementById("mvm-slider");
-  sl.max=String(fr.length-1); sl.value="0";
-  mvmShow(0);
-  mvmTick();
-  document.getElementById("mvm-play").textContent="⏸ Pause";
+    `Continuous ionic relaxation <span class="sep">|</span> ${converged?"force converged":"force not converged"} <span class="sep">|</span> `+
+    `${t.nframes} ionic steps <span class="sep">|</span> total energy decrease ${dE0!==null?dE0.toFixed(2):"—"} eV`+
+    (frames.length<t.nframes?` <span class="sep">|</span> ${frames.length} frames stored`:"");
+  const defectElements=new Set(Object.keys(MVM.dark||{}));
+  const dsite=defectElements.size
+    ? frames[0].p.filter((_,i)=>defectElements.has(t.species[i])).map(abc=>abc.slice())
+    : null;
+  MVM.kosmosPayload={type:"traj_frames",name:document.getElementById("mvm-title").textContent,
+    dsite,species:t.species,defaultLattice:t.lat,
+    frames:frames.map((f,i)=>({positions:f.p,lattice:f.lat||t.lat,energy:f.e,fmax:f.f,step:f.i??i}))};
+  const viewer=document.getElementById("mvm-kosmos");
+  viewer.style.display="";
+  if(!viewer.getAttribute("src")){
+    viewer.dataset.ready="";
+    viewer.setAttribute("src","traj.html");
+  }else postKosmosTrajectory();
 }
 function mvmStructure(f){
   const t=MVM.cur, lat=f.lat||t.lat, lp=latParams(lat);
@@ -1636,6 +1635,23 @@ function decompParts(r,ord){
   return { d0: v[1]-0.0257*ent, ent };   // stored value is at kT = 0.0257 eV (298 K)
 }
 const DOS_COLORS=["#0e7490","#de9e3a","#7c5cbf","#2e8b57","#c0392b","#3b82c4","#8a6d3b","#d1608f"];
+function projectedDosRange(energies,series,lo=-4,hi=4){
+  const values=[];
+  energies.forEach((energy,i)=>{
+    if(energy>=lo&&energy<=hi) series.forEach(curve=>{
+      const value=Number(curve[i]); if(Number.isFinite(value)) values.push(value);
+    });
+  });
+  if(!values.length) return [0,1];
+  const niceCeiling=value=>{
+    if(!(value>0)) return 1;
+    const power=10**Math.floor(Math.log10(value)), scaled=value/power;
+    const step=scaled<=1?1:scaled<=2?2:scaled<=2.5?2.5:scaled<=5?5:10;
+    return step*power;
+  };
+  const low=Math.min(...values), high=Math.max(...values);
+  return [low<0?-niceCeiling(Math.abs(low)*1.06):0,niceCeiling(Math.max(high,0)*1.06)];
+}
 async function drawInsight(r,ord){
   const key=structKeyOf(r,ord);
   if(key&&HAVE_DOS.has(key)){
@@ -1674,11 +1690,12 @@ async function drawDOS(r,ord,key){
       line:{color:c,width:1.6},fillcolor:c+"33",
       hovertemplate:elname+": %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"});
   });
+  const yRange=projectedDosRange(d.e,elementNames.map(name=>d.el[name]));
   await loadPlotly();
   Plotly.react(el,traces,{
     margin:{l:60,r:10,t:8,b:44},font:{family:"Arial Narrow, Arial, sans-serif",size:12},
     xaxis:{title:{text:"Energy relative to Fermi level (eV)",font:{size:12}},range:[-4,4],zeroline:false,showgrid:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
-    yaxis:{title:{text:"Density of states (states/eV)",font:{size:12}},rangemode:"tozero",showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
+    yaxis:{title:{text:"Density of states (states/eV)",font:{size:12}},range:yRange,showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
     shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1.2,dash:"dash"}}],
     legend:{orientation:"h",y:1.14,font:{size:12}},
     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
