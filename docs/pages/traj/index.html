@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relaxation trajectory</title>
+<script>try{localStorage.setItem("matterviz-theme","light")}catch(e){}</script>
+<style>html,body,#app{margin:0;height:100%;width:100%;background:#fff;color:#111827;color-scheme:light;font-family:ui-sans-serif,system-ui,sans-serif}</style>
+  <script type="module" crossorigin src="./assets/index-B7HlPx2T-v2i.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-jtnQxw94.css">
+
+  <style id="wbg-tip-fix">
+    /* hover tooltip must not capture the cursor: it sits at z-index 1000 under the
+       pointer, so with pointer-events:auto it blocks the raycast to the atom, the hover
+       is lost, the tooltip hides, the cursor is over the canvas again -> flicker loop. */
+    div[style*="z-index: 1000"][style*="transform-origin"] { pointer-events: none !important; }
+  </style>
+</head><body><div id="app"></div><script>
+if (window.top === window) {
+  var b = document.createElement("button");
+  b.id = "traj-xbtn";
+  b.textContent = "\u2715 close";
+  b.style.cssText = "position:fixed;top:10px;right:12px;z-index:2147483647;background:#0e7490;color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(20,40,60,.25)";
+  b.onclick = function () { window.close(); setTimeout(function () { location.href = "../"; }, 150); };
+  document.body.appendChild(b);
+  window.addEventListener("keydown", function (e) { if (e.key === "Escape") b.onclick(); });
+}
+</script></body></html>

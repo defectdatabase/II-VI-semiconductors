@@ -249,7 +249,8 @@ body{letter-spacing:-.006em}
 .structure-viewbar button:hover{color:var(--wbg-ink);background:#eef4f6}.structure-viewbar button.on{color:#fff;background:var(--wbg-accent)}
 #moviemodal{padding:0;overflow:hidden;width:min(1080px,calc(100vw - 32px));height:min(620px,calc(100vh - 32px));max-height:none;flex-direction:column}
 #moviemodal.on{display:flex}
-#moviemodal.continuous{width:min(920px,calc(100vw - 48px));height:min(520px,calc(100vh - 48px))}
+/* Kosmos's trajectory page renders a four-pane grid plus its chart; give it room to breathe. */
+#moviemodal.continuous{width:min(1240px,calc(100vw - 32px));height:min(800px,calc(100vh - 32px))}
 #moviemodal:has(#mvm-body.static){width:min(800px,calc(100vw - 64px));height:auto;max-height:calc(100vh - 32px)}
 #mvm-head{padding:10px 14px;background:#fff;min-height:50px}#mvm-head>span:first-child{font-weight:700;text-transform:none}
 #mvm-info{padding:7px 14px;margin:0;background:#f7fafb;border-bottom:1px solid var(--wbg-border);font-size:12.5px}
@@ -1688,15 +1689,49 @@ async function mvmLoad(sub){
     `${t.nframes} ionic steps <span class="sep">|</span> total energy decrease ${decreaseText}`+
     ` <span class="sep">|</span> largest atom displacement ${dispText}`+
     (frames.length<t.nframes?` <span class="sep">|</span> ${frames.length} frames stored`:"");
+  const dsite=(MVM.marks||[]).map(i=>frames[frames.length-1].p[i].slice())
+    .concat((MVM.vac||[]).map(v=>v.abc.slice()));
   MVM.kosmosPayload={type:"traj_frames",name:document.getElementById("mvm-title").textContent,
-    dark:MVM.dark||null,marks:MVM.marks||[],vac:MVM.vac||[],species:t.species,defaultLattice:t.lat,
-    frames:frames.map((f,i)=>({positions:f.p,lattice:f.lat||t.lat,energy:f.e,fmax:f.f,step:f.i??i}))};
+    dsite:dsite.length?dsite:null,species:t.species,defaultLattice:t.lat,
+    frames:frames.map((f,i)=>({cif:frameCIF(t.species,f.lat||t.lat,f.p),
+      energy:f.e,fmax:f.f,step:f.i??i,positions:f.p,lattice:f.lat||t.lat}))};
   const viewer=document.getElementById("mvm-kosmos");
   viewer.style.display="";
   if(!viewer.getAttribute("src")){
     viewer.dataset.ready="";
-    viewer.setAttribute("src","traj.html");
+    viewer.setAttribute("src","pages/traj/index.html");
   }else postKosmosTrajectory();
+}
+/* Kosmos's trajectory viewer (vendored at pages/traj/) takes each frame as CIF text plus energy and
+   fmax, and a dsite list of fractional coordinates: it recentres the cell on dsite[0] and highlights
+   the nearest site to each dsite within 4.5 A, drawing it with site_radius_overrides 1.5 and
+   scene_props {active_sites, active_highlight_color:"#000"}. Emit exactly that. */
+function frameCIF(species,lat,pos){
+  const n=v=>Math.hypot(v[0],v[1],v[2]);
+  const ang=(u,v)=>{const c=(u[0]*v[0]+u[1]*v[1]+u[2]*v[2])/(n(u)*n(v));
+    return Math.acos(Math.max(-1,Math.min(1,c)))*180/Math.PI;};
+  const L=[n(lat[0]),n(lat[1]),n(lat[2])];
+  const A=[ang(lat[1],lat[2]),ang(lat[0],lat[2]),ang(lat[0],lat[1])];
+  const rows=pos.map((abc,i)=>
+    `${species[i]} ${species[i]}${i+1} ${abc[0].toFixed(6)} ${abc[1].toFixed(6)} ${abc[2].toFixed(6)} 1.0`);
+  return `data_frame
+_cell_length_a ${L[0].toFixed(6)}
+_cell_length_b ${L[1].toFixed(6)}
+_cell_length_c ${L[2].toFixed(6)}
+_cell_angle_alpha ${A[0].toFixed(4)}
+_cell_angle_beta ${A[1].toFixed(4)}
+_cell_angle_gamma ${A[2].toFixed(4)}
+_symmetry_space_group_name_H-M 'P 1'
+_symmetry_Int_Tables_number 1
+loop_
+_atom_site_type_symbol
+_atom_site_label
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+${rows.join("\n")}
+`;
 }
 function mvmStructure(f){
   const t=MVM.cur, lat=f.lat||t.lat, lp=latParams(lat);
