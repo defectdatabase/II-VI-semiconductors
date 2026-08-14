@@ -153,7 +153,8 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #mvm-legend i{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;
   border:1px solid #0002;vertical-align:middle}
 .mvm-panel{border:1px solid var(--wbg-border);border-radius:8px;padding:10px 12px 12px;display:flex;flex-direction:column;height:520px;box-sizing:border-box}
-#mvm-controls{display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:nowrap;flex:0 0 auto}
+#mvm-controls{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:nowrap;flex:0 0 auto;min-width:0}
+#mvm-controls #mvm-count{font-size:12.5px}
 #mvm-controls .play{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700;padding:8px 16px;border-radius:8px}
 #mvm-controls input[type=range]{flex:1 1 80px;accent-color:#2563eb;height:6px}
 #mvm-count{font-family:'Arial Narrow',Arial,sans-serif;color:#475569;white-space:nowrap}
@@ -393,11 +394,11 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
         <button class="cpill play" id="mvm-play" onclick="mvmPlay()">▶ Play</button>
         <button class="cpill" id="mvm-prev" onclick="mvmStep(-1)">⏮</button>
         <button class="cpill" id="mvm-next" onclick="mvmStep(1)">⏭</button>
-        <input type="range" id="mvm-slider" min="0" max="1" value="0" oninput="mvmShow(+this.value)">
-        <span id="mvm-count"></span>
         <select id="mvm-speed" onchange="mvmSpeed(this.value)">
           <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option>
         </select>
+        <input type="range" id="mvm-slider" min="0" max="1" value="0" oninput="mvmShow(+this.value)">
+        <span id="mvm-count"></span>
       </div>
       <div class="mvm-card" id="mvm-card" style="display:none;border:none;padding:0"></div>
     </div>
@@ -1007,10 +1008,14 @@ function renderGrid(st, el){
     tag.textContent=label;
     const host=document.createElement("div");
     host.className="mvhost";
+    host.dataset.ax=ax===null?"":String(ax);
+    host.style.position="relative";
     host.style.height=Math.floor((h-6)/2*1.22)+"px";   // unchanged mount geometry (.mvhost zoom 1/1.22)
     cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
     const props = dir ? {scene_props:{camera_position:dir.map(x=>x*dist),camera_projection:"orthographic"}} : {};
-    try{ window.renderMatterViz(st, host, props); }catch(e){}
+    const inner=document.createElement("div"); inner.className="mvbuf"; inner.style.cssText="position:absolute;inset:0";
+    host.appendChild(inner);
+    try{ window.renderMatterViz(st, inner, props); }catch(e){}
   });
 }
 /* ---------- relaxation movie: XDATCAR frames + energies + forces ---------- */
@@ -1306,11 +1311,21 @@ async function mvmShow(i){
     const st=mvmStructure(f);
     await loadMV(st);
     const grid=document.getElementById("mvm-grid");
-    if(MVM.timer&&grid.querySelector(".mvhost")){
-      // while playing, only the first pane re-renders — full 4-pane remounts churn WebGL contexts
-      const host=grid.querySelector(".mvhost");
-      freeMV(host); host.replaceChildren();
-      window.renderMatterViz(st, host, {});
+    const hosts=[...grid.querySelectorAll(".mvhost")];
+    if(hosts.length===4&&hosts.every(h=>h.dataset.ax!==undefined&&h.querySelector(".mvbuf"))){
+      // update every pane in place: render the new frame behind, then swap (no flash, ≤5 contexts)
+      const M=st.lattice.matrix, L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c), dist=1.9*L;
+      const axdir=i=>{const v=M[i],n=Math.hypot(v[0],v[1],v[2])||1;return [v[0]/n,v[1]/n,v[2]/n];};
+      for(const host of hosts){
+        const ax=host.dataset.ax;
+        const props=ax===""?{}:{scene_props:{camera_position:axdir(+ax).map(x=>x*dist),camera_projection:"orthographic"}};
+        const old=host.querySelector(".mvbuf");
+        const fresh=document.createElement("div"); fresh.className="mvbuf";
+        fresh.style.cssText="position:absolute;inset:0";
+        host.appendChild(fresh);
+        try{ window.renderMatterViz(st, fresh, props); }catch(e){}
+        if(old){ freeMV(old); old.remove(); }
+      }
     } else {
       renderGrid(st, grid);
     }
