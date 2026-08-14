@@ -1,128 +1,176 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Continuous ionic-relaxation trajectory</title>
 <style>
-:root{--ink:#17252d;--muted:#62727c;--line:#d9e1e6;--blue:#2877b8;--green:#238554;--accent:#087f8c;--accent-dark:#066a75;--surface:#f7fafb;
-  --page-bg:#fff !important;--pane-bg:#fff !important;--pane-color:#17252d !important}
+:root{--ink:#17252d;--muted:#62727c;--line:#d9e1e6;--blue:#2877b8;--green:#238554;--accent:#087f8c;--accent-dark:#066a75;--surface:#f7fafb}
 *{box-sizing:border-box}html,body,#app{margin:0;width:100%;height:100%;overflow:hidden;background:#fff;color:var(--ink);font-family:'Arial Narrow',Arial,sans-serif}
 #app{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(280px,.82fr);gap:6px;padding:6px}
 .panel{min-width:0;min-height:0;border:1px solid var(--line);border-radius:7px;background:#fff;overflow:hidden}
-#scene-wrap{position:relative;background:#fff;overflow:hidden}
-/* MatterViz's root carries its own default height; stretch it or the cell renders letterboxed
-   and off-centre inside the pane. */
-.mvbuf{position:absolute;inset:0;overflow:hidden}
-.mvbuf>*{width:100%!important;height:100%!important}
+#scene-wrap{position:relative;background:#fff;cursor:grab}
+#scene-wrap.dragging{cursor:grabbing}
+#scene{display:block;width:100%;height:100%}
+#legend{position:absolute;left:6px;right:6px;bottom:5px;display:flex;justify-content:center;gap:4px;flex-wrap:wrap;pointer-events:none}
+.el{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border:1px solid var(--line);border-radius:4px;color:var(--ink);background:#fffffff0;font-size:10.5px}
+.el::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--el-color);border:1px solid #0003}
+#viewhint{position:absolute;left:7px;top:5px;font-size:10.5px;color:var(--muted);pointer-events:none}
 #analysis{display:flex;flex-direction:column;padding:4px 5px 5px;border:0}
 #chart{display:block;width:100%;flex:1;min-height:190px;overflow:visible}
 .controls{display:grid;grid-template-columns:auto minmax(80px,1fr) auto;align-items:center;gap:7px;margin-top:3px}
 /* controls carry the tab accent, not black text */
 button{font:inherit;font-weight:700;border:1px solid var(--accent);border-radius:6px;background:var(--accent);color:#fff;padding:5px 13px;cursor:pointer}
-button:hover{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
-input[type=range]{width:100%;accent-color:var(--accent)}#count{white-space:nowrap;font-size:11.5px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
-#metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:5px;border-top:1px solid var(--line)}.metric{padding:4px 6px;min-width:0}.metric+.metric{border-left:1px solid var(--line)}.metric small{display:block;color:var(--muted);font-size:10px}.metric b{display:block;margin-top:1px;font-size:12px;white-space:nowrap;color:var(--accent)}
+button:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+#count{white-space:nowrap;font-size:11.5px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+#metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:5px;border-top:1px solid var(--line)}
+.metric{padding:4px 6px;min-width:0}.metric+.metric{border-left:1px solid var(--line)}
+.metric small{display:block;color:var(--muted);font-size:10px}
+.metric b{display:block;margin-top:1px;font-size:12px;white-space:nowrap;color:var(--accent)}
 .waiting{grid-column:1/-1;display:grid;place-items:center;color:var(--muted);font-size:13.5px}
 @media(max-width:760px){#app{grid-template-columns:1fr;overflow:auto}.panel{min-height:260px}#analysis{min-height:300px}.metric b{white-space:normal}}
 </style>
 </head>
 <body><div id="app"><div class="waiting">Loading relaxation trajectory…</div></div>
 <script>
-/* The 3D pane is MatterViz — the same bundle and the same pinned revision the parent page uses. */
-const MV_BASE="https://cdn.jsdelivr.net/gh/defectdatabase/chalcogenide-defects@cdc59ef18b8f3707ae39a202cc7519a3eafdb9fc/matterviz";
-try{ localStorage.setItem("matterviz-theme","light"); }catch(e){}
-let data=null,index=0,playing=false,timer=0,duration=380,scene,chart,slider,count,playButton,chartObserver;
-let mvMod=null,mvProps={show_controls:false},prepared=null,busy=false;
+/* Why this pane draws its own scene instead of mounting MatterViz, as the static structure panes do:
+   the pinned MatterViz bundle takes its structure as a plain (non-reactive) prop, exposes no bindable
+   camera or scene, and re-fits the camera on every mount. Playing frames therefore means remounting,
+   which throws the viewer's zoom and rotation away between frames — the cell jumps and the motion is
+   unreadable. Owning the camera here keeps the view fixed while the atoms move, and lets the defect
+   site be painted black, which the bundle has no prop for. */
+const COLORS={H:'#d9d9d9',S:'#d7cf36',Se:'#d17135',Te:'#9a6b4f',O:'#e4483c',N:'#5b7fd4',F:'#77c94a',Cl:'#4fbe57',Br:'#a1553a',I:'#7a4b9e',
+ Na:'#8269d7',K:'#7c43bf',Rb:'#5d2b91',Cs:'#4f245e',Cu:'#3456a4',Ag:'#9b9b9b',Au:'#c9a227',Mg:'#df7b35',Ca:'#6a98ad',Sr:'#62a4a7',Ba:'#5c8ab0',
+ Cd:'#7b8e99',Zn:'#65b953',Hg:'#8b8f94',Zr:'#36c75c',Hf:'#3f9c6b',Ti:'#8d9ba4',Sn:'#74808c',Ge:'#6e8195',Pb:'#5c6672',Si:'#a9a06b',
+ Al:'#78a4c0',Ga:'#6d92ac',In:'#6b8296',Tl:'#6a7480',As:'#b07a3f',Sb:'#9b6bb5',Bi:'#8a6fa8',P:'#d98a37',C:'#5a6068',B:'#c98f6b',
+ Sc:'#7fb5a6',Y:'#6fa8a0',La:'#6f93a8',V:'#8a93a8',Cr:'#7d94a8',Mn:'#a4849b',Fe:'#a4693f',Co:'#8b7fa8',Ni:'#7fa87f',Mo:'#6f8f9c',W:'#6b7a86'};
+const RADII={H:.55,S:1.0,Se:1.05,Te:1.12,O:.85,N:.88,F:.8,Cl:1.0,Br:1.1,I:1.2,Na:1.18,K:1.3,Rb:1.34,Cs:1.38,Cu:.88,Ag:1.02,Au:1.04,
+ Mg:.92,Ca:1.08,Sr:1.15,Ba:1.23,Cd:1.02,Zn:.94,Hg:1.05,Zr:1.04,Hf:1.05,Ti:.97,Sn:1.05,Ge:.98,Pb:1.12,Si:1.0,Al:.93,Ga:.95,In:1.02,
+ Tl:1.1,As:1.0,Sb:1.1,Bi:1.15,P:.98,C:.8,B:.82,Sc:1.06,Y:1.12,La:1.2,V:.95,Cr:.93,Mn:.94,Fe:.94,Co:.92,Ni:.91,Mo:1.0,W:1.02};
+const DEFECT_COLOR='#0a0f14';        // the defect site, painted black
+const DEFECT_SCALE=1.55;
 const finite=v=>v!==null&&v!==undefined&&Number.isFinite(+v);
 const niceUpper=(value,fallback)=>{if(!(value>0))return fallback;const power=10**Math.floor(Math.log10(value)),scaled=value/power,step=scaled<=1?1:scaled<=2?2:scaled<=2.5?2.5:scaled<=5?5:10;return step*power};
 const deltaText=value=>!finite(value)?'Unavailable':Math.abs(value)<.01?`${(value*1000).toFixed(2)} meV`:`${value.toFixed(2)} eV`;
 const cart=(lat,f)=>[f[0]*lat[0][0]+f[1]*lat[1][0]+f[2]*lat[2][0],f[0]*lat[0][1]+f[1]*lat[1][1]+f[2]*lat[2][1],f[0]*lat[0][2]+f[1]*lat[1][2]+f[2]*lat[2][2]];
-// resolves on the next paint, or on a timer when the tab is hidden and rAF is frozen
-const raf=()=>new Promise(r=>{let done=false;const go=()=>{if(!done){done=true;r()}};requestAnimationFrame(go);setTimeout(go,60)});
-/* ---------- MatterViz mount ---------- */
-function loadMV(seed){
-  if(seed) window.MV_STRUCTURE=seed;
-  if(!mvMod){
-    const css=document.createElement('link');css.rel='stylesheet';css.href=MV_BASE+'/mv-asset-index.css';document.head.appendChild(css);
-    // The bundle's bootstrap renders window.MV_STRUCTURE into #viz, else fetches /structure.json (404).
-    const hidden=document.createElement('div');hidden.id='viz';
-    hidden.style.cssText='position:absolute;left:-99999px;top:0;width:240px;height:240px;overflow:hidden';
-    document.body.appendChild(hidden);
-    mvMod=import(MV_BASE+'/mv-app.js');
-  }
-  return mvMod;
+const lerp=(a,b,t)=>a+(b-a)*t;
+let data=null,index=0,playing=false,raf=0,segmentStart=0,playOrigin=0,duration=700;
+let scene,ctx,chart,slider,count,playButton,sceneObserver,chartObserver,marked=new Set();
+/* camera: ours, so it survives every frame change */
+const view={yaw:-.62,pitch:.38,zoom:1,panx:0,pany:0};
+function rotate(p){
+  const cy=Math.cos(view.yaw),sy=Math.sin(view.yaw),cp=Math.cos(view.pitch),sp=Math.sin(view.pitch);
+  const x=cy*p[0]+sy*p[2],z=-sy*p[0]+cy*p[2];
+  return [x,cp*p[1]-sp*z,sp*p[1]+cp*z];
 }
-function freeMV(el){
-  el.querySelectorAll('canvas').forEach(c=>{
-    const gl=c.getContext('webgl2')||c.getContext('webgl'),lose=gl&&gl.getExtension('WEBGL_lose_context');
-    lose&&lose.loseContext();
+function interpolated(k,t){
+  const a=data.frames[k],b=data.frames[Math.min(k+1,data.frames.length-1)],
+    lat=a.lattice.map((row,i)=>row.map((v,j)=>lerp(v,b.lattice[i][j],t)));
+  const positions=a.positions.map((p,i)=>p.map((v,j)=>{let d=b.positions[i][j]-v;d-=Math.round(d);return v+d*t;}));
+  return {lat,positions};
+}
+function sceneGeometry(frame){
+  const raw=frame.positions.map(p=>rotate(cart(frame.lat,p))),
+    center=[0,1,2].map(j=>raw.reduce((s,p)=>s+p[j],0)/raw.length);
+  const pts=raw.map(p=>p.map((v,j)=>v-center[j]));
+  const corners=[];
+  for(let a=0;a<2;a++)for(let b=0;b<2;b++)for(let c=0;c<2;c++)
+    corners.push(rotate(cart(frame.lat,[a,b,c])).map((v,j)=>v-center[j]));
+  const extent=Math.max(...pts.flatMap(p=>[Math.abs(p[0]),Math.abs(p[1])]),
+                        ...corners.flatMap(p=>[Math.abs(p[0]),Math.abs(p[1])]),1);
+  const fit=.44*Math.min(scene.clientWidth,scene.clientHeight)/extent, scale=fit*view.zoom;
+  const ox=scene.clientWidth/2+view.panx, oy=scene.clientHeight/2+view.pany;
+  const zs=pts.concat(corners).map(p=>p[2]), zmin=Math.min(...zs), zmax=Math.max(...zs);
+  const project=p=>[ox+p[0]*scale,oy-p[1]*scale,p[2]];
+  return {pts:pts.map(project),corners:corners.map(project),scale,zmin,zmax};
+}
+function resizeCanvas(){
+  const dpr=Math.min(devicePixelRatio||1,2),r=scene.getBoundingClientRect();
+  scene.width=Math.max(1,Math.round(r.width*dpr));scene.height=Math.max(1,Math.round(r.height*dpr));
+  ctx.setTransform(dpr,0,0,dpr,0,0);drawScene(index,0);
+}
+function shade(hex,mix,target){          // blend towards white (highlight) or black (shadow)
+  const n=parseInt(hex.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255,t=target?255:0;
+  const f=v=>Math.round(v+(t-v)*mix);
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+function drawScene(k,t){
+  if(!data||!scene.clientWidth)return;
+  const frame=interpolated(k,t),g=sceneGeometry(frame);
+  ctx.clearRect(0,0,scene.clientWidth,scene.clientHeight);
+  const depth=p=>g.zmax===g.zmin?.5:(p[2]-g.zmin)/(g.zmax-g.zmin);   // 0 far, 1 near
+  // cell edges
+  const edges=[[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
+  ctx.strokeStyle='#91a3ab66';ctx.lineWidth=.9;
+  edges.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(g.corners[a][0],g.corners[a][1]);ctx.lineTo(g.corners[b][0],g.corners[b][1]);ctx.stroke()});
+  // bonds: nearest-image pairs inside a chemical cutoff
+  const bonds=[];
+  for(let i=0;i<frame.positions.length;i++)for(let j=i+1;j<frame.positions.length;j++){
+    const raw=frame.positions[i].map((v,q)=>frame.positions[j][q]-v),d=raw.map(x=>x-Math.round(x));
+    if(raw.some((x,q)=>Math.abs(x-d[q])>.2)) continue;      // skip bonds that wrap the cell
+    const v=cart(frame.lat,d),dist=Math.hypot(...v),
+      // 1.35 x summed radii reaches a real II-VI bond (Cd-Te 2.80 A, Cd-Se 2.62 A); the old
+      // 1.15-1.2 factor capped out at 2.46 A, which is why the cell drew as loose dots.
+      cut=1.35*((RADII[data.species[i]]||1)+(RADII[data.species[j]]||1));
+    if(dist>1.0&&dist<Math.min(3.3,cut)) bonds.push([i,j]);
+  }
+  ctx.lineCap='round';
+  bonds.forEach(([i,j])=>{
+    const a=g.pts[i],b=g.pts[j],dz=(depth(a)+depth(b))/2;
+    ctx.strokeStyle=`rgba(120,134,142,${(.28+.5*dz).toFixed(3)})`;
+    ctx.lineWidth=Math.max(.9,g.scale*.019*(.6+.6*dz));
+    ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  });
+  // atoms, painted far to near so nearer spheres overlap correctly
+  [...g.pts.keys()].sort((a,b)=>g.pts[a][2]-g.pts[b][2]).forEach(i=>{
+    const p=g.pts[i],el=data.species[i],isDefect=marked.has(i),dz=depth(p);
+    const base=isDefect?DEFECT_COLOR:(COLORS[el]||'#7f8c8d');
+    const r=Math.max(2.6,(RADII[el]||1)*g.scale*.108*(isDefect?DEFECT_SCALE:1)*(.82+.3*dz));
+    const grad=ctx.createRadialGradient(p[0]-r*.34,p[1]-r*.4,r*.12,p[0],p[1],r);
+    grad.addColorStop(0,shade(base,isDefect?.42:.5,true));
+    grad.addColorStop(.55,base);
+    grad.addColorStop(1,shade(base,.32,false));
+    ctx.beginPath();ctx.arc(p[0],p[1],r,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
+    ctx.lineWidth=isDefect?1.6:.7;
+    ctx.strokeStyle=isDefect?'#ffffffdd':'#ffffff9c';
+    ctx.stroke();
+    if(isDefect){                                  // a ring so the site reads at any zoom
+      ctx.beginPath();ctx.arc(p[0],p[1],r+2.6,0,Math.PI*2);
+      ctx.strokeStyle='#0a0f1499';ctx.lineWidth=1.2;ctx.stroke();
+    }
   });
 }
-function latParams(m){
-  const n=v=>Math.hypot(v[0],v[1],v[2]);
-  const ang=(u,v)=>{const c=(u[0]*v[0]+u[1]*v[1]+u[2]*v[2])/(n(u)*n(v));return Math.acos(Math.max(-1,Math.min(1,c)))*180/Math.PI};
-  const vol=Math.abs(m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]));
-  return {a:n(m[0]),b:n(m[1]),c:n(m[2]),alpha:ang(m[1],m[2]),beta:ang(m[0],m[2]),gamma:ang(m[0],m[1]),volume:vol};
+/* ---------- camera interaction: drag to rotate, wheel to zoom, shift-drag to pan ---------- */
+function bindCamera(wrap){
+  let mode=null,lx=0,ly=0;
+  const redraw=()=>drawScene(index,0);
+  wrap.addEventListener('pointerdown',e=>{
+    mode=e.shiftKey?'pan':'orbit';lx=e.clientX;ly=e.clientY;
+    wrap.classList.add('dragging');wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener('pointermove',e=>{
+    if(!mode)return;
+    const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;
+    if(mode==='orbit'){
+      view.yaw+=dx*.008;
+      view.pitch=Math.max(-1.45,Math.min(1.45,view.pitch+dy*.008));
+    }else{ view.panx+=dx; view.pany+=dy; }
+    redraw();
+  });
+  const stop=e=>{mode=null;wrap.classList.remove('dragging');
+    if(e.pointerId!==undefined&&wrap.hasPointerCapture(e.pointerId))wrap.releasePointerCapture(e.pointerId)};
+  wrap.addEventListener('pointerup',stop);wrap.addEventListener('pointercancel',stop);
+  wrap.addEventListener('wheel',e=>{
+    e.preventDefault();
+    view.zoom=Math.max(.35,Math.min(8,view.zoom*(e.deltaY<0?1.11:1/1.11)));
+    redraw();
+  },{passive:false});
+  wrap.addEventListener('dblclick',()=>{
+    view.yaw=-.62;view.pitch=.38;view.zoom=1;view.panx=0;view.pany=0;redraw();
+  });
 }
-/* This MatterViz build has no per-site or per-element colour prop that the structure viewer honours
-   (element_colors belongs to its trajectory-line component, active_sites does nothing from props),
-   but site_radius_overrides does work — so the defect site is drawn oversized and every atom keeps
-   its element colour. Sites are picked by defect species, exactly as the parent page picks them. */
-const DEFECT_SITE_SCALE=2.6;
-function defectSiteMark(payload){
-  const dark=payload.dark;
-  if(!dark||!Object.keys(dark).length) return {};
-  const marked=new Map();
-  payload.species.forEach((el,i)=>{ if(dark[el]) marked.set(i,DEFECT_SITE_SCALE) });
-  return marked.size?{site_radius_overrides:marked}:{};
-}
-function frameStructure(k){
-  const frame=data.frames[k],lat=frame.lattice||data.defaultLattice;
-  return {"@module":"pymatgen.core.structure","@class":"Structure",charge:0,properties:{},
-    lattice:Object.assign({matrix:lat,pbc:[true,true,true]},latParams(lat)),
-    sites:frame.positions.map((abc,i)=>({species:[{element:data.species[i],occu:1}],abc,xyz:cart(lat,abc),
-      label:data.species[i],properties:{}}))};
-}
-/* Build the next frame in a hidden buffer while the current one is on screen, then swap whole
-   buffers so a WebGL remount never shows a white flash. */
-async function buildBuffer(k){
-  const structure=frameStructure(k);
-  await loadMV(structure);
-  const buffer=document.createElement('div');buffer.className='mvbuf';buffer.style.visibility='hidden';
-  scene.appendChild(buffer);
-  try{window.renderMatterViz(structure,buffer,mvProps)}catch(e){}
-  for(let attempts=0;attempts<60;attempts++){
-    const canvas=buffer.querySelector('canvas');
-    if(canvas&&canvas.width>1&&canvas.height>1) break;
-    await raf();
-  }
-  await raf();await raf();
-  return buffer;
-}
-function retire(keep){
-  [...scene.children].forEach(child=>{if(child!==keep){freeMV(child);child.remove()}});
-}
-async function showFrame(k){
-  if(!data||busy) return;
-  busy=true;
-  try{
-    let buffer=prepared&&prepared.index===k?prepared.node:null;
-    prepared=null;
-    if(!buffer) buffer=await buildBuffer(k);
-    buffer.style.visibility='visible';buffer.style.zIndex='2';
-    await raf();
-    retire(buffer);
-    const next=k+1<data.frames.length?k+1:0;
-    if(data.frames.length>1){
-      const node=await buildBuffer(next);
-      node.style.zIndex='1';
-      prepared={index:next,node};
-    }
-  }catch(e){}
-  busy=false;
-}
-/* ---------- energy / force convergence chart (unchanged) ---------- */
+/* ---------- energy / force convergence chart ---------- */
 function renderChart(){
   const frames=data.frames,eRef=[...frames].reverse().find(f=>finite(f.energy))?.energy??0,rawDe=frames.map(f=>finite(f.energy)?f.energy-eRef:null),rawPeak=Math.max(0,...rawDe.filter(finite)),useMeV=rawPeak<.01,de=rawDe.map(v=>finite(v)?v*(useMeV?1000:1):null),forces=frames.map(f=>finite(f.fmax)?+f.fmax:null);
   const rect=chart.getBoundingClientRect(),W=Math.max(320,Math.round(rect.width||520)),H=Math.max(220,Math.round(rect.height||300)),eMax=niceUpper(Math.max(0,...de.filter(finite))*1.08,useMeV?1:.1),fMax=Math.max(.055,niceUpper(Math.max(0,...forces.filter(finite))*1.08,.055)),m={l:60,r:54,t:14,b:42},x=i=>m.l+(frames.length<2?0:i/(frames.length-1))*(W-m.l-m.r),ye=v=>H-m.b-(Math.max(0,v)/eMax)*(H-m.t-m.b),yf=v=>H-m.b-(Math.max(0,v)/fMax)*(H-m.t-m.b);
@@ -138,39 +186,46 @@ function renderChart(){
 }
 function updateChartCursor(i){const c=data.chart,x=c.x(i),e=finite(c.de[i])?c.de[i]:0,f=finite(c.forces[i])?c.forces[i]:0;chart.querySelector('#cursor-line').setAttribute('x1',x);chart.querySelector('#cursor-line').setAttribute('x2',x);chart.querySelector('#e-dot').setAttribute('cx',x);chart.querySelector('#e-dot').setAttribute('cy',c.ye(e));chart.querySelector('#f-dot').setAttribute('cx',x);chart.querySelector('#f-dot').setAttribute('cy',c.yf(f))}
 function updateUI(i){i=Math.max(0,Math.min(data.frames.length-1,i));index=i;slider.value=i;count.textContent=`frame ${i+1} / ${data.frames.length}`;updateChartCursor(i);const f=data.frames[i],eRef=[...data.frames].reverse().find(x=>finite(x.energy))?.energy,delta=finite(f.energy)&&finite(eRef)?f.energy-eRef:null,deltaValue=deltaText(delta);document.getElementById('metrics').innerHTML=`<div class="metric"><small>Total energy</small><b>${finite(f.energy)?(+f.energy).toFixed(3)+' eV':'Unavailable'}</b></div><div class="metric"><small>Energy above final</small><b>${finite(delta)&&delta>0?'+':''}${deltaValue}</b></div><div class="metric"><small>Maximum atomic force</small><b>${finite(f.fmax)?(+f.fmax).toFixed(3)+' eV/Å':'Unavailable'}</b></div>`}
-/* ---------- playback: one stored ionic frame per tick ---------- */
-function stop(){if(timer)clearInterval(timer);timer=0;playing=false;if(playButton)playButton.textContent='▶ Play'}
-function tick(){
-  if(busy) return;
-  const next=index>=data.frames.length-1?null:index+1;
-  if(next===null){stop();return}
-  updateUI(next);showFrame(next);
+function stop(){cancelAnimationFrame(raf);raf=0;playing=false;if(playButton)playButton.textContent='▶ Play';drawScene(index,0)}
+function animate(now){
+  if(!playing)return;
+  const elapsed=Math.max(0,now-segmentStart),seg=playOrigin+Math.floor(elapsed/duration),fraction=(elapsed%duration)/duration;
+  if(seg>=data.frames.length-1){updateUI(data.frames.length-1);drawScene(data.frames.length-1,0);stop();return}
+  if(seg!==index)updateUI(seg);
+  drawScene(seg,fraction);
+  raf=requestAnimationFrame(animate);
 }
 function play(){
   if(playing){stop();return}
-  if(index>=data.frames.length-1){updateUI(0);showFrame(0)}
-  playing=true;playButton.textContent='⏸ Pause';
-  timer=setInterval(tick,duration);
+  if(index>=data.frames.length-1)updateUI(0);
+  playing=true;playOrigin=index;playButton.textContent='⏸ Pause';
+  segmentStart=performance.now();raf=requestAnimationFrame(animate);
 }
-/* An occluded tab freezes requestAnimationFrame, so a frame can be swapped in before WebGL has
-   drawn it — the pane would read white on return. Hold playback while hidden and repaint on return. */
-let resumeOnShow=false;
-document.addEventListener('visibilitychange',()=>{
-  if(!data) return;
-  if(document.hidden){ if(playing){resumeOnShow=true;stop()} }
-  else showFrame(index).then(()=>{if(resumeOnShow){resumeOnShow=false;play()}});
-});
 function mount(payload){
-  stop();index=0;prepared=null;busy=false;
-  if(chartObserver)chartObserver.disconnect();
-  if(scene)retire(null);
+  cancelAnimationFrame(raf);raf=0;playing=false;index=0;
+  if(sceneObserver)sceneObserver.disconnect();if(chartObserver)chartObserver.disconnect();
   data=payload;
-  mvProps=Object.assign({show_controls:false},defectSiteMark(payload));
-  document.getElementById('app').innerHTML=`<div class="panel" id="scene-wrap"></div><div class="panel" id="analysis"><svg id="chart" aria-label="Energy and force convergence"></svg><div class="controls"><button id="play">▶ Play</button><input id="slider" type="range" min="0" max="${payload.frames.length-1}" value="0"><span id="count"></span></div><div id="metrics"></div></div>`;
-  scene=document.getElementById('scene-wrap');chart=document.getElementById('chart');slider=document.getElementById('slider');count=document.getElementById('count');playButton=document.getElementById('play');
-  playButton.onclick=play;slider.oninput=e=>{stop();const v=+e.target.value;updateUI(v);showFrame(v)};
+  marked=new Set(Array.isArray(payload.marks)?payload.marks:[]);
+  document.getElementById('app').innerHTML=`<div class="panel" id="scene-wrap"><canvas id="scene"></canvas><div id="viewhint">drag to rotate · scroll to zoom · shift-drag to pan · double-click to reset</div><div id="legend"></div></div><div class="panel" id="analysis"><svg id="chart" aria-label="Energy and force convergence"></svg><div class="controls"><button id="play">▶ Play</button><input id="slider" type="range" min="0" max="${payload.frames.length-1}" value="0"><span id="count"></span></div><div id="metrics"></div></div>`;
+  scene=document.getElementById('scene');ctx=scene.getContext('2d');chart=document.getElementById('chart');
+  slider=document.getElementById('slider');count=document.getElementById('count');playButton=document.getElementById('play');
+  const legend=document.getElementById('legend');
+  [...new Set(data.species)].forEach(el=>{
+    const s=document.createElement('span');s.className='el';s.textContent=el;
+    s.style.setProperty('--el-color',COLORS[el]||'#7f8c8d');legend.appendChild(s);
+  });
+  if(marked.size){
+    const s=document.createElement('span');s.className='el';
+    s.textContent=marked.size===1?'defect site':`defect sites (${marked.size})`;
+    s.style.setProperty('--el-color',DEFECT_COLOR);legend.appendChild(s);
+  }
+  playButton.onclick=play;
+  slider.oninput=e=>{stop();updateUI(+e.target.value);drawScene(+e.target.value,0)};
+  bindCamera(document.getElementById('scene-wrap'));
+  sceneObserver=new ResizeObserver(resizeCanvas);sceneObserver.observe(scene);
   chartObserver=new ResizeObserver(()=>{if(data&&chart.clientWidth)renderChart()});chartObserver.observe(chart);
-  renderChart();updateUI(0);showFrame(0).then(()=>{if(data.frames.length>1)play()});
+  renderChart();updateUI(0);resizeCanvas();
+  if(data.frames.length>1)play();
 }
 addEventListener('message',event=>{if(event.origin===location.origin&&event.data&&event.data.type==='traj_frames'&&Array.isArray(event.data.frames))mount(event.data)});
 parent.postMessage({type:'traj_ready'},location.origin);

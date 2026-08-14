@@ -182,6 +182,39 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
 - **Controls carry the tab accent.** Play/Pause is filled `#087f8c` with white text, the slider
   accent, frame counter and metric values are the same teal; only the metric labels stay muted grey.
 
+## Movie viewer, defect-site detection, modal columns (2026-08-14 late, user-directed)
+
+- **The movie no longer mounts MatterViz, and here is the measured reason.** The pinned bundle takes
+  `structure` as a plain non-reactive prop, exposes no bindable `camera_position`/`rotation`/`scene`
+  (tested: a props object with setters received **0 write-backs**), `window.__THREE__` is only a
+  revision string, and no trajectory prop exists on the mounted root. Playing frames therefore means
+  remounting, and every remount re-fits the camera — the user's zoom and rotation were thrown away
+  between frames ("if I zoom in for new frame it goes back to old state"). The pane now draws its own
+  scene with a camera we own: drag to rotate, wheel to zoom, shift-drag to pan, double-click to reset,
+  and the view is untouched when the frame changes. Static structure panes keep MatterViz, where
+  nothing remounts and the zoom already persisted.
+- Atoms are shaded spheres with depth-scaled radii, bonds are depth-shaded, and the **defect site is
+  painted black with a ring** — which the MatterViz build has no prop for at all.
+- **Bond cutoff was wrong in the original canvas too:** `1.15-1.2 x` summed radii tops out at 2.46 A
+  and a Cd-Te bond is 2.80 A, so no bond ever drew and the cell rendered as loose dots. Now `1.35 x`,
+  capped at 3.3 A.
+- **Defect sites are found geometrically, not by species.** `Cd_Se+Te_i` is built entirely from host
+  elements, so the species rule marked nothing — which is why the user still saw no defect site. The
+  defect cell is now matched against the relaxed host supercell: no host atom within 1.2 A means an
+  interstitial, a different nearest element means an antisite or substitution, and more than six hits
+  means the match drifted (species fallback). Measured: `Cd_Se+Te_i` -> **2 sites** (indices 203, 204),
+  `V_Cd+Cd_Se` -> **1 site** (193; the vacancy has no atom to mark, and the heading says so).
+- **"No atom moving" was the data, not the viewer.** For `Cd_Se+Te_i` the largest displacement across
+  all 7 stored frames is **0.034 A** (mean 0.001 A) - the run was already converged (2.10 meV, F_max
+  0.008 eV/A). The summary line now quotes it: "largest atom displacement 0.03 A", and prints
+  "under 0.01 A - already converged" below 0.005 A. `V_Cd+Cd_Se` by contrast moves **0.93 A** over 40
+  ionic steps, which is plainly visible.
+- **Modal columns are proportional** (`minmax(0,.95fr) minmax(0,1.05fr)`). The previous
+  `fit-content(430px)` left track was a fixed 430 px that pushed the right column over whenever the
+  tables needed less. Measured at an 818 px modal: 368 / 406 with the tables filling 362.
+- **The relaxation-movie button matches the close button** - white ground, 1 px border, `4px 12px`,
+  13 px, measured 29 px tall against close's 30 px - instead of a filled teal pill.
+
 ## Mistakes & corrections log (append-only)
 - **2026-08-14 — shipped a MatterViz pane without checking the prop was real.** WHAT I DID WRONG: I
   carried `element_colors` over from the old code into the new trajectory pane and wrote "defect

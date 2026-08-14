@@ -225,9 +225,9 @@ body{letter-spacing:-.006em}
 #cdetail .dgrid{grid-template-columns:minmax(300px,.92fr) minmax(420px,1.08fr)!important;gap:18px!important}
 .dcol h4{font-size:14px;font-weight:700;text-transform:none;letter-spacing:0}
 #detail{width:min(930px,calc(100vw - 32px));max-height:min(780px,calc(100vh - 32px))}
-/* Left track shrinks to the arithmetic tables; every spare pixel goes to the plot and the
-   viewer instead of opening a gap down the middle of the modal. */
-#detail .dgrid{grid-template-columns:fit-content(430px) minmax(0,1fr)!important;gap:14px}
+/* Both columns scale with the modal. A fixed or content-sized left track either strands empty
+   space beside the tables or pushes the plot and viewer over; a proportional split cannot. */
+#detail .dgrid{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)!important;gap:14px}
 #detail .dgrid>.dcol:nth-child(2){width:100%;max-width:none;justify-self:stretch}
 #detail .dhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #detail #dmoviebtn{display:inline-flex;margin-left:auto;white-space:nowrap}
@@ -339,6 +339,10 @@ body{letter-spacing:-.006em}
 .mvm-metrics span{padding:5px 7px}
 .mvm-metrics b{font-size:12.5px}
 #reportbtn{padding:6px 12px;font-size:12.5px}
+/* the relaxation-movie button reads as a plain control, like the modal's close button */
+#detail #dmovie-open.dmovie-plain{background:#fff;border:1px solid var(--wbg-border);
+  color:var(--wbg-ink);font-weight:700;border-radius:8px;padding:4px 12px!important;font-size:13px}
+#detail #dmovie-open.dmovie-plain:hover{border-color:var(--wbg-accent);color:var(--wbg-accent)}
 
 @media(max-width:820px){
   #titlebar,#tabbar,.view{padding-left:12px;padding-right:12px}#attr{padding-inline:12px}
@@ -868,14 +872,13 @@ async function dOpenDetail(r){
   const geomKey=defectTrajectoryKey(r,dkey);
   const qopts=QS.filter(q=>(r.rq&&q in r.rq)||q in r.e).map(q=>({sub:q,name:`q = ${+q>0?"+"+q:q}`}));
   document.getElementById("dmoviebtn").innerHTML = geomKey
-    ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
-         id="dmovie-open">▶ Relaxation movie</button>`
+    ? `<button class="cpill dmovie-plain" id="dmovie-open">▶ Relaxation movie</button>`
     : "";
   const dbtn=document.getElementById("dmovie-open");
   if(dbtn) dbtn.onclick=()=>{
     const hostEls=new Set(HOSTELS(r.h)); const dark={};
     r.d.split("+").forEach(part=>{const a=part.split("_")[0]; if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";});
-    openMovie(geomKey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`,dark);
+    openMovie(geomKey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`,dark,DSTRUCT_MARKS);
   };
   dRedrawPlot();
   mountDefectStructure(r,geomKey).then(()=>{dAlignCols();setTimeout(dAlignCols,1600);});
@@ -979,7 +982,7 @@ async function mountDefectStructure(r,trajKey){
       document.getElementById("dstructhead").textContent="Defect structure · unrelaxed site model";
       try{
         await loadMV(model);
-        renderGrid(model,el,defectColors(r));
+        renderGrid(model,el,defectSiteIndices(model,await hostSupercell(r),defectColors(r)));
       }catch(e){ el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable.</div>'; }
     }else{
       el.innerHTML='<div class="dos-empty"><div class="dos-empty-inner"><strong>Defect geometry unavailable</strong>No relaxed coordinates are archived, and an interstitial site cannot be inferred reliably from the host structure.</div></div>';
@@ -1009,14 +1012,17 @@ async function mountDefectStructure(r,trajKey){
   const st=hydrate({"@module":"pymatgen.core.structure","@class":"Structure",charge:0,properties:{},
     lattice:Object.assign({matrix:lat,pbc:[true,true,true]},lp),
     sites:fr.p.map((abc,i)=>({species:[{element:t.species[i],occu:1}],abc,label:t.species[i],properties:{}}))});
-  // defect species (added elements + interstitial/substitution parts) rendered black
   const dark=defectColors(r);
+  const marks=defectSiteIndices(st,await hostSupercell(r),dark);
+  DSTRUCT_MARKS=marks;
+  const base=pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure";
   document.getElementById("dstructhead").textContent=
-    `${pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure"}${Object.keys(dark).length?" · defect site drawn oversized":""}`;
+    marks.length?`${base} · defect site enlarged (${marks.length===1?"1 site":marks.length+" sites"})`
+    :`${base} · vacancy only, no atom to enlarge`;
   el.replaceChildren();
   try{
     await loadMV(st);
-    renderGrid(st,el,dark);
+    renderGrid(st,el,marks);
     note.innerHTML="";
   }catch(e){
     el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable.</div>';
@@ -1287,11 +1293,53 @@ const MV_VIEWS=[["Perspective",null],["Front",[0,0,1]],["Top",[0,1,0]],["Right",
    props. `site_radius_overrides` (Map of site index to radius) does work, so the defect site is
    drawn oversized and every atom keeps its element colour. */
 const DEFECT_SITE_SCALE=2.6;
-function defectSiteMark(st,dark){
-  if(!st||!dark||!Object.keys(dark).length) return {};
-  const marked=new Map();
-  st.sites.forEach((s,i)=>{ if(s.species.some(x=>dark[x.element])) marked.set(i,DEFECT_SITE_SCALE); });
-  return marked.size?{site_radius_overrides:marked}:{};
+const HOSTCACHE=new Map();
+async function hostSupercell(r){
+  const key=(r.f==="pbesol"?"pbesol__":"hse_soc__")+r.h;
+  if(HOSTCACHE.has(key)) return HOSTCACHE.get(key);
+  let st=null;
+  if(HAVE_STRUCT.has(key)){
+    try{ const resp=await fetch(`structures/${encodeURIComponent(key)}.json`);
+      if(resp.ok&&(resp.headers.get("content-type")||"").includes("json")) st=hydrate(await resp.json()); }catch(e){}
+  }
+  HOSTCACHE.set(key,st); return st;
+}
+function minImageDist(m,d){            // nearest periodic image, Cartesian angstroms
+  let best=1e9;
+  for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(let k=-1;k<=1;k++){
+    const f=[d[0]+i,d[1]+j,d[2]+k];
+    const x=f[0]*m[0][0]+f[1]*m[1][0]+f[2]*m[2][0],
+          y=f[0]*m[0][1]+f[1]*m[1][1]+f[2]*m[2][1],
+          z=f[0]*m[0][2]+f[1]*m[1][2]+f[2]*m[2][2];
+    const q=Math.hypot(x,y,z); if(q<best) best=q;
+  }
+  return best;
+}
+/* WHICH sites are the defect. Species alone cannot answer it: Cd_Se+Te_i is built entirely from host
+   elements, so nothing stands out chemically. Compare the defect cell against the relaxed host
+   supercell instead — a site with no host atom within 1.2 A is an interstitial, a site whose nearest
+   host atom is a different element is an antisite or substitution. A vacancy removes an atom, so
+   there is nothing to mark. Species matching stays as the fallback when no host cell is archived. */
+function defectSiteIndices(st,host,dark){
+  if(host&&host.sites&&host.sites.length){
+    const m=st.lattice.matrix, out=[];
+    st.sites.forEach((s,i)=>{
+      const el=s.species[0].element; let bd=1e9,bel=null;
+      host.sites.forEach(h=>{
+        const q=minImageDist(m,[s.abc[0]-h.abc[0],s.abc[1]-h.abc[1],s.abc[2]-h.abc[2]]);
+        if(q<bd){bd=q;bel=h.species[0].element}
+      });
+      if(bd>1.2||bel!==el) out.push(i);
+    });
+    if(out.length&&out.length<=6) return out;   // more than that means the match drifted, not a defect
+  }
+  const out=[];
+  if(dark) st.sites.forEach((s,i)=>{ if(dark[s.species[0].element]) out.push(i); });
+  return out;
+}
+function defectSiteMark(st,marks){
+  if(!st||!marks||!marks.length) return {};
+  return {site_radius_overrides:new Map(marks.map(i=>[i,DEFECT_SITE_SCALE]))};
 }
 function freeMV(el){
   el.querySelectorAll("canvas").forEach(c=>{
@@ -1300,7 +1348,7 @@ function freeMV(el){
   });
 }
 let MVBUSY=false;
-function renderGrid(st, el, dark){
+function renderGrid(st, el, marks){
   freeMV(el);
   const h=el.clientHeight||360;
   const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c), dist=1.9*L;
@@ -1318,7 +1366,7 @@ function renderGrid(st, el, dark){
     host.style.cssText=`height:${h}px;position:relative`;
     stage.appendChild(host);
     [...bar.children].forEach(b=>{const on=b.textContent===label;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));});
-    const props=Object.assign({show_controls:false},defectSiteMark(st,dark),dir?{scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}}:{});
+    const props=Object.assign({show_controls:false},defectSiteMark(st,marks),dir?{scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}}:{});
     try{window.renderMatterViz(st,host,props);}catch(e){}
   };
   MV_VIEWS.forEach(([label,dir])=>{
@@ -1454,8 +1502,8 @@ window.addEventListener("message",event=>{
     if(MVM.kosmosPayload) frame.contentWindow.postMessage(MVM.kosmosPayload,location.origin);
   }
 });
-async function openMovie(key,options,label,dark){
-  MVM.dark=dark||null;
+async function openMovie(key,options,label,dark,marks){
+  MVM.dark=dark||null; MVM.marks=marks||[];
   // options: [{sub:"0",name:"q = 0"},...] or [{sub:"bulk",name:"PBEsol"}]
   closeMovie();
   coverParentDetail();
@@ -1546,8 +1594,9 @@ function mvmMount(st,dark){        // one full-size perspective pane (auto-fit: 
   const buf=document.createElement("div"); buf.className="mvbuf";
   buf.style.cssText=`position:absolute;top:0;left:0;width:${el.clientWidth||600}px;height:${el.clientHeight||470}px`;
   el.appendChild(buf);
-  try{ window.renderMatterViz(st, buf, Object.assign({show_controls:false},defectSiteMark(st,dark))); }catch(e){}
+  try{ window.renderMatterViz(st, buf, Object.assign({show_controls:false},defectSiteMark(st,Array.isArray(dark)?dark:null))); }catch(e){}
 }
+let DSTRUCT_MARKS=[];
 function parkStructure(){                        // free the dashboard's viewers (context budget is ~8)
   const el=document.getElementById("cstruct");
   if(el&&el.querySelector("canvas")){ freeMV(el); el.dataset.parked="1"; el.replaceChildren(); }
@@ -1587,13 +1636,25 @@ async function mvmLoad(sub){
   document.getElementById("mvm-kind").textContent="Relaxation movie";
   document.getElementById("mvm-body").classList.remove("static");
   document.getElementById("moviemodal").classList.add("continuous");
+  // How far the atoms actually travel. A converged run moves by hundredths of an angstrom, which
+  // reads as a frozen movie unless the number is on screen.
+  const lastLat=frames[frames.length-1].lat||t.lat, lastP=frames[frames.length-1].p;
+  let maxDisp=0;
+  frames[0].p.forEach((p0,i)=>{
+    const d=p0.map((v,k)=>{let x=lastP[i][k]-v;return x-Math.round(x);});
+    const x=d[0]*lastLat[0][0]+d[1]*lastLat[1][0]+d[2]*lastLat[2][0],
+          y=d[0]*lastLat[0][1]+d[1]*lastLat[1][1]+d[2]*lastLat[2][1],
+          z=d[0]*lastLat[0][2]+d[1]*lastLat[1][2]+d[2]*lastLat[2][2];
+    const q=Math.hypot(x,y,z); if(q>maxDisp) maxDisp=q;
+  });
+  const dispText=maxDisp<0.005?"under 0.01 \u00c5 \u2014 already converged":`${maxDisp.toFixed(2)} \u00c5`;
   document.getElementById("mvm-summary").innerHTML=
     `Continuous ionic relaxation <span class="sep">|</span> ${converged?"force converged":"force not converged"} <span class="sep">|</span> `+
     `${t.nframes} ionic steps <span class="sep">|</span> total energy decrease ${decreaseText}`+
+    ` <span class="sep">|</span> largest atom displacement ${dispText}`+
     (frames.length<t.nframes?` <span class="sep">|</span> ${frames.length} frames stored`:"");
-  // the trajectory pane is MatterViz; the defect site is marked by radius, not colour
   MVM.kosmosPayload={type:"traj_frames",name:document.getElementById("mvm-title").textContent,
-    dark:MVM.dark||null,species:t.species,defaultLattice:t.lat,
+    dark:MVM.dark||null,marks:MVM.marks||[],species:t.species,defaultLattice:t.lat,
     frames:frames.map((f,i)=>({positions:f.p,lattice:f.lat||t.lat,energy:f.e,fmax:f.f,step:f.i??i}))};
   const viewer=document.getElementById("mvm-kosmos");
   viewer.style.display="";
@@ -1633,7 +1694,7 @@ async function mvmShow(i){
     const fresh=document.createElement("div"); fresh.className="mvbuf";
     fresh.style.cssText=`position:absolute;inset:0;width:${grid.clientWidth||600}px;height:${grid.clientHeight||470}px;visibility:hidden`;
     grid.appendChild(fresh);
-    try{ window.renderMatterViz(st, fresh, Object.assign({show_controls:false},defectSiteMark(st,MVM.dark))); }catch(e){}
+    try{ window.renderMatterViz(st, fresh, Object.assign({show_controls:false},defectSiteMark(st,MVM.marks))); }catch(e){}
     await new Promise(resolve=>{
       let attempts=0;
       const ready=()=>{
