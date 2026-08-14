@@ -300,6 +300,25 @@ A flat envelope also autoscaled to a few meV (0.738-0.740 eV in the user's scree
 as structure where there is none. The y-axis now holds a **0.2 eV minimum span** centred on the
 value - measured [0.576, 0.816] for Sb_Te+Cl_Te - so a horizontal envelope looks horizontal.
 
+## Formation-energy plot readability + movie caption subscripts (2026-08-14)
+
+- **"The plot is a mess" was a flat envelope, not a bug.** For `Sb_Te+Cl_Te` in CdTe (PBEsol,
+  Cd-rich) the envelope is **q = 0 at 0.740 eV across the entire gap**, with the only transition,
+  (+1/0), at **E_F = 0.005 eV** - i.e. sitting on the valence-band edge. Autoscaling then gave a
+  2 meV y-window, so a physically horizontal line looked like noise.
+- The plot now states what it is doing: an annotation names the charge state that holds the envelope
+  over >=90% of the gap and lists every transition level, flagging any within 15 meV of an edge as
+  "(at the VBM)"/"(at the CBM)". Measured: `Sb_Te+Cl_Te`/CdTe -> "q = 0 lowest across the gap .
+  eps(+1/0) = 0.00 eV (at the VBM)"; `Bi_Te+O_Te` -> "eps(+1/0) = 0.02 eV . eps(0/-1) = 0.34 eV .
+  eps(-1/-2) = 0.51 eV".
+- **Width**, since it was asked directly: the plot was never narrowed. It went 360 px (pre-density)
+  -> 456 px (proportional columns) -> **596 px** now, by widening the defect modal from 930 to
+  1180 px; the columns measure 540 / 596 at a 1400 px window and 0 of 2 tick labels clip.
+- **Movie caption subscripts:** the payload carried `mvm-title.textContent`, which strips the `<sub>`
+  markup, so Kosmos's caption read "BiTe+OTe in CdSe0.20Te0.80". Its caption is rendered as HTML
+  (`fl(node, () => p(name), true)`, where `p()` maps `X_Y` to `X<sub>Y</sub>`), so it now receives
+  `innerHTML` and renders "Bi_Te+O_Te in CdSe(0.20)Te(0.80)" with real subscripts.
+
 ## Mistakes & corrections log (append-only)
 - **2026-08-14 - overrode the reference's own defect detection.** WHAT I DID WRONG: after vendoring
   Kosmos's structgrid I still passed my own `highlight` index list, which takes priority over its

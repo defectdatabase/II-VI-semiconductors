@@ -224,7 +224,7 @@ body{letter-spacing:-.006em}
 #detail,#cdetail{padding:15px 18px}.dhead{font-size:15px;font-weight:700;margin:0 92px 10px 0}
 #cdetail .dgrid{grid-template-columns:minmax(300px,.92fr) minmax(420px,1.08fr)!important;gap:18px!important}
 .dcol h4{font-size:14px;font-weight:700;text-transform:none;letter-spacing:0}
-#detail{width:min(930px,calc(100vw - 32px));max-height:min(780px,calc(100vh - 32px))}
+#detail{width:min(1180px,calc(100vw - 32px));max-height:min(860px,calc(100vh - 32px))}
 /* Both columns scale with the modal. A fixed or content-sized left track either strands empty
    space beside the tables or pushes the plot and viewer over; a proportional split cannot. */
 #detail .dgrid{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)!important;gap:14px}
@@ -924,8 +924,21 @@ async function dRedrawPlot(){
       text:kinks.map(k=>k.t),hovertemplate:"ε%{text} = %{x:.2f} eV<extra></extra>"});
   // lowest-energy envelope only — per-charge context lines removed (user request 2026-08-13)
   const pad=Math.max(0.06,0.12*r.g);
-  // A flat envelope (one charge state lowest across the gap) otherwise autoscales to a few meV, so
-  // an exactly horizontal line reads as though it carried structure. Hold a 0.2 eV minimum span.
+  /* Say what the envelope is doing. A defect that keeps one charge state across the whole gap draws
+     a horizontal line and nothing else, which reads as a broken plot unless the plot says so. */
+  const qSeq=xs.map(x=>envelope(r,pick,x)[1]).filter(q=>q!==null);
+  const qUniq=[...new Set(qSeq)];
+  const qTxt=q=>q>0?`+${q}`:`${q}`;
+  const edge=e=>e<=0.015?" (at the VBM)":(r.g-e<=0.015?" (at the CBM)":"");
+  // which charge state holds the envelope over most of the gap
+  const qCount={}; qSeq.forEach(q=>{qCount[q]=(qCount[q]||0)+1;});
+  const qTop=Object.entries(qCount).sort((x,y)=>y[1]-x[1])[0];
+  const dominant=qTop&&qTop[1]/qSeq.length>=0.9?Number(qTop[0]):null;
+  const levels=kinks.map(k=>`\u03b5${k.t} = ${k.x.toFixed(2)} eV${edge(k.x)}`).join(" \u00b7 ");
+  let envNote="";
+  if(dominant!==null)
+    envNote=`q = ${qTxt(dominant)} lowest across the gap`+(levels?` \u00b7 ${levels}`:"");
+  else if(levels) envNote=levels;
   const yLo=Math.min(...ys), yHi=Math.max(...ys), ySpan=yHi-yLo;
   const yRange=ySpan<0.2?[(yLo+yHi)/2-0.12,(yLo+yHi)/2+0.12]:[yLo-0.06*ySpan,yHi+0.10*ySpan];
   const box=document.getElementById("efdetailplot");
@@ -939,6 +952,9 @@ async function dRedrawPlot(){
            range:yRange,gridcolor:"#e3e6eb",griddash:"dash",automargin:true},
     shapes:[{type:"rect",xref:"x",x0:-pad,x1:0,yref:"paper",y0:0,y1:1,fillcolor:"#1f77b41f",line:{width:0}},
             {type:"rect",xref:"x",x0:r.g,x1:r.g+pad,yref:"paper",y0:0,y1:1,fillcolor:"#ff7f0e1f",line:{width:0}}],
+    annotations:envNote?[{xref:"paper",yref:"paper",x:0.015,y:0.98,xanchor:"left",yanchor:"top",
+      showarrow:false,align:"left",text:envNote,font:{size:11,color:"#62727c"},
+      bgcolor:"rgba(255,255,255,.72)",borderpad:2}]:[],
     margin:{l:52,r:8,t:6,b:56},font:{family:"Arial Narrow"},
     plot_bgcolor:"#f7f8fa",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
 }
@@ -1755,7 +1771,7 @@ async function mvmLoad(sub){
     (frames.length<t.nframes?` <span class="sep">|</span> ${frames.length} frames stored`:"");
   const dsite=(MVM.marks||[]).map(i=>frames[frames.length-1].p[i].slice())
     .concat((MVM.vac||[]).map(v=>v.abc.slice()));
-  MVM.kosmosPayload={type:"traj_frames",name:document.getElementById("mvm-title").textContent,
+  MVM.kosmosPayload={type:"traj_frames",name:document.getElementById("mvm-title").innerHTML,
     dsite:dsite.length?dsite:null,species:t.species,defaultLattice:t.lat,
     frames:frames.map((f,i)=>({cif:frameCIF(t.species,f.lat||t.lat,f.p),
       energy:f.e,fmax:f.f,step:f.i??i,positions:f.p,lattice:f.lat||t.lat}))};
