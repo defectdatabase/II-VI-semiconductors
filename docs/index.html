@@ -277,28 +277,25 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
       <div class="dgrid">
         <div class="dcol">
           <h4>Σ calculation (raw data)</h4>
-          <div id="dsigma"></div>
+          <div id="dsigma" style="max-height:560px;overflow-y:auto;padding-right:6px"></div>
         </div>
         <div class="dcol">
           <h4 style="display:flex;align-items:center;gap:10px">Formation energy vs Fermi level
             <select id="dcondsel" onchange="dRedrawPlot()"></select></h4>
           <div id="efdetailplot"></div>
-          <p class="footnote" style="margin-top:6px">Lower envelope of E<sub>f</sub><sup>q</sup>(E<sub>F</sub>)
-            across charge states; segment slope = charge state q. The curve shifts rigidly with growth
-            condition — its shape is condition-independent. Charged states without an archived eFNV
-            correction are dotted and never enter the envelope.</p>
-          <table class="minitbl" id="dcondtbl" style="margin-top:8px"></table>
-          <div style="margin-top:10px" id="dmoviebtn"></div>
+          <div style="margin-top:8px" id="dmoviebtn"></div>
+          <div id="dtranswrap" style="display:none">
+            <h4 style="margin-top:12px">Charge-state transition levels <span class="sub">ε(q/q′) eV above VBM</span></h4>
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div id="dladder" style="width:110px;flex:0 0 110px"></div>
+              <table class="minitbl" id="dtranstbl"></table>
+            </div>
+            <p class="footnote" id="dtransnote"></p>
+          </div>
         </div>
         <div class="dcol">
-          <h4>Charge-state transition levels <span class="sub">ε(q/q′) eV above VBM</span></h4>
-          <div style="display:flex;gap:14px;align-items:flex-start">
-            <div id="dladder" style="width:120px;flex:0 0 120px"></div>
-            <table class="minitbl" id="dtranstbl"></table>
-          </div>
-          <p class="footnote" id="dtransnote"></p>
-          <h4 style="margin-top:14px">Defect structure — defect species in black</h4>
-          <div id="dstruct" style="height:330px"></div>
+          <h4 id="dstructhead">Defect structure</h4>
+          <div id="dstruct" style="height:420px"></div>
           <div class="notebox" id="dstructnote"></div>
         </div>
       </div>
@@ -426,6 +423,21 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 let DEFECTS=[], COMPOUNDS=[], REFS={}, HAVE_STRUCT=new Set(), HAVE_TRAJ=new Set(), HAVE_DOS=new Set();
 let plotlyP=null;
 let OPTICS=null, opticsP=null;
+let CHEMPOT=null, chempotP=null;
+function loadChempot(){
+  if(!chempotP) chempotP=(async()=>{
+    try{
+      const r=await fetch("chempot.json.gz");
+      if(r.ok&&typeof DecompressionStream!=="undefined"){
+        const ds=new DecompressionStream("gzip");
+        CHEMPOT=JSON.parse(await new Response(r.body.pipeThrough(ds)).text());
+      }
+    }catch(e){}
+    if(!CHEMPOT) CHEMPOT={};
+    return CHEMPOT;
+  })();
+  return chempotP;
+}
 function loadOptics(){                       // 0.7 MB gzipped, fetched only when a modal needs it
   if(!opticsP) opticsP=(async()=>{
     try{
@@ -595,11 +607,6 @@ async function dOpenDetail(r){
   const csel=document.getElementById("dcondsel");
   csel.innerHTML=conds.map(([c,l],i)=>`<option value="${c}"${i===0?" selected":""}>${l}</option>`).join("");
   csel.style.display=conds.length?"":"none";
-  // per-condition table
-  const rows=[["Cd-rich",r.efVc,r.qVc,r.efMc,r.qMc,r.efCc,r.qCc],[anion+"-rich",r.efVt,r.qVt,r.efMt,r.qMt,r.efCt,r.qCt]];
-  document.getElementById("dcondtbl").innerHTML=
-    `<tr><th>Condition</th><th>Eᶠ@VBM</th><th>q</th><th>Eᶠ@mid</th><th>q</th><th>Eᶠ@CBM</th><th>q</th></tr>`+
-    rows.map(x=>`<tr><td>${x[0]}</td><td>${fmt(x[1])}</td><td>${fq(x[2])}</td><td>${fmt(x[3])}</td><td>${fq(x[4])}</td><td>${fmt(x[5])}</td><td>${fq(x[6])}</td></tr>`).join("");
   // ---------- sigma blocks: one per vertex, everything read from the archived record ----------
   const qsAll=QS.filter(q=>(r.rq&&q in r.rq)||q in r.e||(r.u&&q in r.u));
   const vert=[["mc","Cd-rich",`${r.h} + Cd`],["mt",anion+"-rich",`${r.h} + ${anion}`]];
@@ -634,7 +641,38 @@ async function dOpenDetail(r){
     shown uncorrected, excluded from the envelope and the transition levels. Corrections are the
     campaign's Kumagai eFNV values. "not run" = that charge state was not part of the campaign ladder;
     nothing is interpolated. Host: ${subHTML(r.h)} · class ${r.cls}.</p>`;
-  document.getElementById("dsigma").innerHTML=sig;
+  const sigEl=document.getElementById("dsigma");
+  typeInto(sigEl,sig);
+  loadChempot().then(()=>{
+    if(dSel!==r||!CHEMPOT[r.f]) return;
+    const cp=CHEMPOT[r.f];
+    const hostKey=(cp.hosts&&cp.hosts[r.h])?r.h:null;
+    let app=`<div style="margin-top:10px"><b>How the chemical potentials were solved</b></div>
+      <div style="color:var(--wbg-muted);font-size:12.5px;margin:2px 0 6px">The chem_pot engine intersects the host
+      equality with every competing phase below; each vertex fixes the μ set quoted above. All energies are raw
+      OSZICAR F of the archived competing-phase runs (${THEORY[r.f]}).</div>`;
+    if(hostKey&&cp.hosts[hostKey]){
+      const t=cp.hosts[hostKey];
+      app+=`<div style="font-size:12.5px;margin-bottom:4px"><b>Vertices for ${subHTML(hostKey)}</b> (limit · Δμ per element · absolute μ):</div>
+        <table class="minitbl">`+
+        `<tr>${t.header.map(h=>`<th>${h}</th>`).join("")}</tr>`+
+        t.rows.map(row=>`<tr>${row.map(c=>`<td>${isNaN(+c)?c:(+c).toFixed(3)}</td>`).join("")}</tr>`).join("")+
+        `</table>`;
+    }
+    const ph=Object.entries(cp.phases||{});
+    if(ph.length){
+      app+=`<div style="font-size:12.5px;margin:8px 0 4px"><b>Competing phases</b> (${ph.length} archived runs — raw F, atoms, E/atom):</div>
+        <table class="minitbl">`+
+        `<tr><th>Phase</th><th>F (eV)</th><th>atoms</th><th>E/atom</th></tr>`+
+        ph.map(([n,[F,na]])=>`<tr><td>${subHTML(n)}</td><td>${F.toFixed(2)}</td><td>${na}</td><td>${(F/na).toFixed(3)}</td></tr>`).join("")+
+        `</table>`;
+    }
+    // append after the typewriter finishes so the animation is not restarted
+    const wait=setInterval(()=>{
+      if(dSel!==r){clearInterval(wait);return;}
+      if(!sigEl.querySelector(".caret")){ clearInterval(wait); sigEl.insertAdjacentHTML("beforeend",app); }
+    },300);
+  });
   // ---------- transition levels from corrected states ----------
   const qsC=QS.filter(q=>q in r.e).map(Number).sort((a,b)=>b-a);
   const levels=[];
@@ -653,6 +691,7 @@ async function dOpenDetail(r){
   });
   const shown=envLv.length?envLv:levels.filter(L=>L.eps>-r.g*0.5&&L.eps<r.g*1.5);
   const chr=e=>e<=0.1||e>=r.g-0.1?"shallow":"deep";
+  document.getElementById("dtranswrap").style.display=shown.length?"":"none";
   document.getElementById("dtranstbl").innerHTML=shown.length
     ? `<tr><th>Transition</th><th>ε (eV)</th><th>Character</th></tr>`+
       shown.map(L=>`<tr><td>${L.t}</td><td>${L.eps.toFixed(2)}</td>
@@ -742,14 +781,26 @@ async function mountDefectStructure(r,dkey){
   const el=document.getElementById("dstruct"), note=document.getElementById("dstructnote");
   const col=el.closest(".dcol"), grid=el.closest(".dgrid");
   freeMV(el); el.replaceChildren(); note.innerHTML=""; note.style.display="none";
-  if(!HAVE_TRAJ.has(dkey)){
-    col.style.display="none";
-    grid.style.gridTemplateColumns="minmax(300px,380px) 1fr";
-    return;
-  }
   col.style.display="";
   grid.style.gridTemplateColumns="";
   note.style.display="";
+  if(!HAVE_TRAJ.has(dkey)){
+    const hostKey=(r.f==="pbesol"?"pbesol__":"hse_soc__")+r.h;
+    document.getElementById("dstructhead").textContent="Host structure";
+    if(HAVE_STRUCT.has(hostKey)){
+      try{
+        const resp=await fetch(`structures/${encodeURIComponent(hostKey)}.json`);
+        const st=hydrate(await resp.json());
+        await loadMV(st);
+        renderGrid(st, el);
+        note.innerHTML=`Defect geometry not archived for this row — showing the relaxed ${subHTML(r.h)} host supercell.`;
+      }catch(e){ el.innerHTML='<div class="notebox" style="margin:12px">No geometry archived for this row.</div>'; }
+    } else {
+      el.innerHTML='<div class="notebox" style="margin:12px">No geometry archived for this row.</div>';
+    }
+    return;
+  }
+  document.getElementById("dstructhead").textContent="Defect structure — defect species in black";
   el.innerHTML='<div class="notebox" style="margin:12px">loading defect structure…</div>';
   let data=null;
   try{
