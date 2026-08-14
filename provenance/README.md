@@ -370,3 +370,44 @@ Two Globus transfers fed this: `a2bcx4-3x3x2-defects` (1.67 TB, 314 hosts) and `
   working jobs and, worse, once read an empty stdout as a successful migration that had done nothing
   → THE GUARD: `ssh polaris python3 -u -`, and always re-list the target to confirm the mutation →
   GUARD LIVES IN the Eagle README's trap list.
+
+## Defect tree normalised; raw physics extraction (2026-08-14)
+
+`DFT/defect/<theory>/<host>/<defect>/<charge>` is now enforced and verified across **57,243 runs**.
+The blocker was an undecoded dopant naming family: `M_<site>-<element>[-<config>]`, where `M` is a
+placeholder and the dopant is the element after the dash. 7,913 directories were renamed
+(`M_A-Ag-3` → `Ag_A-3`, `M_i_neut-Ag-10` → `Ag_i_neut-10`). Wrapper levels were collapsed, 19
+host-bulk runs were moved out of the defect tree (all proven duplicates of runs already in `bulk/`),
+227 dopant/native name collisions merged, 164 empty charge dirs pruned, and 21,241 A2BCX4 stage
+siblings merged into 7,362 compounds.
+
+`01_raw_dft/` (0 runs; a Python virtualenv) and `02_derived/` (5,675 runs, every one verified
+already present in `DFT/`) were deleted. 303,105 script/slurm/CSV/JSON files were removed from
+inside the tree; 1,654,365 VASP data files kept.
+
+Two different meanings share the `-N` suffix and must not be conflated: A2BCX4/ABX2 PBEsol `-1/-2/-3`
+are **relaxation stages** (constant cell in 161 of 200 sampled, F falling a few meV/atom), while
+Cd-Zn-X `<ordering>-<rep>` are **SQS orderings** (identical 64-atom cell, 0.9–4.9 meV/atom spread,
+non-monotonic). The site therefore publishes one row per composition: configurational average with
+the spread as an uncertainty, and the ground-state ordering for the hull.
+
+Everything published is recomputed from raw VASP output — OSZICAR `F` (never `E0`), EIGENVAL band
+edges by occupancy, CONTCAR lattice/composition, KPOINTS, POTCAR TITELs, vasprun ε(ω),
+ABSORPTION.dat α(E), DOSCAR element-projected DOS. Defect cells read only OSZICAR/CONTCAR/KPOINTS;
+their band edges come from the host.
+
+### Mistakes & corrections log
+
+- **2026-08-14 — I claimed the library had almost no dielectric data and proposed running new DFT.**
+  I reported "only 114 compounds have ε" and asked whether to launch thousands of LEPSILON jobs →
+  WRONG: the number came from a **117-run test shard** of HSE+SOC plus the one tree (PBEsol) that
+  genuinely has no optics; I had never extracted the HSE+SOC bulk tree at all. The real coverage is
+  **6,235 of 6,998 HSE+SOC runs with ABSORPTION.dat and 6,760 with WAVEDER** → THE GUARD: never
+  quote coverage from a shard — extract the tree, then count, and state the denominator alongside
+  the numerator → GUARD LIVES IN the Eagle README's optics-coverage table.
+- **2026-08-14 — I asserted a 1,026 eV energy spread meant "different cell sizes" without measuring.**
+  The user challenged it and he was right to: across 200 compounds, **161 have identical atom counts
+  at every stage** and the spread is a few meV/atom; only 39 mix cells, and there F/atom agrees to
+  3 meV → THE GUARD: never explain an energy difference without dividing by atom count first →
+  GUARD LIVES IN the Eagle README's `-N` section.
+
