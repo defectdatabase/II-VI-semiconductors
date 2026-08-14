@@ -224,7 +224,7 @@ body{letter-spacing:-.006em}
 #detail,#cdetail{padding:15px 18px}.dhead{font-size:15px;font-weight:700;margin:0 92px 10px 0}
 #cdetail .dgrid{grid-template-columns:minmax(300px,.92fr) minmax(420px,1.08fr)!important;gap:18px!important}
 .dcol h4{font-size:14px;font-weight:700;text-transform:none;letter-spacing:0}
-#detail{width:min(1180px,calc(100vw - 32px));max-height:min(860px,calc(100vh - 32px))}
+#detail{width:min(930px,calc(100vw - 32px));max-height:min(780px,calc(100vh - 32px))}
 /* Both columns scale with the modal. A fixed or content-sized left track either strands empty
    space beside the tables or pushes the plot and viewer over; a proportional split cannot. */
 #detail .dgrid{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)!important;gap:14px}
@@ -321,9 +321,7 @@ body{letter-spacing:-.006em}
 .kv div{padding:3px 0}
 .notebox{padding:6px 8px;font-size:12.3px}
 #cnote{font-size:12px}
-/* Aspect, not width: at 596 px wide a 252 px box is a 2.4:1 band and a flat envelope looks like a
-   ruled line. 380 px puts it near 3:2 without leaving dead space beside a narrowed plot. */
-#detail #efdetailplot{height:380px}
+#detail #efdetailplot{height:252px}
 #detail #dstruct{height:340px!important;border:1px solid var(--wbg-border);border-radius:8px}
 #cstruct{height:340px!important}
 .dos-empty{height:150px;padding:14px}
