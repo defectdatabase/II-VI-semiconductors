@@ -610,3 +610,133 @@ the k-mesh.
   rather than piping it through `tail` → GUARD LIVES IN `build_all.py` (the `PH` phase index) and
   the Eagle README trap list.
 
+
+---
+
+# HANDOFF STATE — 2026-08-14 23:40 UTC
+
+Read this section first. It is the current truth; everything above is history.
+
+## Where the data is
+
+```
+/eagle/wbg_defects/chalcogenide_defects/
+  DFT/bulk/<theory>/<compound>[/<variant>]/          variant = SQS ordering or relaxation stage
+  DFT/defect/<theory>/<host>/<defect>/<charge>/
+  log/                     extractors, derived products, build logs
+  incoming/                In2O3 + ZnIn2X4 landing here from Globus
+  duplicates_across_campaigns/  unclassified/  quarantine_non_physics/  defect_name_collisions/
+```
+
+theory ∈ {PBE, PBEsol, HSE, HSE+SOC} · charge ∈ {Neutral, Charged±1, Charged±2, Charged+3}
+
+## Derived products (all from raw VASP, no CSV ever read)
+
+`log/build_all.py` is the ONE build. `log/build_all.log` is its last run.
+
+| product | file | count |
+|---|---|---|
+| bulk rows | `derived_bulk.json` | **28,218** |
+| ├ formation energy / atom | | 26,201 |
+| ├ band gap (occupancy-based) | | 26,313 |
+| ├ ε xx/yy/zz + average | | 6,764 |
+| ├ absorption α(E) | | 6,764 |
+| └ decomposition energy + decomposition products | | 22,784 |
+| defect rows | `derived_defect.json` | **4,020** |
+| └ with chem-pot vertices | | 820 |
+| chem-pot polytope vertices | `chempot.json` | per host, facet-named |
+
+Determinism gate: `derived_bulk sha256 = 250a55c1d6caaab8`. A rebuild must reproduce it.
+
+Raw extraction feeding it: `phys_bulk` 43,262 · `phys_defect` 56,257 · `dos_*` 40,007 ·
+`steps_*` **88,194** (per-ionic-step E, max force + its atom index, full INCAR, PAW TITELs, k-mesh).
+
+## Host matching — READ THIS BEFORE TRUSTING ANY "MISSING HOST" COUNT
+
+A defect host and its bulk compound are the same material written differently:
+
+```
+defect  Ag1Al0.5In0.5S1Se1         bulk  Ag1Al0.5In0.5S1Se1_kesterite     polymorph suffix
+defect  CdSe0.2Te0.8               bulk  CdSe0.20Te0.80                   decimal spelling
+defect  Ag1Al0.5Ga0.5S2_kesterite  bulk  Ag1Al0.5Ga0.5S2_kesterite-3      stale stage suffix
+```
+
+Matching on the literal string reported **1,662 "missing hosts"**. Matching on **composition**
+(preferring same polymorph, then lowest energy per atom) gives **444** — and defect rows went
+2,875 → **4,020**. The remaining 444 are a real gap, dominated by `PBE/CdS` (404 groups) and
+`PBE/ZnS` (40): those binary hosts have defect calculations but no bulk run in the same theory.
+
+## HSE Cd-Zn-X defects — FOUND, extraction in progress
+
+`/anvil/projects/x-mat250008/pccp_defectff_paper/Cd-Zn-X.tar` (4.1 TB) →
+`Cd-Zn-X/HSE/data/defect-<host>-M_<site>-<element>-<config>/{Neutral,Charged±1,±2}/` —
+**39,147 HSE OSZICARs**, plus a duplicate copy under `Cd-Zn-X/backup/HSE/`. Same flat naming as the
+PBE set, so the existing parser and the `M_<site>-<El>` → `<El>_<site>` rename apply unchanged.
+Selective extraction is running on Anvil into `/anvil/scratch/x-mrahman2/cdznx_hse`
+(WAVECAR/CHGCAR/CHG/PROCAR/vaspout excluded); next step is Globus → Eagle → file under
+`DFT/defect/HSE/`.
+
+Processed HSE results (no DOS, which is why the raw tree is needed):
+`/scratch/gautschi/rahma103/hse_master_data/{Neutral,Charged±1,±2}/*.csv`, columns
+`Structure, Energy, Forces, Stress, Directory, Frequency, CFE, Tag`.
+
+Other datasets, all tarballs in `/anvil/projects/x-mat250008`:
+In2O3 42 GB · ZnIn2X4 23 GB (both transferring) · Cd-Zn-X 4.1 TB · 34_ZB_Semiconductors 48 GB.
+
+## EVERY MISTAKE MADE IN THIS SESSION
+
+**Applied to the data, then reversed** (recoverable only because extraction ran BEFORE renaming):
+1. Parked **34,728 real bulk runs** as duplicates — the computed target was the source's own
+   ancestor, so `os.path.exists(target)` was always true.
+2. Stripped the trailing `-N` from Cd-Zn-X names, collapsing ~20 SQS configurations per defect and
+   parking **76,406** dirs; 35,744 restored.
+3. Collapsed `X_i_A`, `X_i_B`, `X_i_neut` onto `X_i`, merging three distinct interstitial sites
+   (53 groups, 124 dirs).
+4. Canonicalised compound names per-tree instead of globally → bulk `CdSe0.20Te0.80` vs defect
+   `CdSe0.2Te0.8`.
+
+**False statements made to the user:**
+5. A "5 TB quota emergency" — the real quota is 100 TB with 35 TB used.
+6. "Only 114 compounds have ε", quoted from a 117-run test shard of the one tree without optics,
+   with a proposal to run thousands of unnecessary LEPSILON jobs. Real number **6,764**.
+7. "A 1,026 eV spread means different cell sizes" — asserted without dividing by atom count;
+   161 of 200 sampled compounds have identical cells.
+8. "1,662 defect groups have no host bulk" — string matching instead of composition matching.
+   Real number **444**.
+
+**Caught by dry-run before applying:**
+9. A classifier scanning path tokens against a formula regex — `DFT`, `A2BCX4`, `ABX2`, `POSCAR`,
+   `OUTCAR` and every single capital matched; a folder ending `_pbesol` flipped an HSE run's
+   theory. Would have misfiled 65.8 % of defects.
+10. A canonicaliser that alphabetised elements: `Cu2ZnSnS4` → `Cu2S4SnZn`, 20,895 dirs.
+11. A "most explicit spelling wins" survivor rule that chose `Te3As2` over `As2Te3` and preferred
+    the pipeline's own `_supercell` / `__from_defect_tree` suffixes.
+
+**Engineering bugs (cost time, not correctness):**
+12. Piped Python buffers on Polaris — empty stdout read as a hang, and once as a *successful*
+    migration that had done nothing. Always `python3 -u`, always re-list the target.
+13. `nohup … &` inside an ssh command is SIGHUP'd on session close; the log stays 0 bytes.
+14. Shell `for` loops trip the login-node fork limit.
+15. OSZICAR regex missed VASP's `F= -.169E+04` form → 0 defects reported for a 302-run campaign.
+16. EIGENVAL occupancy convention wrong for ISPIN=2 → every gap came out empty.
+17. `read_outcar` slurped whole multi-GB OUTCARs → extraction stalled.
+18. O(n²) decomposition scan and C(m, k−1) vertex enumeration — both simply hung.
+
+**The pattern:** failures cluster in *inferring meaning from names* — site tags, configuration
+indices, polymorph suffixes, decimal spellings — where tidiness was chosen over fidelity and a real
+distinction was destroyed. The guard that has worked every time: dry-run first, verify against the
+physics (atom counts, energies, geometries), and keep an extraction snapshot taken **before** any
+rename so mistakes stay reversible.
+
+## What is still open
+
+- Charged defect states are **uncorrected**. LOCPOT exists for HSE / HSE+SOC / PBEsol defects
+  (FNV possible) but NOT for the 41,725 PBE Cd-Zn-X runs (image-charge only). No OUTCAR carries the
+  site-potential block eFNV would need.
+- SLME itself is not yet computed — the ingredients (gap, direct/indirect, ε, α(E)) are all in
+  `derived_bulk.json`, but no AM1.5G reference spectrum was found on Eagle or Anvil. It must be
+  supplied or generated before SLME can be published.
+- 444 defect groups have no same-theory bulk host; 284 have no neutral run. Both excluded and
+  counted, never filled.
+- Site payloads have NOT been rebuilt or deployed from these derived products yet.
+- `x-mat230068_2026-05-26.tar` (5.4 TB) index still running.
