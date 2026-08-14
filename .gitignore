@@ -135,3 +135,7 @@ Thumbs.db
 
 # Streamlit
 .streamlit/secrets.toml
+
+# build tooling for the MatterViz viewer bundle
+viewer_src/node_modules/
+viewer_src/package-lock.json
