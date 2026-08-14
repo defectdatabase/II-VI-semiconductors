@@ -363,6 +363,21 @@ body{letter-spacing:-.006em}
 </head>
 <body>
 
+<script>
+/* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
+   publish. Compare this build's stamp with the one on the server and reload once if they differ. */
+(function(){
+  var BUILD_ID="b045c6393630";
+  try{
+    fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
+      if(!v||!v.id||v.id===BUILD_ID) return;
+      if(sessionStorage.getItem("ddb-reloaded")===v.id) return;   // never loop
+      sessionStorage.setItem("ddb-reloaded",v.id);
+      location.replace(location.pathname+"?v="+v.id+location.hash);
+    }).catch(function(){});
+  }catch(e){}
+})();
+</script>
 <div id="attr">
   <span class="who">Md Habibur Rahman · School of Materials Engineering, Purdue University</span> ·
   <a href="mailto:imd.habiburrahman@gmail.com">imd.habiburrahman@gmail.com</a> ·
