@@ -192,7 +192,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #detail .notebox,#cdetail .notebox{background:var(--wbg-surface) !important;color:#475569 !important}
 #cdetail #cnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
 #cdetail #cmapnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
-#incarbody,#cdetail #cnote,#cdetail #cmapnote{text-align:justify}
+#incarbody,#cdetail #cnote,#cdetail #cmapnote,#dsigma{text-align:justify}
 #cdetail #cnote .caret{display:inline-block;width:7px;background:var(--wbg-accent);height:1em;
   vertical-align:text-bottom;animation:mvblink .8s steps(1) infinite}
 @keyframes mvblink{50%{opacity:0}}
@@ -280,23 +280,23 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
           <div id="dsigma" style="max-height:560px;overflow-y:auto;padding-right:6px"></div>
         </div>
         <div class="dcol">
-          <h4 style="display:flex;align-items:center;gap:10px">Formation energy vs Fermi level
-            <select id="dcondsel" onchange="dRedrawPlot()"></select></h4>
+          <h4 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Formation energy vs Fermi level
+            <select id="dcondsel" onchange="dRedrawPlot()"></select>
+            <span id="dmoviebtn"></span></h4>
           <div id="efdetailplot"></div>
-          <div style="margin-top:8px" id="dmoviebtn"></div>
+          <h4 id="dstructhead" style="margin-top:10px">Defect structure</h4>
+          <div id="dstruct" style="height:380px"></div>
+          <div class="notebox" id="dstructnote"></div>
+        </div>
+        <div class="dcol">
           <div id="dtranswrap" style="display:none">
-            <h4 style="margin-top:12px">Charge-state transition levels <span class="sub">ε(q/q′) eV above VBM</span></h4>
+            <h4>Charge-state transition levels <span class="sub">ε(q/q′) eV above VBM</span></h4>
             <div style="display:flex;gap:14px;align-items:flex-start">
               <div id="dladder" style="width:110px;flex:0 0 110px"></div>
               <table class="minitbl" id="dtranstbl"></table>
             </div>
             <p class="footnote" id="dtransnote"></p>
           </div>
-        </div>
-        <div class="dcol">
-          <h4 id="dstructhead">Defect structure</h4>
-          <div id="dstruct" style="height:420px"></div>
-          <div class="notebox" id="dstructnote"></div>
         </div>
       </div>
     </div>

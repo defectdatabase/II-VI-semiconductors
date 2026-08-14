@@ -106,7 +106,30 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
 - Axis views are orthographic projections sighted down the cell vectors (labeled Along a/b/c).
 - Sweep scripts: dos_sweep.py, ref_dos_sweep.py, hse06_dos_sweep.py (Anvil defectdb_recompute/).
 
+## Defect-modal transparency + reference-design pass (2026-08-13 late)
+- Defect modal: per-vertex sigma blocks (E_defect,q / E_corr / dE / Ef@VBM per charge, not-run rows,
+  q=0 arithmetic check), typewriter-paced and scrollable, ending with the FULL chem-pot solution:
+  archived vertex tables (limit, delta-mu, absolute mu per element) and every archived competing
+  phase's raw F / atoms / E-per-atom (95 PBEsol + 96 HSE+SOC runs; docs/chempot.json.gz, built by
+  chempot_sweep.py from the chem_pot trees; alloy hosts mapped from Cd108SeXTeY supercell names).
+- Formation-energy plot: single envelope for the selected growth condition (vertex-labeled dropdown),
+  open-circle transition kinks, dotted uncorrected context lines, VBM/CBM bands; transition-level
+  ladder with shallow/deep character (hidden when no corrected charged states exist).
+- Viewers: panes are true orthographic projections aimed at the cell centre (camera_target) —
+  Perspective/Front/Top/Right everywhere; defect species rendered black (element_colors); right
+  column falls back to the relaxed host supercell when a defect kept no ionic steps.
+- Movie: Kosmos layout, all four panes animate via double-buffered swaps retired after paint
+  (no flash), panes clipped and width-bounded; per-frame E / dE / F max readout.
+- Payloads split for speed: data.json 5.1 MB at boot; optics.json.gz, chempot.json.gz and per-row
+  dos/*.json.gz fetched on demand.
+
 ## Mistakes & corrections log (append-only)
+- **2026-08-13 — repeatedly shipped UI changes the user had to reject** (duplicate movie chart,
+  a second borrowed-DOS panel, monospace font as "typewriter", pane header strips): WHAT WAS WRONG —
+  each was my interpretation layered on top of an explicit reference (the Kosmos site) instead of
+  copying the reference exactly. THE GUARD — when a reference site/recording exists, reproduce it
+  element-for-element and change nothing else without asking; a complaint about one element is not
+  licence to restyle its neighbours. WHERE THE GUARD LIVES — this log.
 - **2026-08-13 — redesigned the site instead of only fixing it.** WHAT I DID WRONG: to cure a slow
   page I shipped a whole new dark-header/three-column layout. WHY IT WAS WRONG: his words — "well I
   want prior design back my kosmos style back"; the complaint was speed, not styling, and the Kosmos
