@@ -1689,6 +1689,7 @@ function coverParentDetail(){
 }
 function closeMovie(){
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
+  if(MVM.loopTimer){clearInterval(MVM.loopTimer);MVM.loopTimer=null;}
   const g=document.getElementById("mvm-grid");
   if(g){ freeMV(g); g.replaceChildren(); }        // hand back 4 WebGL contexts
   const wasOpen=document.getElementById("moviemodal").classList.contains("on");
@@ -1698,6 +1699,23 @@ function closeMovie(){
   MVM.kosmosPayload=null;
   ["detail","cdetail"].forEach(id=>document.getElementById(id).classList.remove("movie-covered"));
   if(wasOpen) unparkStructure();
+}
+/* The vendored viewer plays the trajectory once and parks on the last frame, and an ionic
+   relaxation puts nearly all of its motion in the first few frames — so a viewer who looks up a
+   second late sees a still picture. Restart it whenever it has stopped on the final frame. */
+function mvmKeepPlaying(){
+  if(MVM.loopTimer) clearInterval(MVM.loopTimer);
+  MVM.loopTimer=setInterval(()=>{
+    const frame=document.getElementById("mvm-kosmos");
+    if(!frame||frame.dataset.ready!=="1"||!document.getElementById("moviemodal").classList.contains("on")) return;
+    try{
+      const doc=frame.contentDocument;
+      const play=[...doc.querySelectorAll("button")].find(b=>/play|pause|▶|⏸/i.test(b.textContent));
+      if(!play||!/▶|play/i.test(play.textContent)) return;          // still playing
+      const counter=(doc.body.innerText||"").match(/frame\s+(\d+)\s*\/\s*(\d+)/);
+      if(counter&&counter[1]===counter[2]) play.click();            // parked on the last frame
+    }catch(e){}
+  },1200);
 }
 function postKosmosTrajectory(){
   const frame=document.getElementById("mvm-kosmos");
@@ -1741,6 +1759,7 @@ async function mvmLoad(sub){
     viewer.dataset.ready="";
     viewer.setAttribute("src","pages/traj/index.html");
   }else postKosmosTrajectory();
+  mvmKeepPlaying();
 }
 /* Kosmos's trajectory viewer (vendored at pages/traj/) takes each frame as CIF text plus energy and
    fmax, and a dsite list of fractional coordinates: it recentres the cell on dsite[0] and highlights
