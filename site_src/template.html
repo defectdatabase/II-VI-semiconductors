@@ -322,8 +322,8 @@ body{letter-spacing:-.006em}
 .notebox{padding:6px 8px;font-size:12.3px}
 #cnote{font-size:12px}
 #detail #efdetailplot{height:210px}
-#detail #dstruct{height:225px!important}
-#cstruct{height:275px!important}
+#detail #dstruct{height:340px!important;border:1px solid var(--wbg-border);border-radius:8px}
+#cstruct{height:340px!important}
 .dos-empty{height:150px;padding:14px}
 .dos-empty-inner strong{font-size:14px}
 .archive-note{margin-top:10px;padding:8px;font-size:12px}
@@ -981,10 +981,9 @@ async function mountDefectStructure(r,trajKey){
     if(dSel!==r) return;
     if(model){
       document.getElementById("dstructhead").textContent="Defect structure · unrelaxed site model";
-      try{
-        await loadMV(model);
-        renderGrid(model,el,defectSiteIndices(model,await hostSupercell(r),defectColors(r),r.d));
-      }catch(e){ el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable.</div>'; }
+      const h0=await hostSupercell(r);
+      sgShow(el,{type:"struct",cif:structureCIF(model),bulkCif:h0?structureCIF(h0):null,
+        nparts:defectPartCounts(r.d).atoms+defectPartCounts(r.d).vac});
     }else{
       el.innerHTML='<div class="dos-empty"><div class="dos-empty-inner"><strong>Defect geometry unavailable</strong>No relaxed coordinates are archived, and an interstitial site cannot be inferred reliably from the host structure.</div></div>';
     }
@@ -1019,17 +1018,15 @@ async function mountDefectStructure(r,trajKey){
   DSTRUCT_MARKS=marks; DSTRUCT_VAC=vac;
   const base=pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure";
   const bits=[];
-  if(marks.length) bits.push(`${marks.length} defect ${marks.length===1?"atom":"atoms"} enlarged`);
-  if(vac.length) bits.push(`${vac.length} ${vac.length===1?"vacancy":"vacancies"} — ringed in the movie, no atom to scale here`);
+  if(marks.length) bits.push(`defect ${marks.length===1?"site":"sites"} in black`);
+  if(vac.length) bits.push(`${vac.length} ${vac.length===1?"vacancy":"vacancies"} — no atom to mark`);
   document.getElementById("dstructhead").textContent=bits.length?`${base} · ${bits.join(" · ")}`:base;
-  el.replaceChildren();
-  try{
-    await loadMV(st);
-    renderGrid(st,el,marks);
-    note.innerHTML="";
-  }catch(e){
-    el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable.</div>';
-  }
+  if(marks.length) recentreOnSite(st,marks[0]);
+  const bulk=host?structureCIF(host):null;
+  sgShow(el,{type:"struct",cif:structureCIF(st),
+    bulkCif:bulk,nparts:defectPartCounts(r.d).atoms+defectPartCounts(r.d).vac,
+    highlight:marks.length?marks:undefined});
+  note.innerHTML="";
 }
 document.getElementById("dsearch").addEventListener("input",dApplyFilters);
 ["ck-spont","ck-allq","ck-pbesol","ck-hsesoc"].forEach(id=>
@@ -1192,25 +1189,67 @@ function openIncar(theory,r,ord){
   document.getElementById("incarbody").innerHTML=body;
 }
 function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
+/* ---------- Kosmos structure viewer (vendored pages/structgrid) ----------
+   Contract read from the Kosmos bundle: postMessage {type:"struct", cif, bulkCif, nparts, highlight?}
+   after it announces {type:"structgrid_ready"}. It derives the defect sites itself by comparing the
+   defect CIF against bulkCif (nparts = how many parts to keep), renders Structure with
+   scene_props {active_sites, active_highlight_color:"#000000"}, show_controls:true,
+   background #ffffff, four-pane multi_view, and mutates positions in place when the atom ordering
+   matches, so its camera survives an update. */
+const SG_SRC="pages/structgrid/index.html";
+const SG_PENDING=new WeakMap();
+window.addEventListener("message",ev=>{
+  if(ev.origin!==location.origin||!ev.data||ev.data.type!=="structgrid_ready") return;
+  document.querySelectorAll("iframe.sgframe").forEach(f=>{
+    if(f.contentWindow!==ev.source) return;
+    f.dataset.ready="1";
+    const msg=SG_PENDING.get(f);
+    if(msg) f.contentWindow.postMessage(msg,location.origin);
+  });
+});
+function sgFrame(el){
+  let f=el.querySelector("iframe.sgframe");
+  if(!f){
+    el.replaceChildren();
+    f=document.createElement("iframe");
+    f.className="sgframe"; f.title="Structure viewer";
+    f.style.cssText="width:100%;height:100%;border:0;display:block;background:#fff";
+    el.appendChild(f);
+    f.setAttribute("src",SG_SRC);
+  }
+  return f;
+}
+function sgShow(el,msg){
+  const f=sgFrame(el);
+  SG_PENDING.set(f,msg);
+  if(f.dataset.ready==="1") f.contentWindow.postMessage(msg,location.origin);
+}
+function structureCIF(st){
+  const m=st.lattice.matrix;
+  return frameCIF(st.sites.map(x=>x.species[0].element),m,st.sites.map(x=>x.abc));
+}
 /* ---------- MatterViz structure viewer ---------- */
 try{ localStorage.setItem("matterviz-theme","light"); }catch(e){}
 document.documentElement.setAttribute("data-theme","light");
-const MV_BASE="https://cdn.jsdelivr.net/gh/defectdatabase/chalcogenide-defects@cdc59ef18b8f3707ae39a202cc7519a3eafdb9fc/matterviz";
+// Built from the matterviz package by site_src/../viewer_src, so the panes accept the same settings
+// Kosmos uses: scene_props {active_sites, active_highlight_color:"#000"} + site_radius_overrides 1.5.
+const MV_BASE="./mv";   // relative, not bare: a bare specifier is not a URL for dynamic import
 let mvMod=null, CURSTRUCT=null, CURKEY=null;
+async function mvReady(){                       // wait for the module, then one paint
+  await loadMV();
+  for(let i=0;i<40&&typeof window.renderMatterViz!=="function";i++)
+    await new Promise(r=>setTimeout(r,50));
+  await new Promise(r=>requestAnimationFrame(()=>r()));
+}
 function loadMV(seed){
   if(seed) window.MV_STRUCTURE=seed;
   if(!mvMod){
     if(!document.getElementById("mv-css")){
       const l=document.createElement("link"); l.id="mv-css"; l.rel="stylesheet";
-      l.href=MV_BASE+"/mv-asset-index.css"; document.head.appendChild(l);
+      l.href=MV_BASE+"/defectdb-matterviz-viewer.css"; document.head.appendChild(l);
     }
-    // the bundle's bootstrap renders window.MV_STRUCTURE into #viz, else fetches /structure.json (404).
-    // Give it a hidden target and a minimal structure so it never issues that request.
-    if(!document.getElementById("viz")){
-      const v=document.createElement("div"); v.id="viz";
-      v.style.cssText="position:absolute;left:-99999px;top:0;width:240px;height:240px;overflow:hidden";
-      document.body.appendChild(v);
-    }
+    // this bundle exposes renderMatterViz and renders nothing on its own, so no hidden bootstrap
+    // target and no stray WebGL context.
     mvMod=import(MV_BASE+"/mv-app.js");
   }
   return mvMod;
@@ -1245,12 +1284,7 @@ async function mountStructure(r,ord){
   if(!st){ el.innerHTML='<div class="notebox" style="margin:12px">No relaxed-structure payload for this ordering.</div>'; return; }
   CURSTRUCT=hydrate(st);
 
-  try{
-    await loadMV(CURSTRUCT);
-    renderGrid(CURSTRUCT, el);
-  }catch(e){
-    el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable offline.</div>';
-  }
+  sgShow(el,{type:"struct",cif:structureCIF(CURSTRUCT)});
 }
 const INCAR_TXT={
  "HSE+SOC":`Static HSE06+SOC single point on the relaxed geometry (vasp_ncl):
@@ -1374,8 +1408,18 @@ function vacancySites(st,host,dlabel){
   return cand.slice(0,want||Math.min(cand.length,6));
 }
 function defectSiteMark(st,marks){
-  if(!st||!marks||!marks.length) return {};
-  return {site_radius_overrides:new Map(marks.map(i=>[i,DEFECT_SITE_SCALE]))};
+  return (st&&marks&&marks.length)?{marks}:{};
+}
+/* Kosmos shifts every frame so the first defect site sits at the cell centre. Same here, so the
+   defect is never hidden at a cell corner. */
+function recentreOnSite(st,idx){
+  if(idx===undefined||!st.sites[idx]) return st;
+  const m=st.lattice.matrix, shift=[0,1,2].map(k=>.5-st.sites[idx].abc[k]);
+  st.sites.forEach(site=>{
+    site.abc=site.abc.map((v,k)=>((v+shift[k])%1+1)%1);
+    site.xyz=[0,1,2].map(j=>site.abc[0]*m[0][j]+site.abc[1]*m[1][j]+site.abc[2]*m[2][j]);
+  });
+  return st;
 }
 function freeMV(el){
   el.querySelectorAll("canvas").forEach(c=>{
@@ -1403,7 +1447,7 @@ function renderGrid(st, el, marks){
     stage.appendChild(host);
     [...bar.children].forEach(b=>{const on=b.textContent===label;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));});
     const props=Object.assign({show_controls:false},defectSiteMark(st,marks),dir?{scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}}:{});
-    try{window.renderMatterViz(st,host,props);}catch(e){}
+    window.renderMatterViz(st,host,props);
   };
   MV_VIEWS.forEach(([label,dir])=>{
     const button=document.createElement("button"); button.type="button"; button.textContent=label;
@@ -1633,14 +1677,8 @@ function mvmMount(st,dark){        // one full-size perspective pane (auto-fit: 
   try{ window.renderMatterViz(st, buf, Object.assign({show_controls:false},defectSiteMark(st,Array.isArray(dark)?dark:null))); }catch(e){}
 }
 let DSTRUCT_MARKS=[], DSTRUCT_VAC=[];
-function parkStructure(){                        // free the dashboard's viewers (context budget is ~8)
-  const el=document.getElementById("cstruct");
-  if(el&&el.querySelector("canvas")){ freeMV(el); el.dataset.parked="1"; el.replaceChildren(); }
-}
-async function unparkStructure(){
-  const el=document.getElementById("cstruct");
-  if(el&&el.dataset.parked==="1"&&CURSTRUCT&&cSel){ el.dataset.parked=""; renderGrid(CURSTRUCT, el); }
-}
+function parkStructure(){}    // the viewer runs in its own frame; nothing to release here
+async function unparkStructure(){}
 function coverParentDetail(){
   ["detail","cdetail"].forEach(id=>{
     const el=document.getElementById(id);
