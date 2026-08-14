@@ -1069,7 +1069,8 @@ function renderGrid(st, el){
   el.appendChild(grid);
   MV_VIEWS.forEach(([label,dir])=>{
     const cell=document.createElement("div");
-    cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:8px;overflow:visible;background:#fff";
+    const clip=el.id==="mvm-grid";                     // movie panes clip; dashboard panes keep escaping controls
+    cell.style.cssText=`position:relative;border:1px solid var(--wbg-border);border-radius:8px;overflow:${clip?"hidden":"visible"};background:#fff`;
     const tag=document.createElement("div");
     tag.className="mvpane-head";
     tag.textContent=label;
@@ -1415,7 +1416,7 @@ async function mvmShow(i){
         fresh.style.cssText=`position:absolute;top:0;left:0;width:${host.clientWidth}px;height:${host.clientHeight}px`;
         host.appendChild(fresh);
         try{ window.renderMatterViz(st, fresh, props); }catch(e){}
-        olds.forEach(o=>{ freeMV(o); o.remove(); });
+        setTimeout(()=>{ olds.forEach(o=>{ if(o.parentNode===host){ freeMV(o); o.remove(); } }); },180);
       }
     } else {
       renderGrid(st, grid);
@@ -1478,18 +1479,30 @@ async function drawInsight(r,ord){
   if(key&&HAVE_DOS.has(key)){ if(await drawDOS(r,ord,key)) return; }
   drawStabilityMap(r,ord);
 }
-async function drawDOS(r,ord,key){
-  const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
-  const head=document.getElementById("cmaphead");
-  let d=null;
+async function fetchDOS(key){
   try{
     const resp=await fetch(`dos/${encodeURIComponent(key)}.json.gz`);
     if(resp.ok&&typeof DecompressionStream!=="undefined"){
       const ds=new DecompressionStream("gzip");
-      d=JSON.parse(await new Response(resp.body.pipeThrough(ds)).text());
+      return JSON.parse(await new Response(resp.body.pipeThrough(ds)).text());
     }
-  }catch(e){ d=null; }
+  }catch(e){}
+  return null;
+}
+async function drawDOS(r,ord,key){
+  const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
+  const head=document.getElementById("cmaphead");
+  const d=await fetchDOS(key);
   if(!d||!d.e||!d.e.length) return false;
+  let borrowed=null;
+  if(!Object.keys(d.el||{}).length){
+    const alt=`PBEsol__${r.n}_${ord}`;
+    if(HAVE_DOS.has(alt)){
+      const pd=await fetchDOS(alt);
+      if(pd&&Object.keys(pd.el||{}).length) borrowed=pd;
+    }
+  }
+  if(cSel!==r) return true;
   head.style.display=""; note.style.display="";
   head.innerHTML="Density of states — element-projected";
   el.style.height="250px";
@@ -1514,6 +1527,32 @@ async function drawDOS(r,ord,key){
     shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1.2,dash:"dash"}}],
     legend:{orientation:"h",y:1.14,font:{size:12}},
     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+  if(borrowed){
+    let ex=document.getElementById("cmap2");
+    if(!ex){ ex=document.createElement("div"); ex.id="cmap2"; ex.style.cssText="height:230px;margin-top:8px";
+      el.parentNode.insertBefore(ex, note); }
+    ex.style.display="";
+    const btr=[];
+    Object.keys(borrowed.el).forEach((elname,i)=>{
+      const c=DOS_COLORS[i%DOS_COLORS.length];
+      btr.push({x:borrowed.e,y:borrowed.el[elname],name:elname,mode:"lines",fill:"tozeroy",
+        line:{color:c,width:1.4},fillcolor:c+"2e",
+        hovertemplate:elname+": %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"});
+    });
+    await loadPlotly();
+    Plotly.react(ex,btr,{
+      margin:{l:56,r:8,t:24,b:34},font:{family:"Arial Narrow",size:12},
+      title:{text:"element-projected — PBEsol run of the same compound (this campaign wrote no projections)",
+             font:{size:12,color:"#6b7280"},x:0,xanchor:"left"},
+      xaxis:{title:{text:"E − E<sub>F</sub> (eV)",font:{size:12}},range:[-6,6],zeroline:false},
+      yaxis:{rangemode:"tozero"},showlegend:true,
+      legend:{orientation:"h",y:1.28,font:{size:11}},
+      shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1,dash:"dash"}}],
+      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+  } else {
+    const ex=document.getElementById("cmap2");
+    if(ex){ if(window.Plotly&&ex.data) Plotly.purge(ex); ex.style.display="none"; }
+  }
   const parts=decompParts(r,ord);
   const Tstar=(parts&&parts.ent!==0&&parts.d0>0&&parts.ent<0)?-parts.d0/(KB*parts.ent):null;
   head.innerHTML=haveProj?"Density of states — element-projected":"Density of states — total";
