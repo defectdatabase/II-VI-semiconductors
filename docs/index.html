@@ -250,7 +250,7 @@ body{letter-spacing:-.006em}
 #moviemodal{padding:0;overflow:hidden;width:min(1080px,calc(100vw - 32px));height:min(620px,calc(100vh - 32px));max-height:none;flex-direction:column}
 #moviemodal.on{display:flex}
 /* Kosmos's trajectory page renders a four-pane grid plus its chart; give it room to breathe. */
-#moviemodal.continuous{width:min(1240px,calc(100vw - 32px));height:min(800px,calc(100vh - 32px))}
+#moviemodal.continuous{width:min(1640px,calc(100vw - 24px));height:min(960px,calc(100vh - 24px))}
 #moviemodal:has(#mvm-body.static){width:min(800px,calc(100vw - 64px));height:auto;max-height:calc(100vh - 32px)}
 #mvm-head{padding:10px 14px;background:#fff;min-height:50px}#mvm-head>span:first-child{font-weight:700;text-transform:none}
 #mvm-info{padding:7px 14px;margin:0;background:#f7fafb;border-bottom:1px solid var(--wbg-border);font-size:12.5px}
@@ -1254,32 +1254,7 @@ function structureCIF(st){
   const m=st.lattice.matrix;
   return frameCIF(st.sites.map(x=>x.species[0].element),m,st.sites.map(x=>x.abc));
 }
-/* ---------- MatterViz structure viewer ---------- */
-try{ localStorage.setItem("matterviz-theme","light"); }catch(e){}
-document.documentElement.setAttribute("data-theme","light");
-// Built from the matterviz package by site_src/../viewer_src, so the panes accept the same settings
-// Kosmos uses: scene_props {active_sites, active_highlight_color:"#000"} + site_radius_overrides 1.5.
-const MV_BASE="./mv";   // relative, not bare: a bare specifier is not a URL for dynamic import
-let mvMod=null, CURSTRUCT=null, CURKEY=null;
-async function mvReady(){                       // wait for the module, then one paint
-  await loadMV();
-  for(let i=0;i<40&&typeof window.renderMatterViz!=="function";i++)
-    await new Promise(r=>setTimeout(r,50));
-  await new Promise(r=>requestAnimationFrame(()=>r()));
-}
-function loadMV(seed){
-  if(seed) window.MV_STRUCTURE=seed;
-  if(!mvMod){
-    if(!document.getElementById("mv-css")){
-      const l=document.createElement("link"); l.id="mv-css"; l.rel="stylesheet";
-      l.href=MV_BASE+"/defectdb-matterviz-viewer.css"; document.head.appendChild(l);
-    }
-    // this bundle exposes renderMatterViz and renders nothing on its own, so no hidden bootstrap
-    // target and no stray WebGL context.
-    mvMod=import(MV_BASE+"/mv-app.js");
-  }
-  return mvMod;
-}
+/* Structure rendering is Kosmos's vendored app (see sgShow above); this page mounts no viewer of its own. */
 function structKeyOf(r,ord){
   const FK={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
   const RK={"PBEsol":"PBEsol","HSE06":"HSE","HSE+SOC":"HSE+SOC"}[r.f];
@@ -1454,33 +1429,6 @@ function freeMV(el){
   });
 }
 let MVBUSY=false;
-function renderGrid(st, el, marks){
-  freeMV(el);
-  const h=el.clientHeight||360;
-  const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c), dist=1.9*L;
-  const ctr=[(st.lattice.matrix[0][0]+st.lattice.matrix[1][0]+st.lattice.matrix[2][0])/2,
-             (st.lattice.matrix[0][1]+st.lattice.matrix[1][1]+st.lattice.matrix[2][1])/2,
-             (st.lattice.matrix[0][2]+st.lattice.matrix[1][2]+st.lattice.matrix[2][2])/2];
-  el.replaceChildren();
-  const shell=document.createElement("div"); shell.className="structure-shell";
-  const stage=document.createElement("div"); stage.className="structure-stage";
-  const bar=document.createElement("div"); bar.className="structure-viewbar"; bar.setAttribute("aria-label","Structure orientation");
-  shell.append(stage,bar); el.appendChild(shell);
-  const mount=(label,dir)=>{
-    freeMV(stage); stage.replaceChildren();
-    const host=document.createElement("div"); host.className="mvhost";
-    host.style.cssText=`height:${h}px;position:relative`;
-    stage.appendChild(host);
-    [...bar.children].forEach(b=>{const on=b.textContent===label;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));});
-    const props=Object.assign({show_controls:false},defectSiteMark(st,marks),dir?{scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}}:{});
-    window.renderMatterViz(st,host,props);
-  };
-  MV_VIEWS.forEach(([label,dir])=>{
-    const button=document.createElement("button"); button.type="button"; button.textContent=label;
-    button.onclick=()=>mount(label,dir); bar.appendChild(button);
-  });
-  mount("Perspective",null);
-}
 /* ---------- relaxation movie: XDATCAR frames + energies + forces ---------- */
 let TRAJ=null, TFRAME=0, TTIMER=null, TSPECIES=null, TPFX="trajbox_";
 function latParams(m){
@@ -1511,15 +1459,7 @@ async function showFrame(i){
   const host=document.getElementById(TPFX+"struct");
   const info=document.getElementById(TPFX+"info");
   if(!host||!info){ stopTraj(); return; }
-  try{
-    await loadMV(trajStructure(fr));
-    if(document.getElementById(TPFX+"struct")!==host) return;   // panel changed under us
-    const fresh=document.createElement("div");
-    fresh.className="mvhost";
-    fresh.style.height=(host.clientHeight||340)+"px";
-    host.replaceChildren(fresh);
-    window.renderMatterViz(trajStructure(fr), fresh, {show_controls:false});
-  }catch(e){}
+  sgShow(host,{type:"struct",cif:structureCIF(trajStructure(fr))});
   info.innerHTML =
     `step <b>${fr.i+1}</b> of ${TRAJ.nframes} &nbsp;·&nbsp; E = <b>${fr.e!==null&&fr.e!==undefined?fr.e.toFixed(2):"—"}</b> eV`+
     `&nbsp;·&nbsp; F<sub>max</sub> = <b>${fr.f!==null&&fr.f!==undefined?fr.f.toFixed(2):"—"}</b> eV/Å`;
@@ -1689,18 +1629,10 @@ async function openStaticMovie(key,label,E,fmax,info){
     <div class="row"><span>Lattice parameters</span><span>${L.a.toFixed(2)} × ${L.b.toFixed(2)} × ${L.c.toFixed(2)} Å</span></div>
     ${nfo.kmesh?`<div class="row"><span>Brillouin-zone sampling</span><span>${nfo.kmesh}</span></div>`:""}
     ${fmax===null||fmax===undefined?`<div class="archive-note">Maximum atomic force is not present in the published record. A static VASP calculation can contain forces, but they cannot be reconstructed from the archived energy or DOS. The source OUTCAR must be recovered and parsed.</div>`:""}`;
-  await new Promise(r=>requestAnimationFrame(r));
-  await loadMV(hst);
   mvmMount(hst,null);
 }
-function mvmMount(st,dark){        // one full-size perspective pane (auto-fit: centred, controls visible)
-  const el=document.getElementById("mvm-grid");
-  freeMV(el); el.replaceChildren();
-  el.style.position="relative";
-  const buf=document.createElement("div"); buf.className="mvbuf";
-  buf.style.cssText=`position:absolute;top:0;left:0;width:${el.clientWidth||600}px;height:${el.clientHeight||470}px`;
-  el.appendChild(buf);
-  try{ window.renderMatterViz(st, buf, Object.assign({show_controls:false},defectSiteMark(st,Array.isArray(dark)?dark:null))); }catch(e){}
+function mvmMount(st){             // a static run has one configuration; same Kosmos viewer as the rest
+  sgShow(document.getElementById("mvm-grid"),{type:"struct",cif:structureCIF(st)});
 }
 let DSTRUCT_MARKS=[], DSTRUCT_VAC=[];
 function parkStructure(){}    // the viewer runs in its own frame; nothing to release here
@@ -1823,55 +1755,19 @@ function mvmStructure(f){
     sites:f.p.map((abc,i)=>({species:[{element:t.species[i],occu:1}],abc,label:t.species[i],properties:{}}))});
 }
 async function mvmShow(i){
-  const t=MVM.cur; if(!t||MVBUSY) return;
-  MVBUSY=true;
+  const t=MVM.cur; if(!t) return;
   MVM.frame=Math.max(0,Math.min(t.frames.length-1,i));
   const f=t.frames[MVM.frame];
   document.getElementById("mvm-slider").value=String(MVM.frame);
   document.getElementById("mvm-count").textContent=`frame ${MVM.frame+1} / ${t.frames.length}`;
-  {const eL2=t.frames[t.frames.length-1].e;
-   const de2=f.e!==null&&eL2!==null?f.e-eL2:null;
-   document.getElementById("mvm-line").innerHTML=`<div class="mvm-metrics">
-     <span><small>Total energy</small><b>${f.e!==null&&f.e!==undefined?f.e.toFixed(2):"Unavailable"} eV</b></span>
-     <span><small>Energy above final structure</small><b>${de2!==null?(de2>=0?"+":"")+de2.toFixed(2):"Unavailable"} eV</b></span>
-     <span><small>Maximum atomic force</small><b>${f.f!==null&&f.f!==undefined?f.f.toFixed(2)+" eV/Å":"Unavailable"}</b></span>
-   </div>`;}
-  try{
-    // Single full-size pane: the default perspective camera auto-fits the structure.
-    // One WebGL mount per frame instead of four keeps playback responsive.
-    const st=mvmStructure(f);
-    await loadMV(st);
-    const grid=document.getElementById("mvm-grid");
-    grid.style.position="relative";
-    const olds=[...grid.children];
-    const fresh=document.createElement("div"); fresh.className="mvbuf";
-    fresh.style.cssText=`position:absolute;inset:0;width:${grid.clientWidth||600}px;height:${grid.clientHeight||470}px;visibility:hidden`;
-    grid.appendChild(fresh);
-    try{ window.renderMatterViz(st, fresh, Object.assign({show_controls:false},defectSiteMark(st,MVM.marks))); }catch(e){}
-    await new Promise(resolve=>{
-      let attempts=0;
-      const ready=()=>{
-        const canvas=fresh.querySelector("canvas");
-        if((canvas&&canvas.width>1&&canvas.height>1)||attempts++>45) resolve();
-        else requestAnimationFrame(ready);
-      };
-      ready();
-    });
-    // Keep the current frame visible until the next canvas has completed two paints.
-    // Swapping whole buffers atomically avoids the white flash produced by WebGL remounts.
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    fresh.style.visibility="visible";
-    fresh.style.zIndex="2";
-    await new Promise(resolve=>requestAnimationFrame(resolve));
-    olds.forEach(o=>{ if(o.parentNode===grid){ freeMV(o); o.remove(); } });
-  }catch(e){}
   const eL=t.frames[t.frames.length-1].e;
   const de=f.e!==null&&eL!==null?f.e-eL:null;
-  if(document.getElementById("mvm-frame").data)
-    {const eL3=t.frames[t.frames.length-1].e;
-     const de3=f.e!==null&&eL3!==null?f.e-eL3:null;
-     Plotly.restyle("mvm-frame",{x:[[MVM.frame],[MVM.frame]],y:[[de3],[f.f]]},[2,3]);}
-  MVBUSY=false;
+  document.getElementById("mvm-line").innerHTML=`<div class="mvm-metrics">
+     <span><small>Total energy</small><b>${f.e!==null&&f.e!==undefined?f.e.toFixed(2):"Unavailable"} eV</b></span>
+     <span><small>Energy above final structure</small><b>${de!==null?(de>=0?"+":"")+de.toFixed(2):"Unavailable"} eV</b></span>
+     <span><small>Maximum atomic force</small><b>${f.f!==null&&f.f!==undefined?f.f.toFixed(2)+" eV/Å":"Unavailable"}</b></span>
+   </div>`;
+  sgShow(document.getElementById("mvm-grid"),{type:"struct",cif:structureCIF(mvmStructure(f))});
 }
 let MVSPEED=1;
 function mvmTick(){

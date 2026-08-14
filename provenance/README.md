@@ -328,7 +328,30 @@ Measured at a 1400 px window: modal 1180 x 855 with no inner scrollbar, structur
   (`fl(node, () => p(name), true)`, where `p()` maps `X_Y` to `X<sub>Y</sub>`), so it now receives
   `innerHTML` and renders "Bi_Te+O_Te in CdSe(0.20)Te(0.80)" with real subscripts.
 
+## Every viewer on the Kosmos frame; movie modal enlarged (2026-08-14, late)
+
+- **Static-calculation modal rendered an empty box** - a regression I introduced: `mvmMount` still
+  called the locally built bundle after I deleted `docs/mv/`, so its dynamic import 404'd and the
+  pane stayed blank. It, the in-page trajectory panel and `mvmShow` now all go through the same
+  `sgShow` Kosmos frame. Verified: `Static calculation / SrS` renders **4 panes**, legend
+  `S 1 x Sr 1`, `1 x 1 x 1`, Perspective/Front/Top/Right. `renderMatterViz` and `MV_BASE` no longer
+  appear anywhere in the built page (grep count 0) - this page mounts no viewer of its own.
+- **Movie modal** enlarged from 1240x800 to `min(1640px, 100vw-24px) x min(960px, 100vh-24px)` so
+  Kosmos's four-pane grid fills the frame instead of floating in it.
+- **One deliberate deviation from the vendored bundle**, logged here because everything else is
+  byte-identical: the trajectory chart's tick formatter was fixed at 2 decimals
+  (`T=(I,N)=>N>=100?I.toFixed(1):I.toFixed(2)`), so a run whose dE range is a few meV printed
+  **0.00 on every left-axis tick**. It is now adaptive on the axis range - 4 decimals below 0.02 eV,
+  3 below 0.2 eV, otherwise unchanged.
+
 ## Mistakes & corrections log (append-only)
+- **2026-08-14 - deleted a bundle that three viewers still imported.** WHAT I DID WRONG: after moving
+  the structure panes onto Kosmos's app I removed `docs/mv/`, but the static-calculation modal, the
+  in-page trajectory panel and `mvmShow` still called `renderMatterViz` from it, so the user opened a
+  static compound and got an empty white box -> THE GUARD: after removing a bundle, grep the built
+  page for every symbol it exported (`renderMatterViz`, `MV_BASE`) and expect **zero** hits, then open
+  one modal of each kind - defect, compound, static, movie -> GUARD LIVES IN this log and the grep
+  in the publish routine.
 - **2026-08-14 - overrode the reference's own defect detection.** WHAT I DID WRONG: after vendoring
   Kosmos's structgrid I still passed my own `highlight` index list, which takes priority over its
   bulk comparison, so our pane marked one site where the reference marked two on the identical CIF
