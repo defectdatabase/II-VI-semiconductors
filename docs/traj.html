@@ -5,19 +5,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Continuous ionic-relaxation trajectory</title>
 <style>
-:root{--ink:#17252d;--muted:#62727c;--line:#d9e1e6;--blue:#2877b8;--green:#238554;--accent:#087f8c;--surface:#f7fafb;
+:root{--ink:#17252d;--muted:#62727c;--line:#d9e1e6;--blue:#2877b8;--green:#238554;--accent:#087f8c;--accent-dark:#066a75;--surface:#f7fafb;
   --page-bg:#fff !important;--pane-bg:#fff !important;--pane-color:#17252d !important}
 *{box-sizing:border-box}html,body,#app{margin:0;width:100%;height:100%;overflow:hidden;background:#fff;color:var(--ink);font-family:'Arial Narrow',Arial,sans-serif}
 #app{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(280px,.82fr);gap:6px;padding:6px}
 .panel{min-width:0;min-height:0;border:1px solid var(--line);border-radius:7px;background:#fff;overflow:hidden}
-#scene-wrap{position:relative;background:#fff}
-.mvbuf{position:absolute;inset:0}
+#scene-wrap{position:relative;background:#fff;overflow:hidden}
+/* MatterViz's root carries its own default height; stretch it or the cell renders letterboxed
+   and off-centre inside the pane. */
+.mvbuf{position:absolute;inset:0;overflow:hidden}
+.mvbuf>*{width:100%!important;height:100%!important}
 #analysis{display:flex;flex-direction:column;padding:4px 5px 5px;border:0}
 #chart{display:block;width:100%;flex:1;min-height:190px;overflow:visible}
 .controls{display:grid;grid-template-columns:auto minmax(80px,1fr) auto;align-items:center;gap:7px;margin-top:3px}
-button{font:inherit;font-weight:700;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);padding:4px 10px;cursor:pointer}button:hover{border-color:var(--accent);color:var(--accent)}
-input[type=range]{width:100%;accent-color:var(--accent)}#count{white-space:nowrap;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-#metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:5px;border-top:1px solid var(--line)}.metric{padding:4px 6px;min-width:0}.metric+.metric{border-left:1px solid var(--line)}.metric small{display:block;color:var(--muted);font-size:10px}.metric b{display:block;margin-top:1px;font-size:12px;white-space:nowrap}
+/* controls carry the tab accent, not black text */
+button{font:inherit;font-weight:700;border:1px solid var(--accent);border-radius:6px;background:var(--accent);color:#fff;padding:5px 13px;cursor:pointer}
+button:hover{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
+input[type=range]{width:100%;accent-color:var(--accent)}#count{white-space:nowrap;font-size:11.5px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+#metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:5px;border-top:1px solid var(--line)}.metric{padding:4px 6px;min-width:0}.metric+.metric{border-left:1px solid var(--line)}.metric small{display:block;color:var(--muted);font-size:10px}.metric b{display:block;margin-top:1px;font-size:12px;white-space:nowrap;color:var(--accent)}
 .waiting{grid-column:1/-1;display:grid;place-items:center;color:var(--muted);font-size:13.5px}
 @media(max-width:760px){#app{grid-template-columns:1fr;overflow:auto}.panel{min-height:260px}#analysis{min-height:300px}.metric b{white-space:normal}}
 </style>
@@ -59,6 +64,18 @@ function latParams(m){
   const ang=(u,v)=>{const c=(u[0]*v[0]+u[1]*v[1]+u[2]*v[2])/(n(u)*n(v));return Math.acos(Math.max(-1,Math.min(1,c)))*180/Math.PI};
   const vol=Math.abs(m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]));
   return {a:n(m[0]),b:n(m[1]),c:n(m[2]),alpha:ang(m[1],m[2]),beta:ang(m[0],m[2]),gamma:ang(m[0],m[1]),volume:vol};
+}
+/* This MatterViz build has no per-site or per-element colour prop that the structure viewer honours
+   (element_colors belongs to its trajectory-line component, active_sites does nothing from props),
+   but site_radius_overrides does work — so the defect site is drawn oversized and every atom keeps
+   its element colour. Sites are picked by defect species, exactly as the parent page picks them. */
+const DEFECT_SITE_SCALE=2.6;
+function defectSiteMark(payload){
+  const dark=payload.dark;
+  if(!dark||!Object.keys(dark).length) return {};
+  const marked=new Map();
+  payload.species.forEach((el,i)=>{ if(dark[el]) marked.set(i,DEFECT_SITE_SCALE) });
+  return marked.size?{site_radius_overrides:marked}:{};
 }
 function frameStructure(k){
   const frame=data.frames[k],lat=frame.lattice||data.defaultLattice;
@@ -148,7 +165,7 @@ function mount(payload){
   if(chartObserver)chartObserver.disconnect();
   if(scene)retire(null);
   data=payload;
-  mvProps=Object.assign({show_controls:false},payload.dark&&Object.keys(payload.dark).length?{element_colors:payload.dark}:{});
+  mvProps=Object.assign({show_controls:false},defectSiteMark(payload));
   document.getElementById('app').innerHTML=`<div class="panel" id="scene-wrap"></div><div class="panel" id="analysis"><svg id="chart" aria-label="Energy and force convergence"></svg><div class="controls"><button id="play">▶ Play</button><input id="slider" type="range" min="0" max="${payload.frames.length-1}" value="0"><span id="count"></span></div><div id="metrics"></div></div>`;
   scene=document.getElementById('scene-wrap');chart=document.getElementById('chart');slider=document.getElementById('slider');count=document.getElementById('count');playButton=document.getElementById('play');
   playButton.onclick=play;slider.oninput=e=>{stop();const v=+e.target.value;updateUI(v);showFrame(v)};

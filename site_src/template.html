@@ -225,8 +225,10 @@ body{letter-spacing:-.006em}
 #cdetail .dgrid{grid-template-columns:minmax(300px,.92fr) minmax(420px,1.08fr)!important;gap:18px!important}
 .dcol h4{font-size:14px;font-weight:700;text-transform:none;letter-spacing:0}
 #detail{width:min(930px,calc(100vw - 32px));max-height:min(780px,calc(100vh - 32px))}
-#detail .dgrid{grid-template-columns:minmax(0,1fr) minmax(300px,360px)!important;gap:12px}
-#detail .dgrid>.dcol:nth-child(2){width:100%;max-width:360px;justify-self:end}
+/* Left track shrinks to the arithmetic tables; every spare pixel goes to the plot and the
+   viewer instead of opening a gap down the middle of the modal. */
+#detail .dgrid{grid-template-columns:fit-content(430px) minmax(0,1fr)!important;gap:14px}
+#detail .dgrid>.dcol:nth-child(2){width:100%;max-width:none;justify-self:stretch}
 #detail .dhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #detail #dmoviebtn{display:inline-flex;margin-left:auto;white-space:nowrap}
 #detail #dmovie-open{padding:5px 9px!important;font-size:12.5px}
@@ -1010,7 +1012,7 @@ async function mountDefectStructure(r,trajKey){
   // defect species (added elements + interstitial/substitution parts) rendered black
   const dark=defectColors(r);
   document.getElementById("dstructhead").textContent=
-    `${pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure"}${Object.keys(dark).length?" · defect species in black":""}`;
+    `${pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure"}${Object.keys(dark).length?" · defect site drawn oversized":""}`;
   el.replaceChildren();
   try{
     await loadMV(st);
@@ -1278,6 +1280,19 @@ function hydrate(st){
 }
 // reference-style views: Cartesian orthographic projections
 const MV_VIEWS=[["Perspective",null],["Front",[0,0,1]],["Top",[0,1,0]],["Right",[1,0,0]]];
+/* Marking the defect site.
+   This MatterViz build exposes no per-site or per-element colour prop: `element_colors` belongs to
+   its trajectory-line component and is ignored by the structure viewer, `atom_color_config`'s custom
+   mode returns category values that a D3 palette colours, and `active_sites` has no effect from
+   props. `site_radius_overrides` (Map of site index to radius) does work, so the defect site is
+   drawn oversized and every atom keeps its element colour. */
+const DEFECT_SITE_SCALE=2.6;
+function defectSiteMark(st,dark){
+  if(!st||!dark||!Object.keys(dark).length) return {};
+  const marked=new Map();
+  st.sites.forEach((s,i)=>{ if(s.species.some(x=>dark[x.element])) marked.set(i,DEFECT_SITE_SCALE); });
+  return marked.size?{site_radius_overrides:marked}:{};
+}
 function freeMV(el){
   el.querySelectorAll("canvas").forEach(c=>{
     const gl=c.getContext("webgl2")||c.getContext("webgl");
@@ -1303,7 +1318,7 @@ function renderGrid(st, el, dark){
     host.style.cssText=`height:${h}px;position:relative`;
     stage.appendChild(host);
     [...bar.children].forEach(b=>{const on=b.textContent===label;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));});
-    const props=Object.assign({show_controls:false},dark&&Object.keys(dark).length?{element_colors:dark}:{},dir?{scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}}:{});
+    const props=Object.assign({show_controls:false},defectSiteMark(st,dark),dir?{scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}}:{});
     try{window.renderMatterViz(st,host,props);}catch(e){}
   };
   MV_VIEWS.forEach(([label,dir])=>{
@@ -1531,7 +1546,7 @@ function mvmMount(st,dark){        // one full-size perspective pane (auto-fit: 
   const buf=document.createElement("div"); buf.className="mvbuf";
   buf.style.cssText=`position:absolute;top:0;left:0;width:${el.clientWidth||600}px;height:${el.clientHeight||470}px`;
   el.appendChild(buf);
-  try{ window.renderMatterViz(st, buf, Object.assign({show_controls:false},dark&&Object.keys(dark).length?{element_colors:dark}:{})); }catch(e){}
+  try{ window.renderMatterViz(st, buf, Object.assign({show_controls:false},defectSiteMark(st,dark))); }catch(e){}
 }
 function parkStructure(){                        // free the dashboard's viewers (context budget is ~8)
   const el=document.getElementById("cstruct");
@@ -1576,7 +1591,7 @@ async function mvmLoad(sub){
     `Continuous ionic relaxation <span class="sep">|</span> ${converged?"force converged":"force not converged"} <span class="sep">|</span> `+
     `${t.nframes} ionic steps <span class="sep">|</span> total energy decrease ${decreaseText}`+
     (frames.length<t.nframes?` <span class="sep">|</span> ${frames.length} frames stored`:"");
-  // the trajectory pane is MatterViz; defect species are highlighted through element_colors
+  // the trajectory pane is MatterViz; the defect site is marked by radius, not colour
   MVM.kosmosPayload={type:"traj_frames",name:document.getElementById("mvm-title").textContent,
     dark:MVM.dark||null,species:t.species,defaultLattice:t.lat,
     frames:frames.map((f,i)=>({positions:f.p,lattice:f.lat||t.lat,energy:f.e,fmax:f.f,step:f.i??i}))};
@@ -1618,7 +1633,7 @@ async function mvmShow(i){
     const fresh=document.createElement("div"); fresh.className="mvbuf";
     fresh.style.cssText=`position:absolute;inset:0;width:${grid.clientWidth||600}px;height:${grid.clientHeight||470}px;visibility:hidden`;
     grid.appendChild(fresh);
-    try{ window.renderMatterViz(st, fresh, Object.assign({show_controls:false},MVM.dark&&Object.keys(MVM.dark).length?{element_colors:MVM.dark}:{})); }catch(e){}
+    try{ window.renderMatterViz(st, fresh, Object.assign({show_controls:false},defectSiteMark(st,MVM.dark))); }catch(e){}
     await new Promise(resolve=>{
       let attempts=0;
       const ready=()=>{

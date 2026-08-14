@@ -156,7 +156,40 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
   Frame-cadence timing could not be logged from the automation pane, which reports
   `visibilityState: "hidden"` outside the screenshot instant and so clamps its timers.
 
+## Viewer pane sizing, defect-site marker, control colour (2026-08-14 PM, user-directed)
+
+- **Modal dead space.** `#detail .dgrid` gave the left column `1fr` and hard-capped the right at
+  360 px, so all spare width opened as an empty band down the middle of the modal. Tracks are now
+  `fit-content(430px) minmax(0,1fr)`: the left track shrinks to the arithmetic tables and every spare
+  pixel goes to the plot and viewer. Measured at 1280 px — left 430, right **360 → 456**, and the
+  only space between the columns is the 14 px grid gap.
+- **Trajectory pane was letterboxed.** MatterViz's root carries its own default height, so inside the
+  movie pane it rendered 431×**500** in a 431×397 box with a 600×300 drawing buffer — the cell sat low
+  and off-centre. `.mvbuf>*{width:100%!important;height:100%!important}` pins it to the pane;
+  measured root 497×397 in a 497×397 pane.
+- **The "defect species in black" claim was never true.** This prebuilt MatterViz build honours no
+  per-site or per-element colour from props: `element_colors` belongs to its **trajectory-line**
+  component (verified in the bundle: `U(t,'element_colors',...)` sits beside `trail_frames`/
+  `wrap_mode`, and the structure viewer reads atom colours from a private `Vesta`-scheme store);
+  `atom_color_config`'s `custom` mode passes `color_fn` return values through a D3 **categorical
+  palette**, so it cannot force one site black while keeping element colours; and `active_sites` +
+  `active_highlight_color` produced no visible change (A/B tested with `#ff0000` on a 2-atom cell).
+  `site_radius_overrides` (Map of site index → radius) **does** work — A/B verified. The defect site
+  is therefore drawn **oversized (2.6×)** with element colours intact, in the dashboard pane and in
+  the movie, and the heading now reads "defect site drawn oversized" instead of claiming black.
+  Site selection is by defect species, so host-species defects (e.g. Cd_Se) still cannot be pinned
+  from composition alone — same limit the old canvas had.
+- **Controls carry the tab accent.** Play/Pause is filled `#087f8c` with white text, the slider
+  accent, frame counter and metric values are the same teal; only the metric labels stay muted grey.
+
 ## Mistakes & corrections log (append-only)
+- **2026-08-14 — shipped a MatterViz pane without checking the prop was real.** WHAT I DID WRONG: I
+  carried `element_colors` over from the old code into the new trajectory pane and wrote "defect
+  species in black" in the provenance, without ever confirming the structure viewer reads that prop —
+  it does not, and the user reported "where is black site? I do not see it at all" → THE GUARD: before
+  claiming a viewer prop works, grep the bundle for how it is consumed AND A/B render it with a
+  garish colour on a 2-atom cell; a prop that Svelte silently ignores looks exactly like a prop that
+  works → GUARD LIVES IN this log and the `defectSiteMark()` comment in `template.html`/`traj.html`.
 - **2026-08-14 — pushed a frame swap that could show a white pane.** WHAT I DID WRONG: the MatterViz
   trajectory rewrite promoted each new frame buffer after a paint wait that falls back to a plain
   timer, so in an occluded tab (rAF frozen) it promoted a canvas WebGL had never drawn; the first
