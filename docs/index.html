@@ -321,7 +321,7 @@ body{letter-spacing:-.006em}
 .kv div{padding:3px 0}
 .notebox{padding:6px 8px;font-size:12.3px}
 #cnote{font-size:12px}
-#detail #efdetailplot{height:210px}
+#detail #efdetailplot{height:252px}
 #detail #dstruct{height:340px!important;border:1px solid var(--wbg-border);border-radius:8px}
 #cstruct{height:340px!important}
 .dos-empty{height:150px;padding:14px}
@@ -924,16 +924,22 @@ async function dRedrawPlot(){
       text:kinks.map(k=>k.t),hovertemplate:"ε%{text} = %{x:.2f} eV<extra></extra>"});
   // lowest-energy envelope only — per-charge context lines removed (user request 2026-08-13)
   const pad=Math.max(0.06,0.12*r.g);
+  // A flat envelope (one charge state lowest across the gap) otherwise autoscales to a few meV, so
+  // an exactly horizontal line reads as though it carried structure. Hold a 0.2 eV minimum span.
+  const yLo=Math.min(...ys), yHi=Math.max(...ys), ySpan=yHi-yLo;
+  const yRange=ySpan<0.2?[(yLo+yHi)/2-0.12,(yLo+yHi)/2+0.12]:[yLo-0.06*ySpan,yHi+0.10*ySpan];
   const box=document.getElementById("efdetailplot");
+  // Height follows the container: a hard height inside a shorter, overflow-hidden box clipped the
+  // two-line VBM/CBM tick labels and the axis title.
   Plotly.react(box,traces,{
-    autosize:true,height:235,showlegend:false,
+    autosize:true,height:box.clientHeight||250,showlegend:false,
     xaxis:{title:{text:"Fermi level E<sub>F</sub> (eV)",font:{size:13}},range:[-pad,r.g+pad],zeroline:false,showgrid:false,
            tickvals:[0,r.g],ticktext:["0.0<br>VBM",`${r.g.toFixed(2)}<br>CBM`],automargin:true},
     yaxis:{title:{text:"Defect formation energy (eV)",font:{size:13}},zeroline:false,showgrid:true,
-           gridcolor:"#e3e6eb",griddash:"dash",automargin:true},
+           range:yRange,gridcolor:"#e3e6eb",griddash:"dash",automargin:true},
     shapes:[{type:"rect",xref:"x",x0:-pad,x1:0,yref:"paper",y0:0,y1:1,fillcolor:"#1f77b41f",line:{width:0}},
             {type:"rect",xref:"x",x0:r.g,x1:r.g+pad,yref:"paper",y0:0,y1:1,fillcolor:"#ff7f0e1f",line:{width:0}}],
-    margin:{l:52,r:8,t:6,b:50},font:{family:"Arial Narrow"},
+    margin:{l:52,r:8,t:6,b:56},font:{family:"Arial Narrow"},
     plot_bgcolor:"#f7f8fa",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
 }
 function defectTrajectoryKey(r,dkey){

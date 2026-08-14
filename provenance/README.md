@@ -286,6 +286,20 @@ Fix: a parent-side watchdog restarts playback whenever the viewer is parked on t
 is cleared when the modal closes. Verified live - parked at frame 12/12, then back to **frame 1 / 12
 with dE +0.68 eV, F max 0.45 eV/A**, playing.
 
+## Formation-energy plot: clipped axis and degenerate y-range (2026-08-14)
+
+The width was never reduced - the density pass widened the right column from 360 to 456 px at
+1280 px. What the density pass did reduce was the plot's **height**, 235 -> 210 px, while the Plotly
+layout still carried a hard `height:235` inside an `overflow:hidden` box: the bottom 25 px, i.e. the
+second line of the `0.0 / VBM` and `<gap> / CBM` ticks plus the `Fermi level E_F (eV)` title, was cut
+off. The layout height now follows `box.clientHeight`, the container is 252 px and the bottom margin
+56 px. Measured: box 465x252, plot svg 465x252, **0 of 2 tick labels clipped** (label bottoms 408 vs
+container bottom 433).
+
+A flat envelope also autoscaled to a few meV (0.738-0.740 eV in the user's screenshot), which reads
+as structure where there is none. The y-axis now holds a **0.2 eV minimum span** centred on the
+value - measured [0.576, 0.816] for Sb_Te+Cl_Te - so a horizontal envelope looks horizontal.
+
 ## Mistakes & corrections log (append-only)
 - **2026-08-14 - overrode the reference's own defect detection.** WHAT I DID WRONG: after vendoring
   Kosmos's structgrid I still passed my own `highlight` index list, which takes priority over its
