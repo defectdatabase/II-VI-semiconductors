@@ -199,9 +199,7 @@ button,select,input,textarea{font:inherit}
 @keyframes mvblink{50%{opacity:0}}
 #detail,#cdetail{color:var(--wbg-ink)}
 .mvhost{width:100%;overflow:hidden;position:relative;display:block}
-.mvhost .draggable-pane{max-height:340px !important;overflow-y:auto;z-index:60}
-.mvhost .control-buttons{zoom:1.45}
-.mvhost .control-buttons button{color:#475569}
+.mvhost .draggable-pane,.mvhost .control-buttons{display:none!important}
 .mvhost>*{height:100% !important}
 #cstruct,#trajbox_struct,#trajbox2_struct{overflow:visible}
 #dqsel .cpill,#incarbtn,#ctitle .cpill{text-transform:none}
@@ -222,15 +220,19 @@ body{letter-spacing:-.006em}
 .tabgroup .pills{gap:5px}.tab{padding:5px 9px;border-radius:6px}
 .view{padding:14px 24px}.filterrow input[type=text]{padding-block:8px}
 .tbox{border-radius:8px}.tview{height:min(58vh,600px)}
-#detail,#cdetail,#moviemodal{width:min(1180px,calc(100vw - 32px));max-height:calc(100vh - 32px);border-radius:12px;box-shadow:var(--shadow)}
+#detail,#cdetail,#moviemodal{width:min(1080px,calc(100vw - 32px));max-height:calc(100vh - 32px);border-radius:12px;box-shadow:var(--shadow)}
 #detail,#cdetail{padding:15px 18px}.dhead{font-size:15px;font-weight:700;margin:0 92px 10px 0}
 #cdetail .dgrid{grid-template-columns:minmax(300px,.92fr) minmax(420px,1.08fr)!important;gap:18px!important}
 .dcol h4{font-size:14px;font-weight:700;text-transform:none;letter-spacing:0}
-#detail .dgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:16px}
+#detail{width:min(1020px,calc(100vw - 32px));max-height:min(780px,calc(100vh - 32px))}
+#detail .dgrid{grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr)!important;gap:14px}
 #detail .dgrid>.dcol:nth-child(3){display:none!important}
-#detail .dcol>h4{min-height:34px;margin-bottom:6px}
+#detail .dcol>h4{min-height:0;margin-bottom:6px}
+#detail .dgrid>.dcol:nth-child(2)>h4:first-child{justify-content:center!important;text-align:center;margin:0 auto 8px}
 #detail #dmoviebtn{display:inline-flex;white-space:nowrap}
 #detail #dmoviebtn:empty{display:none}
+#detail #efdetailplot{height:270px}
+#detail #dstruct{height:270px!important;border:1px solid var(--wbg-border);border-radius:8px;overflow:hidden}
 .kv{margin:0}.kv div{padding:5px 0;gap:20px}.kv span:last-child{text-align:right;font-weight:600}
 .notebox{background:#f7fafb;border-color:#e1e7eb;border-radius:6px;padding:8px 10px}
 #cnote{font-size:12.5px;line-height:1.5}
@@ -240,17 +242,24 @@ body{letter-spacing:-.006em}
 .structure-viewbar{position:absolute;z-index:12;top:8px;left:50%;transform:translateX(-50%);display:flex;gap:2px;padding:3px;background:rgba(255,255,255,.92);border:1px solid var(--wbg-border);border-radius:7px;box-shadow:0 3px 14px rgba(35,54,63,.09)}
 .structure-viewbar button{border:0;background:transparent;color:var(--wbg-muted);padding:4px 8px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer}
 .structure-viewbar button:hover{color:var(--wbg-ink);background:#eef4f6}.structure-viewbar button.on{color:#fff;background:var(--wbg-accent)}
-#moviemodal{padding:0;overflow:hidden;width:min(1380px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));max-height:none;flex-direction:column}
+#moviemodal{padding:0;overflow:hidden;width:min(1080px,calc(100vw - 32px));height:min(620px,calc(100vh - 32px));max-height:none;flex-direction:column}
 #moviemodal.on{display:flex}
-#mvm-head{padding:12px 16px;background:#fff}#mvm-head>span:first-child{font-weight:700;text-transform:none}
-#mvm-info{padding:8px 16px;margin:0;background:#f7fafb;border-bottom:1px solid var(--wbg-border)}
+#mvm-head{padding:10px 14px;background:#fff;min-height:50px}#mvm-head>span:first-child{font-weight:700;text-transform:none}
+#mvm-info{padding:7px 14px;margin:0;background:#f7fafb;border-bottom:1px solid var(--wbg-border);font-size:12.5px}
 #mvm-conv,#mvm-caption{display:none!important}
-#mvm-body{padding:14px 16px 16px;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:12px;flex:1;min-height:0}
-#mvm-body.static{grid-template-columns:minmax(420px,1.25fr) minmax(300px,.75fr)}
+#mvm-body{padding:10px 12px 12px;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:10px;flex:1;min-height:0}
+#mvm-body.static{grid-template-columns:minmax(420px,1.15fr) minmax(320px,.85fr)}
 #mvm-body>div{min-width:0;min-height:0}
+#mvm-body>div:first-child{position:relative}
 #mvm-grid{height:100%;min-height:0;border:1px solid var(--wbg-border);border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#fff,#f8fbfc)}
-.mvbuf{opacity:1;transition:opacity .24s ease}
-.mvm-panel{height:100%;min-height:0;border-radius:8px;padding:10px}
+#mvm-note{position:absolute;z-index:5;left:10px;top:10px;margin:0!important;padding:4px 7px;border:1px solid var(--wbg-border);border-radius:6px;background:rgba(255,255,255,.9);font-size:11.5px!important;text-align:left!important;text-indent:0!important}
+#mvm-note:empty{display:none}
+.mvbuf{opacity:1;transition:none}
+.mvm-panel{height:100%;min-height:0;border-radius:8px;padding:8px}
+#mvm-controls{display:grid;grid-template-columns:auto auto auto 62px minmax(70px,1fr) auto;gap:6px;margin-top:7px}
+#mvm-controls .cpill{padding:6px 9px}
+#mvm-controls input[type=range]{width:100%;min-width:0}
+#mvm-count{font-size:12px!important}
 #mvm-controls .play{background:var(--wbg-accent);border-color:var(--wbg-accent)}
 .mvm-card{height:100%;display:flex;flex-direction:column;justify-content:center!important;padding:18px!important}
 .mvm-card h5{font-size:13px;font-weight:700;text-transform:none;letter-spacing:0}
@@ -789,8 +798,9 @@ async function dOpenDetail(r){
     }).join("")+`</div>`;
   // movie + structure
   const dkey=`${r.f}__${r.h}__${r.d}`;
+  const geomKey=defectTrajectoryKey(r,dkey);
   const qopts=QS.filter(q=>(r.rq&&q in r.rq)||q in r.e).map(q=>({sub:q,name:`q = ${+q>0?"+"+q:q}`}));
-  document.getElementById("dmoviebtn").innerHTML = HAVE_TRAJ.has(dkey)
+  document.getElementById("dmoviebtn").innerHTML = geomKey
     ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
          id="dmovie-open">▶ Relaxation movie</button>`
     : "";
@@ -798,10 +808,10 @@ async function dOpenDetail(r){
   if(dbtn) dbtn.onclick=()=>{
     const hostEls=new Set(HOSTELS(r.h)); const dark={};
     r.d.split("+").forEach(part=>{const a=part.split("_")[0]; if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";});
-    openMovie(dkey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`,dark);
+    openMovie(geomKey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`,dark);
   };
   dRedrawPlot();
-  mountDefectStructure(r,dkey).then(()=>{dAlignCols();setTimeout(dAlignCols,1600);});
+  mountDefectStructure(r,geomKey).then(()=>{dAlignCols();setTimeout(dAlignCols,1600);});
   dRenderRows();
 }
 function dAlignCols(){   // Σ scroll box ends on the same horizontal line as the middle column
@@ -845,7 +855,7 @@ async function dRedrawPlot(){
   const box=document.getElementById("efdetailplot");
   const W=Math.max(300,Math.min(640,box.clientWidth||520));
   Plotly.react("efdetailplot",traces,{
-    width:W,height:340,showlegend:false,
+    width:W,height:270,showlegend:false,
     xaxis:{title:{text:"Fermi level E<sub>F</sub> (eV)",font:{size:13}},range:[-pad,r.g+pad],zeroline:false,showgrid:false,
            tickvals:[0,r.g],ticktext:["0.0<br>VBM",`${r.g.toFixed(2)}<br>CBM`],automargin:true},
     yaxis:{title:{text:"Defect formation energy (eV)",font:{size:13}},zeroline:false,showgrid:true,
@@ -855,32 +865,67 @@ async function dRedrawPlot(){
     margin:{l:58,r:16,t:10,b:56},font:{family:"Arial Narrow"},
     plot_bgcolor:"#f7f8fa",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:false,displaylogo:false,displayModeBar:false});
 }
-async function mountDefectStructure(r,dkey){
+function defectTrajectoryKey(r,dkey){
+  if(HAVE_TRAJ.has(dkey)) return dkey;
+  const pbesol=`pbesol__${r.h}__${r.d}`;
+  return HAVE_TRAJ.has(pbesol)?pbesol:null;
+}
+function defectColors(r){
+  const hostEls=new Set(HOSTELS(r.h)), dark={};
+  r.d.split("+").forEach(part=>{
+    const a=part.split("_")[0];
+    if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";
+  });
+  return dark;
+}
+async function unrelaxedDefectModel(r){
+  const parts=r.d.split("+").map(part=>part.split("_"));
+  // An interstitial position cannot be inferred from composition alone.
+  if(parts.some(([,site])=>site==="i")) return null;
+  const hostKey=(r.f==="pbesol"?"pbesol__":"hse_soc__")+r.h;
+  if(!HAVE_STRUCT.has(hostKey)) return null;
+  try{
+    const resp=await fetch(`structures/${encodeURIComponent(hostKey)}.json`);
+    if(!resp.ok) return null;
+    const st=hydrate(await resp.json());
+    for(const [atom,site] of parts){
+      const idx=st.sites.findIndex(s=>s.species.some(x=>x.element===site));
+      if(idx<0) return null;
+      if(atom==="V") st.sites.splice(idx,1);
+      else {
+        st.sites[idx].species=[{element:atom,occu:1}];
+        st.sites[idx].label=atom;
+      }
+    }
+    return st;
+  }catch(e){ return null; }
+}
+async function mountDefectStructure(r,trajKey){
   const el=document.getElementById("dstruct"), note=document.getElementById("dstructnote");
   freeMV(el); el.replaceChildren(); note.innerHTML="";
   note.style.display="none";
-  if(!HAVE_TRAJ.has(dkey)){
-    const hostKey=(r.f==="pbesol"?"pbesol__":"hse_soc__")+r.h;
-    document.getElementById("dstructhead").textContent="Host structure";
-    if(HAVE_STRUCT.has(hostKey)){
+  document.getElementById("dstructhead").textContent="Defect structure";
+  if(!trajKey){
+    const model=await unrelaxedDefectModel(r);
+    if(dSel!==r) return;
+    if(model){
+      document.getElementById("dstructhead").textContent="Defect structure · unrelaxed site model";
       try{
-        const resp=await fetch(`structures/${encodeURIComponent(hostKey)}.json`);
-        const st=hydrate(await resp.json());
-        await loadMV(st);
-        renderGrid(st, el);
-        note.innerHTML="";
-      }catch(e){ el.innerHTML='<div class="notebox" style="margin:12px">No geometry archived for this row.</div>'; }
-    } else {
-      el.innerHTML='<div class="notebox" style="margin:12px">No geometry archived for this row.</div>';
+        await loadMV(model);
+        renderGrid(model,el,defectColors(r));
+      }catch(e){ el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable.</div>'; }
+    }else{
+      el.innerHTML='<div class="dos-empty"><div class="dos-empty-inner"><strong>Defect geometry unavailable</strong>No relaxed coordinates are archived, and an interstitial site cannot be inferred reliably from the host structure.</div></div>';
     }
     return;
   }
-  document.getElementById("dstructhead").textContent="Defect structure";
+  const pbesolFallback=r.f!=="pbesol"&&trajKey.startsWith("pbesol__");
+  if(pbesolFallback) document.getElementById("dstructhead").textContent="Defect structure · PBEsol-relaxed geometry";
   note.style.display="none";
   el.innerHTML='<div class="notebox" style="margin:12px">loading defect structure…</div>';
   let data=null;
   try{
-    const resp=await fetch(`trajs/${encodeURIComponent(dkey)}.json.gz`);
+    const resp=await fetch(`trajs/${encodeURIComponent(trajKey)}.json.gz`);
     if(resp.ok&&typeof DecompressionStream!=="undefined"){
       const ds=new DecompressionStream("gzip");
       data=JSON.parse(await new Response(resp.body.pipeThrough(ds)).text());
@@ -892,22 +937,15 @@ async function mountDefectStructure(r,dkey){
     return;
   }
   if(dSel!==r) return;
-  MVM.cur=t;   // reuse trajStructure species handling
-  TSPECIES=t.species;
   const fr=t.frames[t.frames.length-1];
   const lat=fr.lat||t.lat, lp=latParams(lat);
   const st=hydrate({"@module":"pymatgen.core.structure","@class":"Structure",charge:0,properties:{},
     lattice:Object.assign({matrix:lat,pbc:[true,true,true]},lp),
     sites:fr.p.map((abc,i)=>({species:[{element:t.species[i],occu:1}],abc,label:t.species[i],properties:{}}))});
   // defect species (added elements + interstitial/substitution parts) rendered black
-  const hostEls=new Set(HOSTELS(r.h));
-  const dark={};
-  r.d.split("+").forEach(part=>{
-    const a=part.split("_")[0];
-    if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";
-  });
+  const dark=defectColors(r);
   document.getElementById("dstructhead").textContent=
-    Object.keys(dark).length?"Defect structure — defect species in black":"Defect structure";
+    `${pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure"}${Object.keys(dark).length?" · defect species in black":""}`;
   el.replaceChildren();
   try{
     await loadMV(st);
@@ -1200,7 +1238,7 @@ function renderGrid(st, el, dark){
     host.style.cssText=`height:${h}px;position:relative`;
     stage.appendChild(host);
     [...bar.children].forEach(b=>{const on=b.textContent===label;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));});
-    const props=Object.assign(dark&&Object.keys(dark).length?{element_colors:dark}:{},dir?{scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}}:{});
+    const props=Object.assign({show_controls:false},dark&&Object.keys(dark).length?{element_colors:dark}:{},dir?{scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}}:{});
     try{window.renderMatterViz(st,host,props);}catch(e){}
   };
   MV_VIEWS.forEach(([label,dir])=>{
@@ -1246,7 +1284,7 @@ async function showFrame(i){
     fresh.className="mvhost";
     fresh.style.height=(host.clientHeight||340)+"px";
     host.replaceChildren(fresh);
-    window.renderMatterViz(trajStructure(fr), fresh, {});
+    window.renderMatterViz(trajStructure(fr), fresh, {show_controls:false});
   }catch(e){}
   info.innerHTML =
     `step <b>${fr.i+1}</b> of ${TRAJ.nframes} &nbsp;·&nbsp; E = <b>${fr.e!==null&&fr.e!==undefined?fr.e.toFixed(2):"—"}</b> eV`+
@@ -1421,7 +1459,7 @@ function mvmMount(st,dark){        // one full-size perspective pane (auto-fit: 
   const buf=document.createElement("div"); buf.className="mvbuf";
   buf.style.cssText=`position:absolute;top:0;left:0;width:${el.clientWidth||600}px;height:${el.clientHeight||470}px`;
   el.appendChild(buf);
-  try{ window.renderMatterViz(st, buf, dark&&Object.keys(dark).length?{element_colors:dark}:{}); }catch(e){}
+  try{ window.renderMatterViz(st, buf, Object.assign({show_controls:false},dark&&Object.keys(dark).length?{element_colors:dark}:{})); }catch(e){}
 }
 function parkStructure(){                        // free the dashboard's viewers (context budget is ~8)
   const el=document.getElementById("cstruct");
@@ -1518,17 +1556,17 @@ async function mvmShow(i){
      <span><small>Maximum atomic force</small><b>${f.f!==null&&f.f!==undefined?f.f.toFixed(2)+" eV/Å":"Unavailable"}</b></span>
    </div>`;}
   try{
-    // single full-size pane: default perspective camera auto-fits (structure centred, never cropped,
-    // MatterViz controls visible); one WebGL mount per frame instead of four — no playback stalls
+    // Single full-size pane: the default perspective camera auto-fits the structure.
+    // One WebGL mount per frame instead of four keeps playback responsive.
     const st=mvmStructure(f);
     await loadMV(st);
     const grid=document.getElementById("mvm-grid");
     grid.style.position="relative";
     const olds=[...grid.children];
     const fresh=document.createElement("div"); fresh.className="mvbuf";
-    fresh.style.cssText=`position:absolute;top:0;left:0;width:${grid.clientWidth||600}px;height:${grid.clientHeight||470}px;opacity:0`;
+    fresh.style.cssText=`position:absolute;inset:0;width:${grid.clientWidth||600}px;height:${grid.clientHeight||470}px;visibility:hidden`;
     grid.appendChild(fresh);
-    try{ window.renderMatterViz(st, fresh, MVM.dark&&Object.keys(MVM.dark).length?{element_colors:MVM.dark}:{}); }catch(e){}
+    try{ window.renderMatterViz(st, fresh, Object.assign({show_controls:false},MVM.dark&&Object.keys(MVM.dark).length?{element_colors:MVM.dark}:{})); }catch(e){}
     await new Promise(resolve=>{
       let attempts=0;
       const ready=()=>{
@@ -1538,9 +1576,13 @@ async function mvmShow(i){
       };
       ready();
     });
-    fresh.style.opacity="1";
-    olds.forEach(o=>o.style.opacity="0");
-    setTimeout(()=>{ olds.forEach(o=>{ if(o.parentNode===grid){ freeMV(o); o.remove(); } }); },280);
+    // Keep the current frame visible until the next canvas has completed two paints.
+    // Swapping whole buffers atomically avoids the white flash produced by WebGL remounts.
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    fresh.style.visibility="visible";
+    fresh.style.zIndex="2";
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    olds.forEach(o=>{ if(o.parentNode===grid){ freeMV(o); o.remove(); } });
   }catch(e){}
   const eL=t.frames[t.frames.length-1].e;
   const de=f.e!==null&&eL!==null?f.e-eL:null;
