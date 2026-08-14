@@ -162,7 +162,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
   font-size:12.5px;color:#475569;background:var(--wbg-surface);margin-right:6px;white-space:nowrap}
 .mvm-chip.ok{color:#15803d;border-color:#c3e6c9;background:#eefaf0}
 .mvm-chip.warn{color:#a5541a;border-color:#f0d9bf;background:#fdf5ec}
-#mvm-body{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:stretch}
+#mvm-body{display:grid;grid-template-columns:minmax(420px,760px) minmax(380px,640px);gap:14px;align-items:stretch;justify-content:center}
 #mvm-body.static{grid-template-columns:1.85fr .8fr}
 #mvm-grid{height:470px}
 #mvm-conv:empty{display:none}
@@ -1350,23 +1350,8 @@ async function mvmLoad(sub){
     `ionic relaxation (NSW = ${t.nframes}) · ${conv?"converged":"not converged"} <span class="sep">|</span> `+
     `${t.nframes} steps · ΔE ${de[0]!==null?(-de[0]).toFixed(2):"—"} eV`+
     (fr.length<t.nframes?` <span class="sep">|</span> ${fr.length} frames stored`:"");
-  // full-width convergence chart, ΔE clipped at 5 eV (Kosmos)
-  const CLIP=5.0, xsAll=fr.map(f=>f.i);
-  const deC=de.map(v=>v===null?null:Math.min(v,CLIP));
-  const clipped=de.some(v=>v!==null&&v>CLIP);
-  Plotly.react("mvm-conv",[
-    {x:xsAll,y:deC,mode:"lines",name:"ΔE vs final (eV)",line:{width:2.4,color:"#0e7490"}},
-    {x:xsAll,y:fr.map(f=>f.f),mode:"lines",name:"F max (eV/Å)",yaxis:"y2",line:{width:2.4,color:"#de9e3a"}}],
-    {margin:{l:56,r:56,t:8,b:30},showlegend:false,font:{family:"Arial Narrow",size:13},
-     xaxis:{dtick:xsAll.length<=8?1:undefined,range:[-0.3,xsAll[xsAll.length-1]+0.3]},
-     yaxis:{color:"#0e7490",rangemode:"tozero",nticks:5},
-     yaxis2:{overlaying:"y",side:"right",color:"#de9e3a",rangemode:"tozero",nticks:4,tickformat:".2~g"},
-     annotations:clipped?[{x:1,y:1,xref:"paper",yref:"paper",text:"≥"+CLIP.toFixed(1)+" clipped",
-       showarrow:false,font:{color:"#0e7490",size:13},xanchor:"right"}]:[],
-     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
-  document.getElementById("mvm-caption").innerHTML=
-    `ionic step — <span style="color:#0e7490">ΔE vs final (eV)</span> · <span style="color:#de9e3a">F max (eV/Å)</span>`+
-    (clipped?` — initial spike clipped to show the approach`:``);
+  {const cv=document.getElementById("mvm-conv"); if(window.Plotly&&cv.data) Plotly.purge(cv); cv.innerHTML="";}
+  document.getElementById("mvm-caption").textContent="";
   document.getElementById("mvm-note").innerHTML=MVM.dark&&Object.keys(MVM.dark).length
     ? `◉ defect site highlighted — ${Object.keys(MVM.dark).map(defHTML).join(", ")} in black`
     : "";
@@ -1514,14 +1499,6 @@ async function drawDOS(r,ord,key){
   const head=document.getElementById("cmaphead");
   const d=await fetchDOS(key);
   if(!d||!d.e||!d.e.length) return false;
-  let borrowed=null;
-  if(!Object.keys(d.el||{}).length){
-    const alt=`PBEsol__${r.n}_${ord}`;
-    if(HAVE_DOS.has(alt)){
-      const pd=await fetchDOS(alt);
-      if(pd&&Object.keys(pd.el||{}).length) borrowed=pd;
-    }
-  }
   if(cSel!==r) return true;
   head.style.display=""; note.style.display="";
   head.innerHTML="Density of states — element-projected";
@@ -1547,32 +1524,6 @@ async function drawDOS(r,ord,key){
     shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1.2,dash:"dash"}}],
     legend:{orientation:"h",y:1.14,font:{size:12}},
     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
-  if(borrowed){
-    let ex=document.getElementById("cmap2");
-    if(!ex){ ex=document.createElement("div"); ex.id="cmap2"; ex.style.cssText="height:230px;margin-top:8px";
-      el.parentNode.insertBefore(ex, note); }
-    ex.style.display="";
-    const btr=[];
-    Object.keys(borrowed.el).forEach((elname,i)=>{
-      const c=DOS_COLORS[i%DOS_COLORS.length];
-      btr.push({x:borrowed.e,y:borrowed.el[elname],name:elname,mode:"lines",fill:"tozeroy",
-        line:{color:c,width:1.4},fillcolor:c+"2e",
-        hovertemplate:elname+": %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"});
-    });
-    await loadPlotly();
-    Plotly.react(ex,btr,{
-      margin:{l:56,r:8,t:24,b:34},font:{family:"Arial Narrow",size:12},
-      title:{text:"element-projected — PBEsol run of the same compound (this campaign wrote no projections)",
-             font:{size:12,color:"#6b7280"},x:0,xanchor:"left"},
-      xaxis:{title:{text:"E − E<sub>F</sub> (eV)",font:{size:12}},range:[-6,6],zeroline:false},
-      yaxis:{rangemode:"tozero"},showlegend:true,
-      legend:{orientation:"h",y:1.28,font:{size:11}},
-      shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1,dash:"dash"}}],
-      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
-  } else {
-    const ex=document.getElementById("cmap2");
-    if(ex){ if(window.Plotly&&ex.data) Plotly.purge(ex); ex.style.display="none"; }
-  }
   const parts=decompParts(r,ord);
   const Tstar=(parts&&parts.ent!==0&&parts.d0>0&&parts.ent<0)?-parts.d0/(KB*parts.ent):null;
   head.innerHTML=haveProj?"Density of states — element-projected":"Density of states — total";
