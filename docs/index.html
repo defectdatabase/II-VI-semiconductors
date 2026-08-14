@@ -123,7 +123,7 @@ select:focus{outline:none;border-color:var(--wbg-accent);box-shadow:0 0 0 3px rg
 .kv span:first-child{color:var(--wbg-muted)}
 .notebox{background:var(--wbg-surface);border:1px solid var(--wbg-border);border-radius:7px;
   padding:7px 10px;font-size:13.2px;line-height:1.45;color:#475569;margin-top:6px}
-#efdetailplot{width:100%;height:360px}
+#efdetailplot{width:100%;height:340px;overflow:hidden}
 
 /* ---- footnote + references ---- */
 .footnote{font-size:14px;color:var(--wbg-muted);max-width:1100px;margin:14px auto 0;text-align:justify}
@@ -162,7 +162,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
   font-size:12.5px;color:#475569;background:var(--wbg-surface);margin-right:6px;white-space:nowrap}
 .mvm-chip.ok{color:#15803d;border-color:#c3e6c9;background:#eefaf0}
 .mvm-chip.warn{color:#a5541a;border-color:#f0d9bf;background:#fdf5ec}
-#mvm-body{display:grid;grid-template-columns:minmax(420px,760px) minmax(380px,640px);gap:14px;align-items:stretch;justify-content:center}
+#mvm-body{display:grid;grid-template-columns:minmax(420px,1.75fr) minmax(360px,1fr);gap:14px;align-items:stretch}
 #mvm-body.static{grid-template-columns:1.85fr .8fr}
 #mvm-grid{height:470px}
 #mvm-conv:empty{display:none}
@@ -691,7 +691,11 @@ async function dOpenDetail(r){
   });
   const shown=envLv.length?envLv:levels.filter(L=>L.eps>-r.g*0.5&&L.eps<r.g*1.5);
   const chr=e=>e<=0.1||e>=r.g-0.1?"shallow":"deep";
-  document.getElementById("dtranswrap").style.display=shown.length?"":"none";
+  const _dtw=document.getElementById("dtranswrap");
+  _dtw.style.display=shown.length?"":"none";
+  _dtw.parentElement.style.display=shown.length?"":"none";          // drop the empty 3rd column entirely
+  document.querySelector("#detail .dgrid").style.gridTemplateColumns=
+    shown.length?"":"minmax(300px,1fr) minmax(480px,1.9fr)";        // 2-col layout when no levels to show
   document.getElementById("dtranstbl").innerHTML=shown.length
     ? `<tr><th>Transition</th><th>ε (eV)</th><th>Character</th></tr>`+
       shown.map(L=>`<tr><td>${L.t}</td><td>${L.eps.toFixed(2)}</td>
@@ -727,8 +731,19 @@ async function dOpenDetail(r){
     openMovie(dkey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`,dark);
   };
   dRedrawPlot();
-  mountDefectStructure(r,dkey);
+  mountDefectStructure(r,dkey).then(()=>{dAlignCols();setTimeout(dAlignCols,1600);});
   dRenderRows();
+}
+function dAlignCols(){   // Σ scroll box ends on the same horizontal line as the middle column
+  const grid=document.querySelector("#detail .dgrid"); if(!grid) return;
+  const c2=grid.children[1], sig=document.getElementById("dsigma");
+  if(!c2||!sig) return;
+  const kids=[...c2.children].filter(e=>e.offsetParent!==null&&e.getBoundingClientRect().height>0);
+  if(!kids.length) return;
+  const bot=Math.max(...kids.map(e=>e.getBoundingClientRect().bottom));
+  const Z=parseFloat(getComputedStyle(document.documentElement).zoom)||1;   // rects are page-zoom scaled; style px are not
+  const target=Math.round((bot-sig.getBoundingClientRect().top)/Z);
+  if(target>240){ sig.style.maxHeight="none"; sig.style.height=target+"px"; }
 }
 function typeAim(html){ return html; }   // note kept static; the compound panel carries the animation
 async function dRedrawPlot(){
@@ -755,14 +770,7 @@ async function dRedrawPlot(){
     traces.push({x:kinks.map(k=>k.x),y:kinks.map(k=>k.y),mode:"markers",name:"",
       marker:{size:9,symbol:"circle-open",color:"#0e7490",line:{width:2}},
       text:kinks.map(k=>k.t),hovertemplate:"ε%{text} = %{x:.2f} eV<extra></extra>"});
-  // uncorrected charged states: faint dotted context lines for the same condition
-  if(r.u){
-    for(const q of Object.keys(r.u)){
-      traces.push({x:[0,r.g],y:[r.u[q]+mu+(+q)*(r.v+0), r.u[q]+mu+(+q)*(r.v+r.g)],mode:"lines",
-        name:"",line:{width:1,color:"#c9ced8",dash:"dot"},
-        hovertemplate:`q = ${+q>0?"+"+q:q} (uncorrected)<extra></extra>`});
-    }
-  }
+  // lowest-energy envelope only — per-charge context lines removed (user request 2026-08-13)
   const pad=Math.max(0.06,0.12*r.g);
   const box=document.getElementById("efdetailplot");
   const W=Math.max(300,Math.min(640,box.clientWidth||520));
@@ -779,10 +787,7 @@ async function dRedrawPlot(){
 }
 async function mountDefectStructure(r,dkey){
   const el=document.getElementById("dstruct"), note=document.getElementById("dstructnote");
-  const col=el.closest(".dcol"), grid=el.closest(".dgrid");
-  freeMV(el); el.replaceChildren(); note.innerHTML=""; note.style.display="none";
-  col.style.display="";
-  grid.style.gridTemplateColumns="";
+  freeMV(el); el.replaceChildren(); note.innerHTML="";
   note.style.display="";
   if(!HAVE_TRAJ.has(dkey)){
     const hostKey=(r.f==="pbesol"?"pbesol__":"hse_soc__")+r.h;
@@ -800,7 +805,7 @@ async function mountDefectStructure(r,dkey){
     }
     return;
   }
-  document.getElementById("dstructhead").textContent="Defect structure — defect species in black";
+  document.getElementById("dstructhead").textContent="Defect structure";
   el.innerHTML='<div class="notebox" style="margin:12px">loading defect structure…</div>';
   let data=null;
   try{
@@ -830,6 +835,8 @@ async function mountDefectStructure(r,dkey){
     const a=part.split("_")[0];
     if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";
   });
+  document.getElementById("dstructhead").textContent=
+    Object.keys(dark).length?"Defect structure — defect species in black":"Defect structure";
   el.replaceChildren();
   try{
     await loadMV(st);
@@ -853,7 +860,8 @@ async function mountDefectStructure(r,dkey){
     });
     note.innerHTML=`Relaxed geometry (final ionic step, q = ${data["0"]?"0":Object.keys(data)[0]}).`+
       (Object.keys(dark).length?` Defect species ${Object.keys(dark).map(defHTML).join(", ")} in black.`:
-       r.d.startsWith("V_")?" Vacancy defects remove an atom — no site to highlight.":"");
+       r.d.startsWith("V_")?" Vacancy defects remove an atom — no site to highlight.":
+       " This defect involves host species only — the viewer colours by element, so a black highlight would repaint every atom of that element rather than the single defect site.");
   }catch(e){
     el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable.</div>';
   }
@@ -1123,7 +1131,7 @@ function freeMV(el){
   });
 }
 let MVBUSY=false;
-function renderGrid(st, el){
+function renderGrid(st, el, dark){
   freeMV(el);
   const h=(el.clientHeight||460);
   const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c);
@@ -1148,7 +1156,7 @@ function renderGrid(st, el){
     host.style.position="relative";
     host.style.height=Math.floor((h-6)/2*1.22)+"px";   // unchanged mount geometry (.mvhost zoom 1/1.22)
     cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
-    const props = Object.assign(window.MVM&&MVM.dark&&Object.keys(MVM.dark).length&&el.id==="mvm-grid"?{element_colors:MVM.dark}:{}, dir ? {scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}} : {});
+    const props = Object.assign(dark&&Object.keys(dark).length?{element_colors:dark}:{}, dir ? {scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}} : {});
     try{ window.renderMatterViz(st, host, props); }catch(e){}
   });
 }
@@ -1366,7 +1374,16 @@ async function openStaticMovie(key,label,E,fmax,info){
      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},
     {responsive:false,displaylogo:false,displayModeBar:false});
   await loadMV(hst);
-  renderGrid(hst, document.getElementById("mvm-grid"));
+  mvmMount(hst,null);
+}
+function mvmMount(st,dark){        // one full-size perspective pane (auto-fit: centred, controls visible)
+  const el=document.getElementById("mvm-grid");
+  freeMV(el); el.replaceChildren();
+  el.style.position="relative";
+  const buf=document.createElement("div"); buf.className="mvbuf";
+  buf.style.cssText=`position:absolute;top:0;left:0;width:${el.clientWidth||600}px;height:${el.clientHeight||470}px`;
+  el.appendChild(buf);
+  try{ window.renderMatterViz(st, buf, dark&&Object.keys(dark).length?{element_colors:dark}:{}); }catch(e){}
 }
 function parkStructure(){                        // free the dashboard's viewers (context budget is ~8)
   const el=document.getElementById("cstruct");
@@ -1408,7 +1425,8 @@ async function mvmLoad(sub){
     : "";
   // subsampled frame chart
   const box=document.getElementById("mvm-frame");
-  const W=Math.max(320,box.clientWidth||560), Hh=Math.max(260,box.clientHeight||380);
+  box.style.overflow="hidden";
+  const W=Math.max(320,box.clientWidth||560), Hh=Math.max(240,(box.clientHeight||380)-14);
   Plotly.react("mvm-frame",[
     {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",name:"ΔE vs final (eV)",line:{color:"#3b82c4"},marker:{size:6}},
     {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"F max (eV/Å)",yaxis:"y2",line:{color:"#2e8b57"},marker:{size:6}},
@@ -1454,29 +1472,18 @@ async function mvmShow(i){
      `E = <b>${f.e!==null&&f.e!==undefined?f.e.toFixed(2):"—"} eV</b> · ΔE = <b>${de2!==null?(de2>=0?"+":"")+de2.toFixed(2):"—"} eV</b>`+
      (f.f!==null&&f.f!==undefined?` · F max = <b>${f.f.toFixed(2)} eV/Å</b>`:"");}
   try{
+    // single full-size pane: default perspective camera auto-fits (structure centred, never cropped,
+    // MatterViz controls visible); one WebGL mount per frame instead of four — no playback stalls
     const st=mvmStructure(f);
     await loadMV(st);
     const grid=document.getElementById("mvm-grid");
-    const hosts=[...grid.querySelectorAll(".mvhost")];
-    if(hosts.length===4&&hosts.every(h=>h.dataset.dir!==undefined)){
-      // update every pane in place: render the new frame in an explicit-size buffer, then retire the old mount
-      const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c), dist=1.9*L;
-      for(const host of hosts){
-        const dv=host.dataset.dir?JSON.parse(host.dataset.dir):null;
-        const ctr=[(st.lattice.matrix[0][0]+st.lattice.matrix[1][0]+st.lattice.matrix[2][0])/2,
-                   (st.lattice.matrix[0][1]+st.lattice.matrix[1][1]+st.lattice.matrix[2][1])/2,
-                   (st.lattice.matrix[0][2]+st.lattice.matrix[1][2]+st.lattice.matrix[2][2])/2];
-        const props=Object.assign(MVM.dark&&Object.keys(MVM.dark).length?{element_colors:MVM.dark}:{}, !dv?{}:{scene_props:{camera_position:dv.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}});
-        const olds=[...host.children];
-        const fresh=document.createElement("div"); fresh.className="mvbuf";
-        fresh.style.cssText=`position:absolute;top:0;left:0;width:${host.clientWidth}px;height:${host.clientHeight}px`;
-        host.appendChild(fresh);
-        try{ window.renderMatterViz(st, fresh, props); }catch(e){}
-        setTimeout(()=>{ olds.forEach(o=>{ if(o.parentNode===host){ freeMV(o); o.remove(); } }); },180);
-      }
-    } else {
-      renderGrid(st, grid);
-    }
+    grid.style.position="relative";
+    const olds=[...grid.children];
+    const fresh=document.createElement("div"); fresh.className="mvbuf";
+    fresh.style.cssText=`position:absolute;top:0;left:0;width:${grid.clientWidth||600}px;height:${grid.clientHeight||470}px`;
+    grid.appendChild(fresh);
+    try{ window.renderMatterViz(st, fresh, MVM.dark&&Object.keys(MVM.dark).length?{element_colors:MVM.dark}:{}); }catch(e){}
+    setTimeout(()=>{ olds.forEach(o=>{ if(o.parentNode===grid){ freeMV(o); o.remove(); } }); },180);
   }catch(e){}
   const eL=t.frames[t.frames.length-1].e;
   const de=f.e!==null&&eL!==null?f.e-eL:null;
