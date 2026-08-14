@@ -267,6 +267,25 @@ standalone `pages/structgrid/index.html` and our defect pane were fed the identi
 **3635253991**, `nparts:2` - and both render 4 canvases, the legend `Se22 Cd106 Te87`, the
 `1 x 1 x 1` supercell control, the Perspective/Front/Top/Right panes and **2 black defect sites**.
 
+## "No atom moving" - diagnosed and fixed (2026-08-14, live)
+
+Measured on the live site, not inferred. The viewer and its play loop were working: the readout
+advanced 1 -> 9 -> 12/12 while the tab was in the foreground (an automation probe with the tab hidden
+freezes requestAnimationFrame and reports a frozen movie - that artifact cost one round of
+misdiagnosis). Three real reasons the motion was invisible:
+
+1. Kosmos's viewer plays the trajectory **once** at 700 ms/frame and parks on the last frame -
+   12 frames is 8.4 s, so anyone who looked up a moment late saw a still picture.
+2. An ionic relaxation puts nearly all displacement in the **first** frames: `V_Cd+Cd_Se` moves
+   0.93 A in total, but frames 10-12 are converged and render identically.
+3. Many rows are converged outright - `Cd_Se+Te_i` moves **0.034 A** across all 7 stored frames
+   (mean 0.001 A, 2.10 meV, F_max 0.008 eV/A). No renderer can show that, which is why the summary
+   strip now quotes the largest displacement per trajectory.
+
+Fix: a parent-side watchdog restarts playback whenever the viewer is parked on the final frame, and
+is cleared when the modal closes. Verified live - parked at frame 12/12, then back to **frame 1 / 12
+with dE +0.68 eV, F max 0.45 eV/A**, playing.
+
 ## Mistakes & corrections log (append-only)
 - **2026-08-14 - overrode the reference's own defect detection.** WHAT I DID WRONG: after vendoring
   Kosmos's structgrid I still passed my own `highlight` index list, which takes priority over its
