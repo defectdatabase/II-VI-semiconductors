@@ -696,35 +696,46 @@ async function dRedrawPlot(){
   const r=dSel; if(!r) return;
   await loadPlotly();
   const sel=document.getElementById("dcondsel");
-  const pick=sel&&sel.value?sel.value:"mc";
-  const traces=[];
-  for(const [cond,name,color] of [["mc","Cd-rich","#1f77b4"],["mt","anion-rich","#ff7f0e"]]){
-    const mu=cond==="mc"?r.mc:r.mt; if(mu===null) continue;
-    const xs=[],ys=[];
-    for(let i=0;i<=60;i++){const x=r.g*i/60;xs.push(x);ys.push(envelope(r,cond,x)[0]);}
-    traces.push({x:xs,y:ys,mode:"lines",name,line:{width:cond===pick?3.2:1.6,color,dash:""},
-      opacity:cond===pick?1:0.45});
-  }
-  const pad=0.12*r.g;
-  const mu=pick==="mc"?r.mc:r.mt;
-  if(mu!==null&&r.u){
-    for(const q of Object.keys(r.u)){
-      const xs=[0,r.g], ys=[r.u[q]+mu+(+q)*(r.v+0), r.u[q]+mu+(+q)*(r.v+r.g)];
-      traces.push({x:xs,y:ys,mode:"lines",name:`q = ${+q>0?"+"+q:q} (uncorrected)`,
-        line:{width:1,color:"#9aa3af",dash:"dot"},hoverinfo:"name+y"});
+  const pick=sel&&sel.value&&r[sel.value]!==null?sel.value:(r.mc!==null?"mc":"mt");
+  const mu=pick==="mc"?r.mc:r.mt; if(mu===null) return;
+  // one curve — the selected growth condition (the shape is condition-independent)
+  const xs=[],ys=[];
+  for(let i=0;i<=80;i++){const x=r.g*i/80;xs.push(x);ys.push(envelope(r,pick,x)[0]);}
+  const traces=[{x:xs,y:ys,mode:"lines",name:"",line:{width:3,color:"#0e7490"},hoverinfo:"x+y"}];
+  // envelope kinks = transition levels (open circles, Kosmos style)
+  const qsC=QS.filter(q=>q in r.e).map(Number);
+  const kinks=[];
+  for(let i=1;i<xs.length;i++){
+    const q1=envelope(r,pick,xs[i-1])[1], q2=envelope(r,pick,xs[i])[1];
+    if(q1!==null&&q2!==null&&q1!==q2){
+      const eps=(r.e[String(q2)]-r.e[String(q1)])/(q1-q2)-r.v;
+      kinks.push({x:eps,y:envelope(r,pick,eps)[0],t:`(${q1>0?"+"+q1:q1}/${q2>0?"+"+q2:q2})`});
     }
   }
+  if(kinks.length)
+    traces.push({x:kinks.map(k=>k.x),y:kinks.map(k=>k.y),mode:"markers",name:"",
+      marker:{size:9,symbol:"circle-open",color:"#0e7490",line:{width:2}},
+      text:kinks.map(k=>k.t),hovertemplate:"ε%{text} = %{x:.2f} eV<extra></extra>"});
+  // uncorrected charged states: faint dotted context lines for the same condition
+  if(r.u){
+    for(const q of Object.keys(r.u)){
+      traces.push({x:[0,r.g],y:[r.u[q]+mu+(+q)*(r.v+0), r.u[q]+mu+(+q)*(r.v+r.g)],mode:"lines",
+        name:"",line:{width:1,color:"#c9ced8",dash:"dot"},
+        hovertemplate:`q = ${+q>0?"+"+q:q} (uncorrected)<extra></extra>`});
+    }
+  }
+  const pad=Math.max(0.06,0.12*r.g);
   const box=document.getElementById("efdetailplot");
   const W=Math.max(300,Math.min(640,box.clientWidth||520));
   Plotly.react("efdetailplot",traces,{
-    width:W,height:340,
+    width:W,height:340,showlegend:false,
     xaxis:{title:{text:"Fermi level E<sub>F</sub> (eV)",font:{size:13}},range:[-pad,r.g+pad],zeroline:false,showgrid:false,
-           tickvals:[0,r.g],ticktext:["0.0<br>VBM",`${r.g.toFixed(2)}<br>CBM`]},
+           tickvals:[0,r.g],ticktext:["0.0<br>VBM",`${r.g.toFixed(2)}<br>CBM`],automargin:true},
     yaxis:{title:{text:"Defect formation energy (eV)",font:{size:13}},zeroline:false,showgrid:true,
-           gridcolor:"#d8dce3",griddash:"dash"},
-    shapes:[{type:"rect",xref:"x",x0:-pad,x1:0,yref:"paper",y0:0,y1:1,fillcolor:"#1f77b422",line:{width:0}},
-            {type:"rect",xref:"x",x0:r.g,x1:r.g+pad,yref:"paper",y0:0,y1:1,fillcolor:"#ff7f0e22",line:{width:0}}],
-    margin:{l:58,r:14,t:10,b:52},legend:{x:.02,y:.02,yanchor:"bottom",bgcolor:"rgba(255,255,255,.75)",font:{size:11}},font:{family:"Arial Narrow"},
+           gridcolor:"#e3e6eb",griddash:"dash",automargin:true},
+    shapes:[{type:"rect",xref:"x",x0:-pad,x1:0,yref:"paper",y0:0,y1:1,fillcolor:"#1f77b41f",line:{width:0}},
+            {type:"rect",xref:"x",x0:r.g,x1:r.g+pad,yref:"paper",y0:0,y1:1,fillcolor:"#ff7f0e1f",line:{width:0}}],
+    margin:{l:58,r:16,t:10,b:56},font:{family:"Arial Narrow"},
     plot_bgcolor:"#f7f8fa",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:false,displaylogo:false,displayModeBar:false});
 }
 async function mountDefectStructure(r,dkey){
@@ -783,7 +794,10 @@ async function mountDefectStructure(r,dkey){
       const host=document.createElement("div"); host.className="mvhost";
       host.style.height=Math.floor(((el.clientHeight||330)-6)/2*1.22)+"px";
       cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
-      const pr=Object.assign({},props, dir===null?{}:{scene_props:{camera_position:dir.map(x=>x*dist),camera_projection:"orthographic"}});
+      const ctr=[(st.lattice.matrix[0][0]+st.lattice.matrix[1][0]+st.lattice.matrix[2][0])/2,
+                 (st.lattice.matrix[0][1]+st.lattice.matrix[1][1]+st.lattice.matrix[2][1])/2,
+                 (st.lattice.matrix[0][2]+st.lattice.matrix[1][2]+st.lattice.matrix[2][2])/2];
+      const pr=Object.assign({},props, dir===null?{}:{scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}});
       try{ window.renderMatterViz(st, host, pr); }catch(e){}
     });
     note.innerHTML=`Relaxed geometry (final ionic step, q = ${data["0"]?"0":Object.keys(data)[0]}).`+
@@ -1067,6 +1081,9 @@ function renderGrid(st, el){
   const grid=document.createElement("div");
   grid.style.cssText=`display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;width:100%;height:${h}px`;
   el.appendChild(grid);
+  const ctr=[(st.lattice.matrix[0][0]+st.lattice.matrix[1][0]+st.lattice.matrix[2][0])/2,
+             (st.lattice.matrix[0][1]+st.lattice.matrix[1][1]+st.lattice.matrix[2][1])/2,
+             (st.lattice.matrix[0][2]+st.lattice.matrix[1][2]+st.lattice.matrix[2][2])/2];
   MV_VIEWS.forEach(([label,dir])=>{
     const cell=document.createElement("div");
     const clip=el.id==="mvm-grid";                     // movie panes clip; dashboard panes keep escaping controls
@@ -1080,7 +1097,7 @@ function renderGrid(st, el){
     host.style.position="relative";
     host.style.height=Math.floor((h-6)/2*1.22)+"px";   // unchanged mount geometry (.mvhost zoom 1/1.22)
     cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
-    const props = Object.assign(window.MVM&&MVM.dark&&Object.keys(MVM.dark).length&&el.id==="mvm-grid"?{element_colors:MVM.dark}:{}, dir ? {scene_props:{camera_position:dir.map(x=>x*dist),camera_projection:"orthographic"}} : {});
+    const props = Object.assign(window.MVM&&MVM.dark&&Object.keys(MVM.dark).length&&el.id==="mvm-grid"?{element_colors:MVM.dark}:{}, dir ? {scene_props:{camera_position:dir.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}} : {});
     try{ window.renderMatterViz(st, host, props); }catch(e){}
   });
 }
@@ -1410,7 +1427,10 @@ async function mvmShow(i){
       const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c), dist=1.9*L;
       for(const host of hosts){
         const dv=host.dataset.dir?JSON.parse(host.dataset.dir):null;
-        const props=Object.assign(MVM.dark&&Object.keys(MVM.dark).length?{element_colors:MVM.dark}:{}, !dv?{}:{scene_props:{camera_position:dv.map(x=>x*dist),camera_projection:"orthographic"}});
+        const ctr=[(st.lattice.matrix[0][0]+st.lattice.matrix[1][0]+st.lattice.matrix[2][0])/2,
+                   (st.lattice.matrix[0][1]+st.lattice.matrix[1][1]+st.lattice.matrix[2][1])/2,
+                   (st.lattice.matrix[0][2]+st.lattice.matrix[1][2]+st.lattice.matrix[2][2])/2];
+        const props=Object.assign(MVM.dark&&Object.keys(MVM.dark).length?{element_colors:MVM.dark}:{}, !dv?{}:{scene_props:{camera_position:dv.map((x,i)=>ctr[i]+x*dist),camera_target:ctr,camera_projection:"orthographic"}});
         const olds=[...host.children];
         const fresh=document.createElement("div"); fresh.className="mvbuf";
         fresh.style.cssText=`position:absolute;top:0;left:0;width:${host.clientWidth}px;height:${host.clientHeight}px`;
