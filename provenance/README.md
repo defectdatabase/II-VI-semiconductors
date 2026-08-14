@@ -502,3 +502,38 @@ their band edges come from the host.
   3 meV → THE GUARD: never explain an energy difference without dividing by atom count first →
   GUARD LIVES IN the Eagle README's `-N` section.
 
+## Defect naming normalised; missing datasets located (2026-08-14, evening)
+
+Every `A`/`B` site label is now the real host element, resolved from each defect cell's own
+stoichiometry rather than by assuming A means cation: `Ag_A → Ag_Cd`, `Al_B → Al_Se`,
+`As_i_A → As_i_Cd`, `M_A-Ag-3 → Ag_Cd-3`. 7,285 renames; zero raw tags remain. Compound duplicates
+merged (`Te3As2 → As2Te3`, `CdTe0.75Se0.25 → CdSe0.25Te0.75`).
+
+The `-N` defect configs were checked before any merge and are **distinct sites, not snapshots**:
+`CdTe/Ag_i` spans 418 meV across 8 configs with nearest-neighbour distances 2.777–2.955 Å. The site
+publishes one row per (host, defect) using the ground-state config, with the count and spread shown.
+
+Datasets that appeared missing are tarballs in `/anvil/projects/x-mat250008`: In2O3 (42 GB),
+ZnIn2X4 (23 GB), the full Cd-Zn-X source (4.1 TB) and 34 ZB semiconductors (48 GB). In2O3 and
+ZnIn2X4 are transferring to Eagle. The HSE CdSeTe/CdZnTe defects are not on Eagle at all; their
+processed results live in `/scratch/gautschi/rahma103/hse_master_data` as per-charge CSVs that carry
+Structure/Energy/Forces/Stress but **no DOS**, so the raw DFT must come out of the tars.
+
+Optics coverage corrected: **6,877 records over 6,763 unique compounds** carry a dielectric constant
+(2,753 kesterite + 4,010 stannite) and are SLME-ready.
+
+### Mistakes & corrections log
+
+- **2026-08-14 — I collapsed three distinct interstitial sites into one name.** Mapping `X_i_A`,
+  `X_i_B` and `X_i_neut` all onto `X_i` to tidy the names merged physically different defects across
+  53 groups / 124 directories → THE GUARD: never drop a site or configuration tag to make a name fit
+  a rule; resolve it to something meaningful (`X_i_Cd`) or keep it verbatim. Recovery was only
+  possible because the raw extraction ran BEFORE the rename and recorded every original path and
+  energy → GUARD LIVES IN `repair_interstitials.py` and the Eagle README ("extract before you
+  rename").
+- **2026-08-14 — my chem-pot vertex enumeration was computationally impossible.** Enumerating
+  C(m, k−1) constraint combinations hung the full build on 5-element hosts with hundreds of
+  competing phases → THE GUARD: reduce to hull-relevant phases first (one per composition, most
+  negative ΔH, capped) and record how many were dropped per host → GUARD LIVES IN
+  `build_chempot.py`.
+
