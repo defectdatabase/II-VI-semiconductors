@@ -288,6 +288,56 @@ body{letter-spacing:-.006em}
 .dos-empty-inner strong{display:block;color:var(--wbg-ink);font-size:15px;margin-bottom:5px}
 .dos-empty-meta{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--wbg-accent)}
 .archive-note{margin-top:14px;padding:10px;border-left:3px solid #d49a36;background:#fff8eb;color:#76551c;font-size:12.5px;line-height:1.5}
+/* Density pass (user-directed): tighter chrome and table rows, same layout and palette */
+#attr{font-size:11.5px;padding:5px 18px;line-height:1.4}
+#titlebar{padding:8px 20px 4px;gap:9px}
+#titlebar h1{font-size:17px}
+#titlebar .stats,#titlebar .right{font-size:12.5px}
+#titlebar .right a{padding:3px 9px}
+#tabbar{padding:5px 20px 7px;gap:16px}
+.tabgroup>.glabel{font-size:11.5px;margin-bottom:3px}
+.tab{padding:4px 8px;font-size:12.5px}
+.view{padding:9px 20px}
+.filterrow{gap:8px;margin-bottom:7px}
+.filterrow input[type=text]{padding:6px 12px 6px 32px;font-size:13px;background-position:10px center}
+.cpill{padding:4px 8px;font-size:12.5px}
+.checks{gap:13px;margin:2px 0 7px;font-size:12.5px}
+.covstrip{padding:5px 10px;font-size:11.5px;margin-bottom:8px}
+.thead{min-height:32px}
+.thead .hc{padding:4px 7px;font-size:11.5px}
+.trow{height:26px}
+.trow .c,.trow .c.num,.trow .c.defc{padding:0 7px;font-size:12.5px}
+.tview{height:min(66vh,760px)}
+#detail,#cdetail{padding:11px 14px}
+.dhead{font-size:14px;margin-bottom:8px}
+.dhead .sub{font-size:12.5px}
+.dcol h4{font-size:13px;margin-bottom:5px}
+.minitbl,.minitbl th,.minitbl td{font-size:12.5px}
+.minitbl th,.minitbl td{padding:3px 6px}
+.kv{font-size:12.5px}
+.kv div{padding:3px 0}
+.notebox{padding:6px 8px;font-size:12.3px}
+#cnote{font-size:12px}
+#detail #efdetailplot{height:210px}
+#detail #dstruct{height:225px!important}
+#cstruct{height:275px!important}
+.dos-empty{height:150px;padding:14px}
+.dos-empty-inner strong{font-size:14px}
+.archive-note{margin-top:10px;padding:8px;font-size:12px}
+.footnote{font-size:12.5px;margin-top:11px}
+.refs{font-size:12px;margin-top:11px}
+#mvm-head{padding:7px 12px;min-height:40px}
+#mvm-info{padding:5px 12px;font-size:11.5px}
+#mvm-body{padding:8px 10px 10px;gap:8px}
+.mvm-panel{padding:6px}
+#mvm-controls{margin-top:5px}
+.mvm-card{padding:12px!important}
+.mvm-card .row{padding:6px 0;font-size:12.5px}
+.mvm-metrics{gap:6px;margin-top:6px}
+.mvm-metrics span{padding:5px 7px}
+.mvm-metrics b{font-size:12.5px}
+#reportbtn{padding:6px 12px;font-size:12.5px}
+
 @media(max-width:820px){
   #titlebar,#tabbar,.view{padding-left:12px;padding-right:12px}#attr{padding-inline:12px}
   #cdetail .dgrid,#mvm-body,#mvm-body.static{grid-template-columns:1fr!important}
@@ -1526,12 +1576,9 @@ async function mvmLoad(sub){
     `Continuous ionic relaxation <span class="sep">|</span> ${converged?"force converged":"force not converged"} <span class="sep">|</span> `+
     `${t.nframes} ionic steps <span class="sep">|</span> total energy decrease ${decreaseText}`+
     (frames.length<t.nframes?` <span class="sep">|</span> ${frames.length} frames stored`:"");
-  const defectElements=new Set(Object.keys(MVM.dark||{}));
-  const dsite=defectElements.size
-    ? frames[0].p.filter((_,i)=>defectElements.has(t.species[i])).map(abc=>abc.slice())
-    : null;
+  // the trajectory pane is MatterViz; defect species are highlighted through element_colors
   MVM.kosmosPayload={type:"traj_frames",name:document.getElementById("mvm-title").textContent,
-    dsite,species:t.species,defaultLattice:t.lat,
+    dark:MVM.dark||null,species:t.species,defaultLattice:t.lat,
     frames:frames.map((f,i)=>({positions:f.p,lattice:f.lat||t.lat,energy:f.e,fmax:f.f,step:f.i??i}))};
   const viewer=document.getElementById("mvm-kosmos");
   viewer.style.display="";

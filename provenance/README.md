@@ -123,6 +123,35 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
 - Payloads split for speed: data.json 5.1 MB at boot; optics.json.gz, chempot.json.gz and per-row
   dos/*.json.gz fetched on demand.
 
+## Trajectory viewer on MatterViz + density pass (2026-08-14, user-directed)
+
+- `site_src/traj.html` — the relaxation-movie pane — no longer draws its own 2D canvas (private
+  COLORS/RADII tables, hand-rolled yaw/pitch projection, bonds only for cells ≤128 atoms, so the
+  216-atom defect supercells rendered as a flat dot cloud). It now mounts the **same MatterViz
+  bundle at the same pinned revision** the parent page uses, so every structure view on the site
+  comes from one renderer: bonds, coordination polyhedra, MatterViz's own element legend and
+  supercell control, and the same white-pane variables.
+- Playback steps one stored ionic frame per tick (380 ms) and keeps the double-buffered swap: the
+  next frame is built in a hidden buffer while the current one is on screen, then whole buffers are
+  exchanged and the retired one has its WebGL context released. Measured mount cost 3 ms per frame
+  (216 atoms); the DOM holds at most two buffers, so the ~8-context browser budget is never spent.
+- Defect highlighting travels in the payload as `dark` (element_colors) instead of `dsite`
+  fractional coordinates — MatterViz colours by element, and the parent already computes that map
+  for the dashboard panes. The canvas-only exact-site marker is therefore gone; for defects built
+  from host species alone the colour route cannot mark one site, which is what the defect-structure
+  heading has always said.
+- The readiness/paint waits resolve on `requestAnimationFrame` **or** a 60 ms timer, whichever
+  fires first: an occluded tab freezes rAF entirely, and the first implementation stalled at frame 1
+  in exactly that case.
+- Density pass in `template.html` (one appended block; no layout, palette or component change):
+  chrome above the table 318 → **254 px** and rows in view 15 → **22** at 1440×900 (row 34 → 26 px,
+  table viewport `min(66vh,760px)`). Both detail modals now fit without an inner scrollbar
+  (defect 930×571, compound 1080×737 measured). Verified live in the browser: all four tabs, both
+  modals, tablet width (no page-level horizontal overflow), and the movie opened 10 times over
+  three different trajectories — **10/10** mounted a MatterViz canvas with populated metrics.
+  Frame-cadence timing could not be logged from the automation pane, which reports
+  `visibilityState: "hidden"` outside the screenshot instant and so clamps its timers.
+
 ## Mistakes & corrections log (append-only)
 - **2026-08-13 — repeatedly shipped UI changes the user had to reject** (duplicate movie chart,
   a second borrowed-DOS panel, monospace font as "typewriter", pane header strips): WHAT WAS WRONG —
