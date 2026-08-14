@@ -274,22 +274,25 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
       <div class="dhead">Defect thermodynamics <span class="sub" id="dtitle"></span></div>
       <div class="dgrid">
         <div class="dcol">
-          <h4>Formation energy per growth condition</h4>
-          <table class="minitbl" id="dcondtbl"></table>
-          <div class="notebox">Notation. V<sub>X</sub> vacancy · X<sub>i</sub> interstitial ·
-            X<sub>Y</sub> substitution (X on Y site) · A+B defect complex. Values in eV; lower
-            envelope over charge states q = −2 … +2. E<sub>corr</sub> included.</div>
+          <h4>Raw energies (eV)</h4>
+          <table class="minitbl" id="dqtbl"></table>
           <div class="kv" id="dkv"></div>
+          <div class="notebox" id="dnote"></div>
         </div>
         <div class="dcol">
           <h4>Formation energy vs Fermi level</h4>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
+            <span style="color:var(--wbg-muted)">growth condition</span>
+            <select id="dcondsel" onchange="dRedrawPlot()"></select>
+          </div>
           <div id="efdetailplot"></div>
-          <div style="margin-top:14px" id="dmoviebtn"></div>
+          <table class="minitbl" id="dcondtbl" style="margin-top:10px"></table>
+          <div style="margin-top:12px" id="dmoviebtn"></div>
         </div>
         <div class="dcol">
-          <h4>Per-charge-state raw data</h4>
-          <table class="minitbl" id="dqtbl"></table>
-          <div class="notebox" id="dnote"></div>
+          <h4>Defect structure — defect species in black</h4>
+          <div id="dstruct" style="height:420px"></div>
+          <div class="notebox" id="dstructnote"></div>
         </div>
       </div>
     </div>
@@ -574,7 +577,15 @@ async function dOpenDetail(r){
   dSel=r;
   const panel=document.getElementById("detail");panel.classList.add("on");document.getElementById("modalback").classList.add("on");
   document.getElementById("dtitle").innerHTML=`${defHTML(r.d)} in ${subHTML(r.h)} — ${THEORY[r.f]}`;
-  const rows=[["Cd-rich",r.efVc,r.qVc,r.efMc,r.qMc,r.efCc,r.qCc],["Te-rich",r.efVt,r.qVt,r.efMt,r.qMt,r.efCt,r.qCt]];
+  // growth-condition dropdown, named by the chemical-potential vertex
+  const anion=/Se/.test(r.h)&&/Te/.test(r.h)?"Se/Te":(/Se/.test(r.h)?"Se":"Te");
+  const conds=[["mc",`Cd-rich — ${r.h} ⇌ Cd metal`],["mt",`${anion}-rich — ${r.h} ⇌ ${anion}`]]
+    .filter(([c])=>r[c==="mc"?"mc":"mt"]!==null);
+  const csel=document.getElementById("dcondsel");
+  csel.innerHTML=conds.map(([c,l],i)=>`<option value="${c}"${i===0?" selected":""}>${l}</option>`).join("");
+  csel.style.display=conds.length?"":"none";
+  // per-condition table: VBM / mid / CBM
+  const rows=[["Cd-rich",r.efVc,r.qVc,r.efMc,r.qMc,r.efCc,r.qCc],[anion+"-rich",r.efVt,r.qVt,r.efMt,r.qMt,r.efCt,r.qCt]];
   document.getElementById("dcondtbl").innerHTML=
     `<tr><th>Condition</th><th>Eᶠ@VBM</th><th>q</th><th>Eᶠ@mid</th><th>q</th><th>Eᶠ@CBM</th><th>q</th></tr>`+
     rows.map(x=>`<tr><td>${x[0]}</td><td>${fmt(x[1])}</td><td>${fq(x[2])}</td><td>${fmt(x[3])}</td><td>${fq(x[4])}</td><td>${fmt(x[5])}</td><td>${fq(x[6])}</td></tr>`).join("");
@@ -584,38 +595,133 @@ async function dOpenDetail(r){
      <div><span>Level of theory</span><span>${THEORY[r.f]}</span></div>
      <div><span>Band gap</span><span>${fmt(r.g)} eV</span></div>
      <div><span>VBM reference</span><span>${fmt(r.v)} eV</span></div>
-     <div><span>Charge states</span><span>${QS.filter(q=>q in r.e).map(q=>+q>0?"+"+q:q).join(", ")}</span></div>`;
+     <div><span>E<sub>pristine</sub> (bulk supercell)</span><span>${r.eb!==undefined?r.eb.toFixed(2)+" eV":"—"}</span></div>`;
+  // raw energies: every converged charge state, with correction where archived
+  const qsAll=QS.filter(q=>(r.rq&&q in r.rq)||q in r.e||(r.u&&q in r.u));
   document.getElementById("dqtbl").innerHTML=
-    `<tr><th>q</th><th>ΔE + E<sub>corr</sub> (eV)</th></tr>`+
-    QS.filter(q=>q in r.e).map(q=>`<tr><td>${+q>0?"+"+q:q}</td><td>${r.e[q].toFixed(2)}</td></tr>`).join("");
+    `<tr><th>q</th><th>E<sub>defect,q</sub></th><th>E<sub>corr</sub></th><th>ΔE</th></tr>`+
+    qsAll.map(q=>{
+      const raw=r.rq&&q in r.rq?r.rq[q].toFixed(2):"—";
+      const k=r.k&&q in r.k?r.k[q].toFixed(2):(q==="0"?"0.00":"—");
+      const de=q in r.e?r.e[q].toFixed(2):(r.u&&q in r.u?r.u[q].toFixed(2):"—");
+      const warn=!(q in r.e)&&r.u&&q in r.u;
+      return `<tr><td>${+q>0?"+"+q:q}</td><td>${raw}</td><td>${k}</td>
+        <td${warn?' style="color:#a5541a"':''}>${de}${warn?" *":""}</td></tr>`;
+    }).join("");
   document.getElementById("dnote").innerHTML=
-    `ΔE = E<sub>defect,q</sub> + E<sub>corr</sub> − E<sub>pristine</sub> from the raw supercell totals.
-     Add Σn<sub>i</sub>μ<sub>i</sub> and q(E<sub>VBM</sub>+E<sub>F</sub>) for the formation energy.
-     μ (Σnμ term): Cd-rich ${r.mc===null?"—":r.mc.toFixed(2)} · Te-rich ${r.mt===null?"—":r.mt.toFixed(2)} eV.`;
-  // plot both conditions
-  const traces=[];
-  for(const [cond,name,dash] of [["mc","Cd-rich",""],["mt","Te-rich","dash"]]){
-    const mu=cond==="mc"?r.mc:r.mt; if(mu===null)continue;
-    const xs=[],ys=[];
-    for(let i=0;i<=60;i++){const x=r.g*i/60;xs.push(x);ys.push(envelope(r,cond,x)[0]);}
-    traces.push({x:xs,y:ys,mode:"lines",name,line:{width:2.4,color:"#0e7490",dash}});
-  }
+    typeAim(`ΔE = E<sub>defect,q</sub> + E<sub>corr</sub> − E<sub>pristine</sub> from the raw OSZICAR totals; add
+     Σn<sub>i</sub>μ<sub>i</sub> and q(E<sub>VBM</sub> + E<sub>F</sub>) for the formation energy.
+     ${qsAll.some(q=>!(q in r.e)&&r.u&&q in r.u)?"* charged state without an archived eFNV correction — shown uncorrected, excluded from the envelope.":""}
+     <br><b>Chemical potentials</b> — solved from the ${r.f==="pbesol"?"PBEsol":"HSE+SOC"} competing-phase
+     equilibrium (chem_pot engine over the elemental and binary reference set): the Cd-rich vertex fixes
+     μ<sub>Cd</sub> at Cd metal and the host equality ${subHTML(r.h)} sets the anion μ; the ${anion}-rich
+     vertex fixes the anion at its elemental phase. Σnμ this defect: Cd-rich ${r.mc===null?"—":r.mc.toFixed(2)} eV ·
+     ${anion}-rich ${r.mt===null?"—":r.mt.toFixed(2)} eV. Competing phases and vertex energies are archived
+     per host in the chem_pot tree (mirrored on Eagle, 01_raw_dft).`);
+  // movie
   const dkey=`${r.f}__${r.h}__${r.d}`;
-  const qopts=QS.filter(q=>q in r.e).map(q=>({sub:q,name:`q = ${+q>0?"+"+q:q}`}));
+  const qopts=QS.filter(q=>(r.rq&&q in r.rq)||q in r.e).map(q=>({sub:q,name:`q = ${+q>0?"+"+q:q}`}));
   document.getElementById("dmoviebtn").innerHTML = HAVE_TRAJ.has(dkey)
     ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
          id="dmovie-open">▶ relaxation movie</button>`
     : `<span class="notebox" style="display:inline-block">No ionic steps archived for this defect's runs.</span>`;
   const dbtn=document.getElementById("dmovie-open");
   if(dbtn) dbtn.onclick=()=>openMovie(dkey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`);
-  await loadPlotly();
-  Plotly.react("efdetailplot",traces,{
-    xaxis:{title:{text:"E<sub>F</sub> − E<sub>VBM</sub> (eV)",font:{size:13}},range:[0,r.g],zeroline:false},
-    yaxis:{title:{text:"E<sub>f</sub> (eV)",font:{size:13}},zeroline:true,zerolinecolor:"#d4d8e0"},
-    margin:{l:52,r:12,t:8,b:42},legend:{x:.02,y:.98},font:{family:"Arial Narrow"},
-    plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false});
+  dRedrawPlot();
+  mountDefectStructure(r,dkey);
   dRenderRows();
+}
+function typeAim(html){ return html; }   // note kept static; the compound panel carries the animation
+async function dRedrawPlot(){
+  const r=dSel; if(!r) return;
+  await loadPlotly();
+  const sel=document.getElementById("dcondsel");
+  const pick=sel&&sel.value?sel.value:"mc";
+  const traces=[];
+  for(const [cond,name,color] of [["mc","Cd-rich","#1f77b4"],["mt","anion-rich","#ff7f0e"]]){
+    const mu=cond==="mc"?r.mc:r.mt; if(mu===null) continue;
+    const xs=[],ys=[];
+    for(let i=0;i<=60;i++){const x=r.g*i/60;xs.push(x);ys.push(envelope(r,cond,x)[0]);}
+    traces.push({x:xs,y:ys,mode:"lines",name,line:{width:cond===pick?3.2:1.6,color,dash:""},
+      opacity:cond===pick?1:0.45});
   }
+  const pad=0.12*r.g;
+  const box=document.getElementById("efdetailplot");
+  const W=Math.max(300,Math.min(640,box.clientWidth||520));
+  Plotly.react("efdetailplot",traces,{
+    width:W,height:340,
+    xaxis:{title:{text:"Fermi level (eV)",font:{size:13}},range:[-pad,r.g+pad],zeroline:false,showgrid:false},
+    yaxis:{title:{text:"Defect formation energy (eV)",font:{size:13}},zeroline:true,zerolinecolor:"#d4d8e0",showgrid:false},
+    // shaded valence and conduction regions beyond the band edges
+    shapes:[{type:"rect",xref:"x",x0:-pad,x1:0,yref:"paper",y0:0,y1:1,fillcolor:"#1f77b41a",line:{width:0}},
+            {type:"rect",xref:"x",x0:r.g,x1:r.g+pad,yref:"paper",y0:0,y1:1,fillcolor:"#ff7f0e1a",line:{width:0}}],
+    annotations:[{x:-pad/2,y:1.03,xref:"x",yref:"paper",text:"VBM",showarrow:false,font:{size:12,color:"#1f77b4"}},
+                 {x:r.g+pad/2,y:1.03,xref:"x",yref:"paper",text:"CBM",showarrow:false,font:{size:12,color:"#ff7f0e"}}],
+    margin:{l:58,r:12,t:24,b:42},legend:{x:.02,y:.98},font:{family:"Arial Narrow"},
+    plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:false,displaylogo:false,displayModeBar:false});
+}
+async function mountDefectStructure(r,dkey){
+  const el=document.getElementById("dstruct"), note=document.getElementById("dstructnote");
+  freeMV(el); el.replaceChildren(); note.innerHTML="";
+  if(!HAVE_TRAJ.has(dkey)){
+    el.innerHTML='<div class="notebox" style="margin:12px">No relaxed defect geometry archived for this row.</div>';
+    return;
+  }
+  el.innerHTML='<div class="notebox" style="margin:12px">loading defect structure…</div>';
+  let data=null;
+  try{
+    const resp=await fetch(`trajs/${encodeURIComponent(dkey)}.json.gz`);
+    if(resp.ok&&typeof DecompressionStream!=="undefined"){
+      const ds=new DecompressionStream("gzip");
+      data=JSON.parse(await new Response(resp.body.pipeThrough(ds)).text());
+    }
+  }catch(e){}
+  const t=data&&(data["0"]||data[Object.keys(data)[0]]);
+  if(!t||!t.frames||!t.frames.length){
+    el.innerHTML='<div class="notebox" style="margin:12px">No relaxed defect geometry archived for this row.</div>';
+    return;
+  }
+  if(dSel!==r) return;
+  MVM.cur=t;   // reuse trajStructure species handling
+  TSPECIES=t.species;
+  const fr=t.frames[t.frames.length-1];
+  const lat=fr.lat||t.lat, lp=latParams(lat);
+  const st=hydrate({"@module":"pymatgen.core.structure","@class":"Structure",charge:0,properties:{},
+    lattice:Object.assign({matrix:lat,pbc:[true,true,true]},lp),
+    sites:fr.p.map((abc,i)=>({species:[{element:t.species[i],occu:1}],abc,label:t.species[i],properties:{}}))});
+  // defect species (added elements + interstitial/substitution parts) rendered black
+  const hostEls=new Set(HOSTELS(r.h));
+  const dark={};
+  r.d.split("+").forEach(part=>{
+    const a=part.split("_")[0];
+    if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";
+  });
+  el.replaceChildren();
+  try{
+    await loadMV(st);
+    const props=Object.keys(dark).length?{element_colors:dark}:{};
+    const grid=document.createElement("div");
+    grid.style.cssText="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;width:100%;height:100%";
+    el.appendChild(grid);
+    const M=st.lattice.matrix, L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c), dist=1.9*L;
+    const axdir=i=>{const v=M[i],n=Math.hypot(v[0],v[1],v[2])||1;return [v[0]/n,v[1]/n,v[2]/n];};
+    [["Perspective",null],["Along a",0],["Along b",1],["Along c",2]].forEach(([label,ax])=>{
+      const cell=document.createElement("div");
+      cell.style.cssText="position:relative;border:1px solid var(--wbg-border);border-radius:8px;overflow:visible;background:#fff";
+      const tag=document.createElement("div"); tag.className="mvpane-head"; tag.textContent=label;
+      const host=document.createElement("div"); host.className="mvhost";
+      host.style.height=Math.floor(((el.clientHeight||420)-6)/2*1.22)+"px";
+      cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
+      const pr=Object.assign({},props, ax===null?{}:{scene_props:{camera_position:axdir(ax).map(x=>x*dist),camera_projection:"orthographic"}});
+      try{ window.renderMatterViz(st, host, pr); }catch(e){}
+    });
+    note.innerHTML=`Relaxed geometry (final ionic step, q = ${data["0"]?"0":Object.keys(data)[0]}).`+
+      (Object.keys(dark).length?` Defect species ${Object.keys(dark).map(defHTML).join(", ")} in black.`:
+       r.d.startsWith("V_")?" Vacancy defects remove an atom — no site to highlight.":"");
+  }catch(e){
+    el.innerHTML='<div class="notebox" style="margin:12px">3D viewer unavailable.</div>';
+  }
+}
 document.getElementById("dsearch").addEventListener("input",dApplyFilters);
 ["ck-spont","ck-allq","ck-pbesol","ck-hsesoc"].forEach(id=>
   document.getElementById(id).addEventListener("change",dApplyFilters));
