@@ -142,7 +142,11 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
   heading has always said.
 - The readiness/paint waits resolve on `requestAnimationFrame` **or** a 60 ms timer, whichever
   fires first: an occluded tab freezes rAF entirely, and the first implementation stalled at frame 1
-  in exactly that case.
+  in exactly that case. Playback additionally **holds while `document.hidden`** and repaints the
+  current frame on `visibilitychange`, because the timer fallback would otherwise promote a buffer
+  WebGL had not drawn and the pane read white on return (seen live on r83f1cc72, fixed in r01f4dffd).
+- Live on GitHub Pages at commit **01f4dffd**; `traj.html` is served `cache-control: max-age=600`,
+  so a browser that already loaded the old pane keeps it for up to ten minutes.
 - Density pass in `template.html` (one appended block; no layout, palette or component change):
   chrome above the table 318 → **254 px** and rows in view 15 → **22** at 1440×900 (row 34 → 26 px,
   table viewport `min(66vh,760px)`). Both detail modals now fit without an inner scrollbar
@@ -153,6 +157,13 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
   `visibilityState: "hidden"` outside the screenshot instant and so clamps its timers.
 
 ## Mistakes & corrections log (append-only)
+- **2026-08-14 — pushed a frame swap that could show a white pane.** WHAT I DID WRONG: the MatterViz
+  trajectory rewrite promoted each new frame buffer after a paint wait that falls back to a plain
+  timer, so in an occluded tab (rAF frozen) it promoted a canvas WebGL had never drawn; the first
+  live screenshot after the push caught exactly that blank pane mid-playback → THE GUARD: pause
+  playback on `document.hidden` and repaint on `visibilitychange`, and screenshot the live page
+  DURING playback, not only after it settles — a single after-the-fact frame hides transients →
+  GUARD LIVES IN `site_src/traj.html` (`visibilitychange` handler) and this log.
 - **2026-08-13 — repeatedly shipped UI changes the user had to reject** (duplicate movie chart,
   a second borrowed-DOS panel, monospace font as "typewriter", pane header strips): WHAT WAS WRONG —
   each was my interpretation layered on top of an explicit reference (the Kosmos site) instead of
