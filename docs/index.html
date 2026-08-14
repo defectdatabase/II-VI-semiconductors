@@ -152,7 +152,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 #mvm-legend{margin-left:auto;display:flex;gap:12px;align-items:center;font-size:13px;color:var(--wbg-ink)}
 #mvm-legend i{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;
   border:1px solid #0002;vertical-align:middle}
-.mvm-panel{border:1px solid var(--wbg-border);border-radius:8px;padding:10px 12px 12px;display:flex;flex-direction:column;height:520px;box-sizing:border-box}
+.mvm-panel{border:1px solid var(--wbg-border);border-radius:8px;padding:10px 12px 12px;display:flex;flex-direction:column;height:470px;box-sizing:border-box}
 #mvm-controls{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:nowrap;flex:0 0 auto;min-width:0}
 #mvm-controls #mvm-count{font-size:12.5px}
 #mvm-controls .play{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700;padding:8px 16px;border-radius:8px}
@@ -164,7 +164,8 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
 .mvm-chip.warn{color:#a5541a;border-color:#f0d9bf;background:#fdf5ec}
 #mvm-body{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:stretch}
 #mvm-body.static{grid-template-columns:1.85fr .8fr}
-#mvm-grid{height:520px}
+#mvm-grid{height:470px}
+#mvm-conv:empty{display:none}
 #mvm-controls{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
 #mvm-controls input[type=range]{flex:1 1 120px;accent-color:var(--wbg-accent)}
 .mvm-card{border:1px solid var(--wbg-border);border-radius:8px;padding:12px 14px}
@@ -391,8 +392,13 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
     </span>
   </div>
   <div id="mvm-info"><span id="mvm-summary"></span></div>
+  <div id="mvm-conv" style="width:100%;height:210px"></div>
+  <p style="text-align:center;color:var(--wbg-muted);font-size:13px;margin:2px 0 10px" id="mvm-caption"></p>
   <div id="mvm-body">
-    <div id="mvm-grid"></div>
+    <div>
+      <div id="mvm-grid"></div>
+      <p class="footnote" id="mvm-note" style="margin-top:6px"></p>
+    </div>
     <div class="mvm-panel" id="mvm-panel">
       <div id="mvm-frame" style="width:100%;flex:1 1 auto;min-height:220px"></div>
       <div id="mvm-controls">
@@ -405,6 +411,7 @@ body,button,select,input,textarea,th,td,h1,h2,h3,h4,h5,b,strong,pre,code,.hc,.ta
         <input type="range" id="mvm-slider" min="0" max="1" value="0" oninput="mvmShow(+this.value)">
         <span id="mvm-count"></span>
       </div>
+      <div style="text-align:center;color:var(--wbg-ink);font-size:13.5px;margin-top:8px" id="mvm-line"></div>
       <div class="mvm-card" id="mvm-card" style="display:none;border:none;padding:0"></div>
     </div>
   </div>
@@ -675,7 +682,11 @@ async function dOpenDetail(r){
          id="dmovie-open">▶ relaxation movie</button>`
     : `<span class="notebox" style="display:inline-block">No ionic steps archived for this defect's runs.</span>`;
   const dbtn=document.getElementById("dmovie-open");
-  if(dbtn) dbtn.onclick=()=>openMovie(dkey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`);
+  if(dbtn) dbtn.onclick=()=>{
+    const hostEls=new Set(HOSTELS(r.h)); const dark={};
+    r.d.split("+").forEach(part=>{const a=part.split("_")[0]; if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";});
+    openMovie(dkey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`,dark);
+  };
   dRedrawPlot();
   mountDefectStructure(r,dkey);
   dRenderRows();
@@ -1068,7 +1079,7 @@ function renderGrid(st, el){
     host.style.position="relative";
     host.style.height=Math.floor((h-6)/2*1.22)+"px";   // unchanged mount geometry (.mvhost zoom 1/1.22)
     cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
-    const props = dir ? {scene_props:{camera_position:dir.map(x=>x*dist),camera_projection:"orthographic"}} : {};
+    const props = Object.assign(window.MVM&&MVM.dark&&Object.keys(MVM.dark).length&&el.id==="mvm-grid"?{element_colors:MVM.dark}:{}, dir ? {scene_props:{camera_position:dir.map(x=>x*dist),camera_projection:"orthographic"}} : {});
     try{ window.renderMatterViz(st, host, props); }catch(e){}
   });
 }
@@ -1192,7 +1203,8 @@ async function mountTraj(key,sub,label,boxId){
 
 /* ---------- Kosmos-style relaxation movie overlay ---------- */
 let MVM={data:null,opts:[],cur:null,frame:0,timer:null,label:""};
-async function openMovie(key,options,label){
+async function openMovie(key,options,label,dark){
+  MVM.dark=dark||null;
   // options: [{sub:"0",name:"q = 0"},...] or [{sub:"bulk",name:"PBEsol"}]
   closeMovie();
   parkStructure();
@@ -1231,6 +1243,11 @@ async function openStaticMovie(key,label,E,fmax,info){
   MVM.cur=null; MVM.data=null;
   // one archived configuration: same chart and transport as a trajectory, frozen at frame 1
   document.getElementById("mvm-body").classList.remove("static");
+  MVM.dark=null;
+  const cv=document.getElementById("mvm-conv"); if(window.Plotly&&cv.data) Plotly.purge(cv); cv.innerHTML="";
+  document.getElementById("mvm-caption").textContent="";
+  document.getElementById("mvm-note").textContent="";
+  document.getElementById("mvm-line").textContent="";
   document.getElementById("mvm-frame").style.display="";
   document.getElementById("mvm-controls").style.display="";
   const sl=document.getElementById("mvm-slider"); sl.max="0"; sl.value="0";
@@ -1313,21 +1330,39 @@ async function mvmLoad(sub){
   const fLast=fr[fr.length-1].f, conv=fLast!==null&&fLast!==undefined&&fLast<=EDIFFG;
   document.getElementById("mvm-summary").innerHTML=
     `ionic relaxation (NSW = ${t.nframes}) · ${conv?"converged":"not converged"} <span class="sep">|</span> `+
-    `E = <b style="color:#3b82c4">${eL!==null&&eL!==undefined?eL.toFixed(3):"—"} eV</b> <span class="sep">|</span> `+
-    `F<sub>max</sub> = <b style="color:${conv?"#2e8b57":"#a5541a"}">${fLast!==null&&fLast!==undefined?fLast.toFixed(3)+" eV/Å":"—"}</b>`+
+    `${t.nframes} steps · ΔE ${de[0]!==null?(-de[0]).toFixed(2):"—"} eV`+
     (fr.length<t.nframes?` <span class="sep">|</span> ${fr.length} frames stored`:"");
+  // full-width convergence chart, ΔE clipped at 5 eV (Kosmos)
+  const CLIP=5.0, xsAll=fr.map(f=>f.i);
+  const deC=de.map(v=>v===null?null:Math.min(v,CLIP));
+  const clipped=de.some(v=>v!==null&&v>CLIP);
+  Plotly.react("mvm-conv",[
+    {x:xsAll,y:deC,mode:"lines",name:"ΔE vs final (eV)",line:{width:2.4,color:"#0e7490"}},
+    {x:xsAll,y:fr.map(f=>f.f),mode:"lines",name:"F max (eV/Å)",yaxis:"y2",line:{width:2.4,color:"#de9e3a"}}],
+    {margin:{l:56,r:56,t:8,b:30},showlegend:false,font:{family:"Arial Narrow",size:13},
+     xaxis:{dtick:xsAll.length<=8?1:undefined,range:[-0.3,xsAll[xsAll.length-1]+0.3]},
+     yaxis:{color:"#0e7490",rangemode:"tozero",nticks:5},
+     yaxis2:{overlaying:"y",side:"right",color:"#de9e3a",rangemode:"tozero",nticks:4,tickformat:".2~g"},
+     annotations:clipped?[{x:1,y:1,xref:"paper",yref:"paper",text:"≥"+CLIP.toFixed(1)+" clipped",
+       showarrow:false,font:{color:"#0e7490",size:13},xanchor:"right"}]:[],
+     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+  document.getElementById("mvm-caption").innerHTML=
+    `ionic step — <span style="color:#0e7490">ΔE vs final (eV)</span> · <span style="color:#de9e3a">F max (eV/Å)</span>`+
+    (clipped?` — initial spike clipped to show the approach`:``);
+  document.getElementById("mvm-note").innerHTML=MVM.dark&&Object.keys(MVM.dark).length
+    ? `◉ defect site highlighted — ${Object.keys(MVM.dark).map(defHTML).join(", ")} in black`
+    : "";
   // subsampled frame chart
-  const es=fr.map(f=>f.e);
   const box=document.getElementById("mvm-frame");
   const W=Math.max(320,box.clientWidth||560), Hh=Math.max(260,box.clientHeight||380);
   Plotly.react("mvm-frame",[
-    {x:fr.map((f,i)=>i),y:es,mode:"lines+markers",name:"E (eV)",line:{color:"#3b82c4"},marker:{size:6}},
+    {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",name:"ΔE vs final (eV)",line:{color:"#3b82c4"},marker:{size:6}},
     {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"F max (eV/Å)",yaxis:"y2",line:{color:"#2e8b57"},marker:{size:6}},
-    {x:[0],y:[es[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
+    {x:[0],y:[de[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
     {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false}],
     {width:W,height:Hh,margin:{l:66,r:56,t:30,b:44},showlegend:false,font:{family:"Arial Narrow",size:13},hovermode:"x unified",
-     xaxis:{title:{text:"frame",font:{size:13}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
-     yaxis:{color:"#3b82c4",nticks:6,tickformat:".2f"},
+     xaxis:{title:{text:"Frame (subsampled)",font:{size:13}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6]},
+     yaxis:{color:"#3b82c4",nticks:6,rangemode:"tozero"},
      yaxis2:{overlaying:"y",side:"right",color:"#2e8b57",nticks:4,tickformat:".2~g",rangemode:"tozero"},
      shapes:[{type:"line",xref:"paper",x0:0,x1:1,yref:"y2",y0:EDIFFG,y1:EDIFFG,
               line:{color:"#2e8b57",width:1,dash:"dot"}},
@@ -1358,9 +1393,12 @@ async function mvmShow(i){
   MVM.frame=Math.max(0,Math.min(t.frames.length-1,i));
   const f=t.frames[MVM.frame];
   document.getElementById("mvm-slider").value=String(MVM.frame);
-  document.getElementById("mvm-count").innerHTML=
-    `frame ${MVM.frame+1} / ${t.frames.length} · E = ${f.e!==null&&f.e!==undefined?f.e.toFixed(2):"—"} eV`+
-    (f.f!==null&&f.f!==undefined?` · F<sub>max</sub> = ${f.f.toFixed(3)}`:"");
+  document.getElementById("mvm-count").textContent=`frame ${MVM.frame+1} / ${t.frames.length}`;
+  {const eL2=t.frames[t.frames.length-1].e;
+   const de2=f.e!==null&&eL2!==null?f.e-eL2:null;
+   document.getElementById("mvm-line").innerHTML=
+     `E = <b>${f.e!==null&&f.e!==undefined?f.e.toFixed(2):"—"} eV</b> · ΔE = <b>${de2!==null?(de2>=0?"+":"")+de2.toFixed(2):"—"} eV</b>`+
+     (f.f!==null&&f.f!==undefined?` · F max = <b>${f.f.toFixed(2)} eV/Å</b>`:"");}
   try{
     const st=mvmStructure(f);
     await loadMV(st);
@@ -1371,7 +1409,7 @@ async function mvmShow(i){
       const L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c), dist=1.9*L;
       for(const host of hosts){
         const dv=host.dataset.dir?JSON.parse(host.dataset.dir):null;
-        const props=!dv?{}:{scene_props:{camera_position:dv.map(x=>x*dist),camera_projection:"orthographic"}};
+        const props=Object.assign(MVM.dark&&Object.keys(MVM.dark).length?{element_colors:MVM.dark}:{}, !dv?{}:{scene_props:{camera_position:dv.map(x=>x*dist),camera_projection:"orthographic"}});
         const olds=[...host.children];
         const fresh=document.createElement("div"); fresh.className="mvbuf";
         fresh.style.cssText=`position:absolute;top:0;left:0;width:${host.clientWidth}px;height:${host.clientHeight}px`;
@@ -1386,7 +1424,9 @@ async function mvmShow(i){
   const eL=t.frames[t.frames.length-1].e;
   const de=f.e!==null&&eL!==null?f.e-eL:null;
   if(document.getElementById("mvm-frame").data)
-    Plotly.restyle("mvm-frame",{x:[[MVM.frame],[MVM.frame]],y:[[f.e],[f.f]]},[2,3]);
+    {const eL3=t.frames[t.frames.length-1].e;
+     const de3=f.e!==null&&eL3!==null?f.e-eL3:null;
+     Plotly.restyle("mvm-frame",{x:[[MVM.frame],[MVM.frame]],y:[[de3],[f.f]]},[2,3]);}
   MVBUSY=false;
 }
 let MVSPEED=1;
