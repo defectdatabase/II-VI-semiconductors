@@ -240,14 +240,17 @@ body{letter-spacing:-.006em}
 .structure-viewbar{position:absolute;z-index:12;top:8px;left:50%;transform:translateX(-50%);display:flex;gap:2px;padding:3px;background:rgba(255,255,255,.92);border:1px solid var(--wbg-border);border-radius:7px;box-shadow:0 3px 14px rgba(35,54,63,.09)}
 .structure-viewbar button{border:0;background:transparent;color:var(--wbg-muted);padding:4px 8px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer}
 .structure-viewbar button:hover{color:var(--wbg-ink);background:#eef4f6}.structure-viewbar button.on{color:#fff;background:var(--wbg-accent)}
-#moviemodal{padding:0;overflow:hidden}
+#moviemodal{padding:0;overflow:hidden;width:min(1380px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));max-height:none;flex-direction:column}
+#moviemodal.on{display:flex}
 #mvm-head{padding:12px 16px;background:#fff}#mvm-head>span:first-child{font-weight:700;text-transform:none}
 #mvm-info{padding:8px 16px;margin:0;background:#f7fafb;border-bottom:1px solid var(--wbg-border)}
-#mvm-body{padding:14px 16px 16px;grid-template-columns:minmax(420px,1.15fr) minmax(360px,.85fr);gap:12px}
+#mvm-conv,#mvm-caption{display:none!important}
+#mvm-body{padding:14px 16px 16px;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:12px;flex:1;min-height:0}
 #mvm-body.static{grid-template-columns:minmax(420px,1.25fr) minmax(300px,.75fr)}
-#mvm-grid{height:440px;border:1px solid var(--wbg-border);border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#fff,#f8fbfc)}
+#mvm-body>div{min-width:0;min-height:0}
+#mvm-grid{height:100%;min-height:0;border:1px solid var(--wbg-border);border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#fff,#f8fbfc)}
 .mvbuf{opacity:1;transition:opacity .24s ease}
-.mvm-panel{height:440px;border-radius:8px;padding:10px}
+.mvm-panel{height:100%;min-height:0;border-radius:8px;padding:10px}
 #mvm-controls .play{background:var(--wbg-accent);border-color:var(--wbg-accent)}
 .mvm-card{height:100%;display:flex;flex-direction:column;justify-content:center!important;padding:18px!important}
 .mvm-card h5{font-size:13px;font-weight:700;text-transform:none;letter-spacing:0}
@@ -256,6 +259,11 @@ body{letter-spacing:-.006em}
 .mvm-metrics span{min-width:0;padding:7px 8px;background:var(--wbg-surface);border-radius:6px;text-align:left}
 .mvm-metrics small{display:block;color:var(--wbg-muted);font-size:11.5px;line-height:1.2;margin-bottom:2px}
 .mvm-metrics b{display:block;font-size:13.5px;white-space:nowrap}
+.movie-covered{visibility:hidden!important}
+.dos-empty{height:180px;display:grid;place-items:center;border-top:1px solid var(--wbg-border);border-bottom:1px solid var(--wbg-border);background:var(--wbg-surface);padding:20px}
+.dos-empty-inner{max-width:560px;text-align:center;color:var(--wbg-muted);line-height:1.45}
+.dos-empty-inner strong{display:block;color:var(--wbg-ink);font-size:15px;margin-bottom:5px}
+.dos-empty-meta{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--wbg-accent)}
 .archive-note{margin-top:14px;padding:10px;border-left:3px solid #d49a36;background:#fff8eb;color:#76551c;font-size:12.5px;line-height:1.5}
 @media(max-width:820px){
   #titlebar,#tabbar,.view{padding-left:12px;padding-right:12px}#attr{padding-inline:12px}
@@ -264,7 +272,7 @@ body{letter-spacing:-.006em}
   #detail,#cdetail,#moviemodal{width:calc(100vw - 12px);max-height:calc(100vh - 12px)}
   #cstruct{height:260px!important}#mvm-grid,.mvm-panel{height:340px}
   .mvm-metrics{grid-template-columns:1fr}.mvm-metrics b{white-space:normal}
-  #moviemodal{overflow:auto}#mvm-body{padding:10px}.structure-viewbar button{padding-inline:6px}
+  #moviemodal{height:calc(100vh - 12px);overflow:auto}#mvm-body{padding:10px;flex:none}.structure-viewbar button{padding-inline:6px}
 }
 @media(prefers-reduced-motion:reduce){.mvbuf{transition:none}}
 </style>
@@ -1326,6 +1334,7 @@ async function openMovie(key,options,label,dark){
   // options: [{sub:"0",name:"q = 0"},...] or [{sub:"bulk",name:"PBEsol"}]
   closeMovie();
   parkStructure();
+  coverParentDetail();
   document.getElementById("moviemodal").classList.add("on");
   document.getElementById("modalback").classList.add("on");
   document.getElementById("mvm-kind").textContent="Relaxation movie";
@@ -1355,6 +1364,7 @@ const EDIFFG=0.05;   // |F| convergence criterion of these campaigns (eV/Å)
 async function openStaticMovie(key,label,E,fmax,info){
   closeMovie();
   parkStructure();
+  coverParentDetail();
   document.getElementById("moviemodal").classList.add("on");
   document.getElementById("modalback").classList.add("on");
   document.getElementById("mvm-kind").textContent="Static calculation";
@@ -1421,12 +1431,20 @@ async function unparkStructure(){
   const el=document.getElementById("cstruct");
   if(el&&el.dataset.parked==="1"&&CURSTRUCT&&cSel){ el.dataset.parked=""; renderGrid(CURSTRUCT, el); }
 }
+function coverParentDetail(){
+  ["detail","cdetail"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&el.classList.contains("on")) el.classList.add("movie-covered");
+  });
+}
 function closeMovie(){
   if(MVM.timer){clearInterval(MVM.timer);MVM.timer=null;}
   const g=document.getElementById("mvm-grid");
   if(g){ freeMV(g); g.replaceChildren(); }        // hand back 4 WebGL contexts
-  if(document.getElementById("moviemodal").classList.contains("on")) unparkStructure();
+  const wasOpen=document.getElementById("moviemodal").classList.contains("on");
   document.getElementById("moviemodal").classList.remove("on");
+  ["detail","cdetail"].forEach(id=>document.getElementById(id).classList.remove("movie-covered"));
+  if(wasOpen) unparkStructure();
 }
 async function mvmLoad(sub){
   await loadPlotly();
@@ -1457,11 +1475,11 @@ async function mvmLoad(sub){
   box.style.overflow="hidden";
   const W=Math.max(320,box.clientWidth||560), Hh=Math.max(240,(box.clientHeight||380)-14);
   Plotly.react("mvm-frame",[
-    {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",name:"Energy change from final structure",line:{color:"#2877b8",width:2.2},marker:{size:5}},
-    {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"Maximum atomic force",yaxis:"y2",line:{color:"#238554",width:2.2},marker:{size:5}},
-    {x:[0],y:[de[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false},
-    {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false}],
-    {width:W,height:Hh,margin:{l:58,r:58,t:60,b:44},showlegend:true,font:{family:"Arial Narrow, Arial, sans-serif",size:12},hovermode:"x unified",
+    {x:fr.map((f,i)=>i),y:de,mode:"lines+markers",name:"Energy change from final structure",line:{color:"#2877b8",width:2.2},marker:{size:5},hoverinfo:"skip"},
+    {x:fr.map((f,i)=>i),y:fr.map(f=>f.f),mode:"lines+markers",name:"Maximum atomic force",yaxis:"y2",line:{color:"#238554",width:2.2},marker:{size:5},hoverinfo:"skip"},
+    {x:[0],y:[de[0]],mode:"markers",marker:{size:12,color:"#3b82c4"},showlegend:false,hoverinfo:"skip"},
+    {x:[0],y:[fr[0].f],yaxis:"y2",mode:"markers",marker:{size:12,color:"#2e8b57"},showlegend:false,hoverinfo:"skip"}],
+    {width:W,height:Hh,margin:{l:58,r:58,t:60,b:44},showlegend:true,font:{family:"Arial Narrow, Arial, sans-serif",size:12},hovermode:false,
      legend:{orientation:"h",x:.5,xanchor:"center",y:1.16,yanchor:"bottom",font:{size:11.5}},
      xaxis:{title:{text:"Stored ionic frame",font:{size:12}},dtick:fr.length<=10?1:undefined,range:[-0.4,fr.length-0.6],showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
      yaxis:{title:{text:"Energy change (eV)",font:{size:11}},color:"#2877b8",nticks:6,rangemode:"tozero",showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2"},
@@ -1578,8 +1596,13 @@ function decompParts(r,ord){
 const DOS_COLORS=["#0e7490","#de9e3a","#7c5cbf","#2e8b57","#c0392b","#3b82c4","#8a6d3b","#d1608f"];
 async function drawInsight(r,ord){
   const key=structKeyOf(r,ord);
-  if(key&&HAVE_DOS.has(key)){ if(await drawDOS(r,ord,key)) return; }
-  drawStabilityMap(r,ord);
+  if(key&&HAVE_DOS.has(key)){
+    const status=await drawDOS(r,ord,key);
+    if(status==="projected"||status==="stale") return;
+    drawDOSUnavailable(status);
+    return;
+  }
+  drawDOSUnavailable("missing");
 }
 async function fetchDOS(key){
   try{
@@ -1595,10 +1618,10 @@ async function drawDOS(r,ord,key){
   const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
   const head=document.getElementById("cmaphead");
   const d=await fetchDOS(key);
-  if(!d||!d.e||!d.e.length) return false;
-  if(cSel!==r) return true;
+  if(!d||!d.e||!d.e.length) return "missing";
+  if(cSel!==r) return "stale";
   const elementNames=Object.keys(d.el||{});
-  if(!elementNames.length) return false;
+  if(!elementNames.length) return d.total&&d.total.length?"total-only":"missing";
   head.style.display=""; note.style.display="";
   head.innerHTML="Element-projected electronic density of states";
   el.style.height="250px";
@@ -1622,7 +1645,25 @@ async function drawDOS(r,ord,key){
   head.innerHTML="Element-projected electronic density of states";
   note.innerHTML=`Element-projected density of states from this run's DOSCAR. Per-atom orbital projections are summed by element. Energies are relative to the Fermi level at ${d.ef.toFixed(2)} eV, marked by the dashed red line. The displayed energy window is -4 to +4 eV; drag to zoom and double-click to reset.`+
     (parts?` Stability: ${r.o[ord][1]<=0?"stable against the binary decomposition at 298 K":(Tstar&&Tstar<2000?`metastable at 298 K, entropy-stabilized above ~${Tstar.toFixed(0)} K`:"metastable (positive ΔE<sub>decomp</sub>)")} .`:"");
-  return true;
+  return "projected";
+}
+function drawDOSUnavailable(status){
+  const el=document.getElementById("cmap"), note=document.getElementById("cmapnote");
+  const head=document.getElementById("cmaphead");
+  if(window.Plotly&&el.data) Plotly.purge(el);
+  head.style.display="";
+  head.textContent="Element-projected electronic density of states";
+  note.style.display="none";
+  note.innerHTML="";
+  el.style.height="180px";
+  const totalOnly=status==="total-only";
+  el.innerHTML=`<div class="dos-empty"><div class="dos-empty-inner">
+    <strong>Element-projected DOS is unavailable for this calculation.</strong>
+    ${totalOnly
+      ? "The archived DOSCAR contains the total density of states, but no per-atom orbital channels. Element contributions cannot be reconstructed from the total curve."
+      : "No density-of-states payload was archived for this calculation, so an element-resolved curve cannot be shown."}
+    <div class="dos-empty-meta"><span>${totalOnly?"Archived: total DOS only":"Archived: no DOS payload"}</span><span>Required: per-ion projections (LORBIT)</span></div>
+  </div></div>`;
 }
 async function drawStabilityMap(r,ord){
   document.getElementById("cmaphead").innerHTML="Stability — ΔG<sub>decomp</sub>(T)";
