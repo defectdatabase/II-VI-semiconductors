@@ -142,3 +142,43 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
 Audit 2026-08-12: 3985 of 4916 charge-point runs finished, 931 unfinished (mid-relaxation, no final F);
 energy-consistency failures remain even among finished pairs pending an INCAR/lattice audit.
 This defect set enters the site only after that campaign completes.
+
+## Defect-modal envelope + movie-pane rework (2026-08-13, cdc59ef1)
+
+- Formation-energy plot now draws **only the lowest-energy envelope** for the selected growth
+  condition, with open-circle kinks at the transition levels. The faint per-charge dotted context
+  lines were removed — they read as clutter, not information.
+- The modal collapses to **two columns** when a defect has no corrected charged states, so the
+  transition-level panel never leaves an empty third column. The Sigma scroll box is sized at run
+  time so its bottom edge lands on the same horizontal line as the middle column (page `zoom` is
+  divided out, because `getBoundingClientRect` is zoom-scaled while style pixels are not).
+- The relaxation-movie modal renders **one full-size perspective pane** instead of a four-view grid.
+  MatterViz auto-fits its default camera, so the cell is centred and never cropped, its own controls
+  stay reachable, and playback mounts one WebGL context per frame instead of four — which is what
+  made frame stepping stall. Frames still double-buffer with a 180 ms retirement so nothing flashes.
+- Defect-species highlighting is now passed explicitly to `renderGrid`, not inferred from the pane's
+  element id, and the heading only claims "defect species in black" when a species is actually
+  highlighted. For defects built purely from host species the note says plainly that colouring by
+  element would repaint every atom of that element rather than the one defect site.
+
+## Eagle tree flattened (2026-08-13)
+
+`DFT/` on Eagle is no longer a symlink farm — every run directory was moved into it, so it is the
+real tree with zero symlinks. `00_master`, which held 148 **empty** family-named folders, is gone.
+A full OSZICAR walk found 1,348 run directories the farm builder had never indexed, including the
+`Cu2Ca0.5Cd0.5SnS4` **HSE** defect ladder, now filed under `DFT/defect/HSE/`. Full detail in
+`/eagle/wbg_defects/chalcogenide_defects/README.md`.
+
+### Mistakes & corrections log
+
+- **2026-08-13 — a silent ssh success that did nothing.** I ran the Eagle migration as
+  `ssh polaris 'python3 -' < script`, saw exit code 0 with empty output, and moved on → WRONG: the
+  Polaris login node had hit `fork: retry: Resource temporarily unavailable` and the interpreter
+  never ran; the tree was untouched while I believed 106 directories had moved → THE GUARD: after any
+  remote mutation, re-list the target and compare counts; never accept an empty stdout as success →
+  GUARD LIVES IN the Eagle README ("Trap recorded") and the staged-script-plus-`nohup`-log pattern
+  now used for every Eagle migration.
+- **2026-08-13 — OSZICAR regex missed `F= -.169E+04`.** My fresh sweep of the Cu2Ca0.5Cd0.5SnS4
+  campaign reported 0 defects because `-?\d+\.\d+` does not match VASP's leading-dot float →
+  THE GUARD: parse the token after `F=` with `float()` instead of a numeric regex → GUARD LIVES IN
+  `cu2cacd_sweep.py`'s `final_F`.
