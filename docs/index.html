@@ -647,6 +647,14 @@ async function dRedrawPlot(){
       opacity:cond===pick?1:0.45});
   }
   const pad=0.12*r.g;
+  const mu=pick==="mc"?r.mc:r.mt;
+  if(mu!==null&&r.u){
+    for(const q of Object.keys(r.u)){
+      const xs=[0,r.g], ys=[r.u[q]+mu+(+q)*(r.v+0), r.u[q]+mu+(+q)*(r.v+r.g)];
+      traces.push({x:xs,y:ys,mode:"lines",name:`q = ${+q>0?"+"+q:q} (uncorrected)`,
+        line:{width:1,color:"#9aa3af",dash:"dot"},hoverinfo:"name+y"});
+    }
+  }
   const box=document.getElementById("efdetailplot");
   const W=Math.max(300,Math.min(640,box.clientWidth||520));
   Plotly.react("efdetailplot",traces,{
@@ -658,16 +666,21 @@ async function dRedrawPlot(){
             {type:"rect",xref:"x",x0:r.g,x1:r.g+pad,yref:"paper",y0:0,y1:1,fillcolor:"#ff7f0e1a",line:{width:0}}],
     annotations:[{x:-pad/2,y:1.03,xref:"x",yref:"paper",text:"VBM",showarrow:false,font:{size:12,color:"#1f77b4"}},
                  {x:r.g+pad/2,y:1.03,xref:"x",yref:"paper",text:"CBM",showarrow:false,font:{size:12,color:"#ff7f0e"}}],
-    margin:{l:58,r:12,t:24,b:42},legend:{x:.02,y:.98},font:{family:"Arial Narrow"},
+    margin:{l:58,r:12,t:24,b:42},legend:{x:.02,y:.02,yanchor:"bottom",bgcolor:"rgba(255,255,255,.75)",font:{size:11}},font:{family:"Arial Narrow"},
     plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:false,displaylogo:false,displayModeBar:false});
 }
 async function mountDefectStructure(r,dkey){
   const el=document.getElementById("dstruct"), note=document.getElementById("dstructnote");
-  freeMV(el); el.replaceChildren(); note.innerHTML="";
+  const col=el.closest(".dcol"), grid=el.closest(".dgrid");
+  freeMV(el); el.replaceChildren(); note.innerHTML=""; note.style.display="none";
   if(!HAVE_TRAJ.has(dkey)){
-    el.innerHTML='<div class="notebox" style="margin:12px">No relaxed defect geometry archived for this row.</div>';
+    col.style.display="none";
+    grid.style.gridTemplateColumns="minmax(300px,380px) 1fr";
     return;
   }
+  col.style.display="";
+  grid.style.gridTemplateColumns="";
+  note.style.display="";
   el.innerHTML='<div class="notebox" style="margin:12px">loading defect structure…</div>';
   let data=null;
   try{
@@ -1013,9 +1026,7 @@ function renderGrid(st, el){
     host.style.height=Math.floor((h-6)/2*1.22)+"px";   // unchanged mount geometry (.mvhost zoom 1/1.22)
     cell.appendChild(host); cell.appendChild(tag); grid.appendChild(cell);
     const props = dir ? {scene_props:{camera_position:dir.map(x=>x*dist),camera_projection:"orthographic"}} : {};
-    const inner=document.createElement("div"); inner.className="mvbuf"; inner.style.cssText="position:absolute;inset:0";
-    host.appendChild(inner);
-    try{ window.renderMatterViz(st, inner, props); }catch(e){}
+    try{ window.renderMatterViz(st, host, props); }catch(e){}
   });
 }
 /* ---------- relaxation movie: XDATCAR frames + energies + forces ---------- */
@@ -1312,19 +1323,19 @@ async function mvmShow(i){
     await loadMV(st);
     const grid=document.getElementById("mvm-grid");
     const hosts=[...grid.querySelectorAll(".mvhost")];
-    if(hosts.length===4&&hosts.every(h=>h.dataset.ax!==undefined&&h.querySelector(".mvbuf"))){
-      // update every pane in place: render the new frame behind, then swap (no flash, ≤5 contexts)
+    if(hosts.length===4&&hosts.every(h=>h.dataset.ax!==undefined)){
+      // update every pane in place: render the new frame in an explicit-size buffer, then retire the old mount
       const M=st.lattice.matrix, L=Math.max(st.lattice.a,st.lattice.b,st.lattice.c), dist=1.9*L;
       const axdir=i=>{const v=M[i],n=Math.hypot(v[0],v[1],v[2])||1;return [v[0]/n,v[1]/n,v[2]/n];};
       for(const host of hosts){
         const ax=host.dataset.ax;
         const props=ax===""?{}:{scene_props:{camera_position:axdir(+ax).map(x=>x*dist),camera_projection:"orthographic"}};
-        const old=host.querySelector(".mvbuf");
+        const olds=[...host.children];
         const fresh=document.createElement("div"); fresh.className="mvbuf";
-        fresh.style.cssText="position:absolute;inset:0";
+        fresh.style.cssText=`position:absolute;top:0;left:0;width:${host.clientWidth}px;height:${host.clientHeight}px`;
         host.appendChild(fresh);
         try{ window.renderMatterViz(st, fresh, props); }catch(e){}
-        if(old){ freeMV(old); old.remove(); }
+        olds.forEach(o=>{ freeMV(o); o.remove(); });
       }
     } else {
       renderGrid(st, grid);
