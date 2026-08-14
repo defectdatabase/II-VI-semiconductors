@@ -215,7 +215,42 @@ against the shipped dataset. Raw data mirrored on ALCF Eagle (/wbg_defects/chalc
 - **The relaxation-movie button matches the close button** - white ground, 1 px border, `4px 12px`,
   13 px, measured 29 px tall against close's 30 px - instead of a filled teal pill.
 
+## Kosmos viewer vendored verbatim (2026-08-14, user-directed: "follow Kosmos exactly")
+
+Read out of `defect-informatics/kosmos` (private, Pages disabled — hence the 404; the repo is still
+readable with `gh`) at `pages/traj/assets/index-B7HlPx2T-v2i.js`. Its exact viewer contract:
+
+- frames arrive as **`{cif, energy, fmax}`** — CIF text per frame, parsed in the viewer — plus a
+  **`dsite`** list of fractional coordinates and a `name`, over the same `traj_frames` postMessage.
+- the viewer **recentres** every frame so `dsite[0]` sits at the cell centre, then takes the nearest
+  site to each dsite **within 4.5 A** as `highlights`.
+- it renders `<Structure>` with **`site_radius_overrides = Map(highlights -> 1.5)`** and
+  **`scene_props = {active_sites: highlights, active_highlight_color: "#000"}`**, `show_controls:false`,
+  `style="height:100%;background:#fff"`, `multi_view` bound (the four Perspective/Front/Top/Right panes).
+- the camera survives frame changes because it **mutates one structure object in place** (`__wd` state,
+  `__wr` writer) instead of remounting, and its MatterViz carries a `scene_props.preserve_camera` patch
+  (`preserve_camera||(camera_target=void 0,camera_position=[0,0,0])`).
+
+`docs/pages/traj/` is those 13 files copied unchanged (MatterViz + draco/basis/moyo wasm, 5.4 MB), so
+its settings, theme and background are the reference's. The parent emits P1 CIF per frame and dsite
+from the geometric defect/vacancy sites; my hand-written canvas viewer is deleted.
+
+**Verified side by side (local, 1240x800):** Kosmos's page standalone fed our
+`V_Cd+Cd_Se in CdSe0.20Te0.80` trajectory, and the same viewer inside our modal — both render four
+panes with the **black defect atoms centred**, the "defect site highlighted" note, the
+Se22/Cd106/Te87 legend and the ΔE-vs-final / F-max chart. Still open before this can be called a
+100% match: the **static** structure panes (defect and compound detail) still mount this repo's older
+prebuilt bundle, which does not forward `scene_props.active_sites`, so they mark the site by radius
+only.
+
 ## Mistakes & corrections log (append-only)
+- **2026-08-14 — passed `active_sites` at the top level and concluded MatterViz could not highlight a
+  site.** WHAT I DID WRONG: my A/B test put `active_sites`/`active_highlight_color` in the props root,
+  saw no colour change, and I wrote in this file that the bundle "has no per-site colour hook", then
+  built a whole hand-written canvas viewer on that premise. Kosmos passes both **inside `scene_props`**
+  → THE GUARD: when a reference implementation exists, read ITS call site before concluding a feature
+  is missing — `grep` the reference bundle for the prop and copy the nesting, do not infer it from a
+  type list → GUARD LIVES IN this section and the vendored `docs/pages/traj/`.
 - **2026-08-14 — shipped a MatterViz pane without checking the prop was real.** WHAT I DID WRONG: I
   carried `element_colors` over from the old code into the new trajectory pane and wrote "defect
   species in black" in the provenance, without ever confirming the structure viewer reads that prop —
