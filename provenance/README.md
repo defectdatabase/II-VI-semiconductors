@@ -300,6 +300,15 @@ A flat envelope also autoscaled to a few meV (0.738-0.740 eV in the user's scree
 as structure where there is none. The y-axis now holds a **0.2 eV minimum span** centred on the
 value - measured [0.576, 0.816] for Sb_Te+Cl_Te - so a horizontal envelope looks horizontal.
 
+## Formation-energy plot aspect (2026-08-14, follow-up)
+
+Widening the modal fixed the clipping but left the plot at 596 x 252 - a **2.37:1 band**, in which a
+flat envelope reads as a ruled line. Height raised to 380 px, so the plot is **596 x 380, aspect
+1.57**, near the 3:2 a formation-energy diagram usually carries. Height rather than a narrower box
+on purpose: capping the width would re-open the dead space beside the plot that was removed earlier.
+Measured at a 1400 px window: modal 1180 x 855 with no inner scrollbar, structure pane still 340 px,
+0 of 2 tick labels clipped.
+
 ## Formation-energy plot readability + movie caption subscripts (2026-08-14)
 
 - **"The plot is a mess" was a flat envelope, not a bug.** For `Sb_Te+Cl_Te` in CdTe (PBEsol,

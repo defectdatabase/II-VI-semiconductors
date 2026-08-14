@@ -321,7 +321,9 @@ body{letter-spacing:-.006em}
 .kv div{padding:3px 0}
 .notebox{padding:6px 8px;font-size:12.3px}
 #cnote{font-size:12px}
-#detail #efdetailplot{height:252px}
+/* Aspect, not width: at 596 px wide a 252 px box is a 2.4:1 band and a flat envelope looks like a
+   ruled line. 380 px puts it near 3:2 without leaving dead space beside a narrowed plot. */
+#detail #efdetailplot{height:380px}
 #detail #dstruct{height:340px!important;border:1px solid var(--wbg-border);border-radius:8px}
 #cstruct{height:340px!important}
 .dos-empty{height:150px;padding:14px}
