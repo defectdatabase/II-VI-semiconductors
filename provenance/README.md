@@ -344,7 +344,28 @@ Measured at a 1400 px window: modal 1180 x 855 with no inner scrollbar, structur
   **0.00 on every left-axis tick**. It is now adaptive on the axis range - 4 decimals below 0.02 eV,
   3 below 0.2 eV, otherwise unchanged.
 
+## Plot narrowed, viewer empty space removed (2026-08-14, user-directed)
+
+- **Formation-energy plot narrowed on request.** The modal grid went from `.95fr/1.05fr` to
+  `1.35fr/.85fr` and the plot height from 380 to 340 px, so at a 1400 px window the columns measure
+  **697 / 439** and the plot is **439 x 340, aspect 1.29** (it had been 596 x 380). The freed width
+  goes to the arithmetic tables, so no gap opens between the columns.
+- **Empty space inside the structure panes removed.** MatterViz frames a structure by fitting its
+  bounding sphere, and draws an orientation gizmo in the corner, which together left the cell small
+  in a mostly empty pane. Both vendored viewers now pass `show_gizmo:false` and `initial_zoom:72`
+  alongside Kosmos's `active_sites`/`active_highlight_color`, so the cell fills its pane.
+- **Deviations from the vendored bundles now number three**, all in the two scene-prop objects and
+  one tick formatter: `show_gizmo:false`, `initial_zoom:72`, and adaptive tick precision. Everything
+  else is byte-identical to `defect-informatics/kosmos`.
+
 ## Mistakes & corrections log (append-only)
+- **2026-08-14 - broke a vendored bundle with sloppy string surgery.** WHAT I DID WRONG: I appended
+  scene props by slicing `anchor[:-2]` when the anchor ended in `}))`, producing
+  `{...},show_gizmo:...}))` - a syntax error that blanked the whole movie viewer; the modal rendered
+  its header and nothing else -> THE GUARD: patch a vendored bundle only with an exact
+  old->new string pair whose count is asserted to be 1, then `node --input-type=module --check` the
+  file before reloading; when in doubt re-download the pristine file first -> GUARD LIVES IN this log
+  and the patch script's assert + syntax check.
 - **2026-08-14 - deleted a bundle that three viewers still imported.** WHAT I DID WRONG: after moving
   the structure panes onto Kosmos's app I removed `docs/mv/`, but the static-calculation modal, the
   in-page trajectory panel and `mvmShow` still called `renderMatterViz` from it, so the user opened a
