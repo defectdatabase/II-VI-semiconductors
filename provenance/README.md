@@ -1604,3 +1604,102 @@ navigation each time, on **https://defectdatabase.github.io/material_hub/** at b
 
 Console errors: **1 per page load, and it is `/favicon.ico` 404** — the repo has no favicon. No
 other error, no failed data request.
+
+---
+
+## 2026-08-15 21:00 UTC — the tree is bulk and defect only; two naming errors caught on the way in
+
+### What was actually wrong
+
+Asked "did you fix the folder layout, still a mess". The honest answer was no. `DFT/bulk` and
+`DFT/defect` were correct, but **five folders still sat beside them** holding 9,000+ runs that had
+never been filed, and a verified plan for the biggest of them had been written the day before and
+never executed. Top level then, and now:
+
+| before | runs | now |
+|---|---|---|
+| `duplicates_across_campaigns` 504 GB | 6,088 | **removed** |
+| `incoming` | 2,927 + 4 archives | archives only, being emptied |
+| `defect_name_collisions` | 341 | **removed** |
+| `quarantine_non_physics` | 653 | **removed** |
+| `surfaces_catalysis` (empty) | 0 | **removed** |
+
+Tree now: **21,819 bulk compound directories · 102,684 defect charge directories across 568 hosts**,
+and nothing at top level except `DFT`, `log`, `software`, `README.md`.
+
+### One name, no copies
+
+`selene`, `hyperion` and `chalcogenide_defects` were symlinks beside `material_hub`. All three are
+**deleted**, and the 24 scripts in `log/` that still named an old path were rewritten to
+`/eagle/wbg_defects/material_hub` (0 references remain). Five stray `core.*` dumps in the parent
+directory went too.
+
+### The three traps, each caught by a second route
+
+**1. Gzipped runs looked like empty directories.** VASP output in this archive is stored plain in
+some runs and gzipped in others. The first executor only opened plain filenames, so **564 complete
+runs reported `natoms None`** and every duplicate proof against them failed. Every reader is now
+gzip-transparent, and the CONTCAR hash is taken over the DECOMPRESSED bytes — a gzip header carries
+an mtime, so two identical CONTCARs stored differently would never match on the raw file.
+
+**2. `V_Zn` meant two different things.** Across 2,613 tree directories `V_Zn` is a zinc vacancy.
+In the ZnIn2S4 dopant screen sitting in `incoming/` it is **vanadium on a zinc site** — that project
+spells its vacancies `Vac_Zn`, and the cell settles it: `V_Zn/Neutral` is Zn 17, In 36, S 72, **V 1**
+against the pristine's Zn 18, while `Vac_Zn` is Zn 17 with no V. Filing as-is would have merged a
+dopant into a vacancy. No host anywhere contains vanadium, so vacancies were given their own prefix
+tree-wide — **2,456 directories renamed `V_X` → `Vac_X`** — leaving `<El>_<site>` to mean an element
+on a site, which is what it means for every other element in the database.
+
+**3. The pristine was a hydrogen-passivated slab.** 415 runs reported "name says {Cd:+1}, cell says
+{Cd:+1, H:−1}". The name was right: the same-size ZnIn2S4 reference being matched was
+`HER_ZnIn2S4_H` (Zn18 In36 S72 **H1**), the catalysis cell. A pristine may no longer contain an
+element the host formula does not. Disagreements went **415 → 0**.
+
+### What the re-verification changed versus the plan
+
+The day-old plan was read for its evidence and every action re-proved against the files:
+
+```
+plan            executed
+MOVE  4,526     5,025 moved      (762 held rows resolved: 727 by parsing the name and
+DELETE  800     1,056 deleted     confirming it against dn, 27 as distinct configurations,
+HOLD    762         0 held        8 placed despite an untestable claim)
+```
+
+**1,056 deletions, every one re-proved at the moment it ran** — same atom count, |ΔF| ≤ 1e-6,
+identical CONTCAR hash. 263 of them only became provable *during* the run: once the first copy
+landed in the tree, later sources matched it. Seven rows whose twin had vanished were **kept and
+filed, not deleted** — a claim that cannot be tested is not a licence to delete.
+
+A self-inflicted bug worth recording: converting a refused DELETE into a MOVE left the code falling
+through to `shutil.rmtree` anyway. The dry run showed `deleted 800` where it should have shown 786.
+**14 runs would have been deleted after failing their proof.** Always diff the dry-run counters
+against the arithmetic you expect, not just against zero errors.
+
+### Campaign labels do not survive
+
+`LOPTICS`, `Defect_Calculations_HSE`, `Defect_Calculations_GGA_U`, `HSE_Reference_Energy`,
+`GGA_U_Photo_Catalysis`, `optimization/AIMD`, `reference_compound` — all dissolved. Theory comes
+from each run's own INCAR (the `GGA_U` folder is how PBE+U runs were filed as plain PBE once
+before). Hosts lost their descriptors: `Ultrathin_ZnIn2S4` and `ZnIn2S4_monolayer` are `ZnIn2S4`.
+The H-adsorbed slab keeps its adsorbate because the adsorbate is part of the system: host
+`ZnIn2S4_H`, which the tree already used.
+
+One compound, one spelling: `Cd0.500Zn0.500Te` and `Cd0.50Zn0.50Te` merged into `Cd0.5Zn0.5Te`
+(96 bulk and 11 defect directories respelled), and a directory only merges into a spelling the tree
+already uses.
+
+### The four archives in incoming/
+
+`ZnIn2X4_Project_2.tar.gz` contains **zero** runs — safe. The other three were checked by streaming
+their member lists and matching each run against the tree; the first matcher keyed on
+(defect, charge) and called 672 of In2O3's 676 runs absent, which was **the matcher, not the
+archive** — In2O3 writes the charge into the directory name (`In_O_+1/vasp_ncl`). A grammar-aware
+pass is extracting only the runs that are genuinely unfiled; nothing is deleted until they are in
+the tree.
+
+### Next, and unavoidable
+
+**The payload is now stale.** 9,000 runs moved into the tree and 2,456 defect directories were
+renamed, so `derived_bulk.json`, the defect payload, the structure/DOS/run/traj key lists and every
+`V_X` label on the live site must be regenerated before the site is trusted again.
