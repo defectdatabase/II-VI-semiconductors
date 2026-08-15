@@ -1506,3 +1506,101 @@ in `gen_traj.py` and all 4,994 trajectories are being rebuilt.
 
 Denominator worth quoting: only **3,681 of 13,788 rows are relaxations**. 10,082 are static
 single-points with one ionic step and have no intermediate geometry to animate at all.
+
+---
+
+## 2026-08-15 20:40 UTC — the project is materialHUB; the compound table filters by calculation type
+
+### Name, everywhere at once
+
+**materialHUB**, chosen by the user after Selene (chalcogenide-specific) and Hyperion (an HPC name
+already in use) were both rejected. The tree holds In2O3, ZnIn2S4 and 5,090 compounds across five
+levels of theory, so the name had to be general. Applied in the same pass so nothing carries the
+old one:
+
+```
+/eagle/wbg_defects/material_hub                      <- the project
+/eagle/wbg_defects/hyperion             -> material_hub
+/eagle/wbg_defects/selene               -> material_hub
+/eagle/wbg_defects/chalcogenide_defects -> material_hub
+```
+
+All three compat symlinks point straight at `material_hub` (not chained), so every script, log and
+absolute path written before today still resolves. `log/build_bulk_payload.py` now names
+`/eagle/wbg_defects/material_hub` directly.
+
+| | before | after |
+|---|---|---|
+| GitHub repo | `defectdatabase/chalcogenide-defects` | **`defectdatabase/material_hub`** |
+| live site | `defectdatabase.github.io/chalcogenide-defects` | **`defectdatabase.github.io/material_hub`** |
+| page title | DefectDB — A Chalcogenide Semiconductor Defect Library | **materialHUB — A Semiconductor Bulk and Defect DFT Library** |
+
+GitHub keeps a redirect from the old repo path, so old clones and links still work; the git remote
+and the local clone were repointed anyway.
+
+### Filtering by what the calculation actually was
+
+The compound table now carries three selects and one checkbox, all populated with live counts read
+from the payload at load time rather than hard-coded:
+
+| filter | options and counts |
+|---|---|
+| calculation type | static single-point **9,458** · relaxation of cell and ions **4,146** · relaxation of ions only **9** · no INCAR recovered **175** |
+| ionic steps | 1 step **9,980** · 2–9 **2,984** · 10–49 **576** · 50 or more **28** · none recorded **45** |
+| available data | element-projected DOS **12,413** · relaxed structure **13,676** · calculation breakdown **13,763** · relaxation movie **3,490** · dielectric constant and SLME **4,665** |
+| checkbox | relaxation reached EDIFFG **2,785** |
+
+A new **Calculation** column shows the mode and step count on every row (`relax cell · 3 steps`),
+and the detail panel gained two rows: the calculation type with **NSW, IBRION and ISIF verbatim**,
+and the ionic-step count with whether EDIFFG was reached.
+
+**The mode is read from each run's own INCAR, never inferred from the step count.** They are
+separate filters because they are separate facts: **526 relaxations satisfied EDIFFG on their first
+ionic step**, so a step count of 1 does not make a run a static single-point. The precedence is
+`IBRION = 0` and `NSW > 0` → molecular dynamics; `NSW ≤ 0` or `IBRION = -1` → static;
+`ISIF ≥ 3` → cell and ions; otherwise ions only.
+
+### Payload change, and the check that it changed nothing else
+
+`log/build_bulk_payload.py` appends four indices to every compound row from the raw OUTCAR step
+records already harvested by `steps_stress.py`:
+
+```
+28  ionic steps actually taken        30  EDIFFG satisfied?
+29  static / relax-ions / relax-cell  31  [NSW, IBRION, ISIF] verbatim
+```
+
+Rows went 28 fields → 32. Before deploying, every row of the new payload was matched to its
+predecessor by (theory, compound) and **the first 28 fields compared element by element: zero rows
+changed.** The rebuild is a pure addition.
+
+**Deploy trap avoided:** the Eagle build writes `structKeys`/`dosKeys`/`runKeys`/`trajKeys` computed
+from what the builder *believes* exists — its `trajKeys` is empty and its `structKeys` claims 20,066
+against 19,925 files on disk. The deployed `docs/data.json` carries the **disk-derived** lists.
+Copying the Eagle payload wholesale would have wiped all 4,994 relaxation movies. Only the
+`compounds` array was merged.
+
+**Caught in verification, not in review:** 45 rows have `n_steps = 0` — a final energy but no
+parsed ionic-step block. The first cut of the step filter binned them nowhere, so they were
+unreachable by any option while still counted in the total. They now have their own
+"no ionic step recorded" bin, and the bins partition the table exactly:
+9,980 + 2,984 + 576 + 28 + 45 + 175 null = 13,788.
+
+### Verification — 10/10 on the live site
+
+Driven in a real Chromium (Playwright node API; the Playwright **MCP** is not connected in this
+session, so the browser was scripted directly rather than through the MCP). Ten full repeats, fresh
+navigation each time, on **https://defectdatabase.github.io/material_hub/** at build
+`96aa96028607`:
+
+- every option selected in turn, the rendered *"Showing N of 13,788"* read off the page and
+  compared against a **recount of the payload done independently in node** — 11 assertions per
+  repeat, all equal, 10/10;
+- a combined filter (relaxation of cell and ions **and** 10–49 steps → 576) to prove the predicates
+  compose;
+- the first rendered row's Calculation cell parsed and matched against its own payload row;
+- the three availability filters reproduce the coverage figures established earlier from the files
+  on disk — DOS 12,413, movie 3,490, optics 4,665 — which is the second, independent route.
+
+Console errors: **1 per page load, and it is `/favicon.ico` 404** — the repo has no favicon. No
+other error, no failed data request.
