@@ -1313,13 +1313,17 @@ function structureCIF(st){
 }
 /* Structure rendering is Kosmos's vendored app (see sgShow above); this page mounts no viewer of its own. */
 function structKeyOf(r,ord){
-  const FK={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
+  const FK={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc","PBE+U":"pbe_u"}[r.f];
   const RK={"PBEsol":"PBEsol","HSE06":"HSE","HSE+SOC":"HSE+SOC"}[r.f];
   return r.ref             ? `ref__${RK}__${r.n}`
        : ord==="zinc blende" ? `${r.fk||FK}__${r.n}`
        : r.f==="HSE+SOC"     ? `${r.n}_${ord}`
        : r.f==="PBEsol"      ? `PBEsol__${r.n}_${ord}`
-       : r.rk==="HSE06 (A2BCX4)" ? `HSE06__${r.n}_${ord}` : null;
+       : r.rk==="HSE06 (A2BCX4)" ? `HSE06__${r.n}_${ord}`
+       : r.f==="HSE06"       ? `HSE06__${r.n}_${ord}`
+       // PBE and PBE+U rows used to fall through to null, so they could never resolve a
+       // structure, a DOS or a run breakdown no matter what was deployed for them
+       : (FK ? `${FK}__${r.n}_${ord}` : `${String(r.f).toLowerCase().replace(/[^a-z0-9]+/g,"_")}__${r.n}_${ord}`);
 }
 async function mountStructure(r,ord){
   const el=document.getElementById("cstruct");
