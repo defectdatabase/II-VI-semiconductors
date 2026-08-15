@@ -1417,3 +1417,92 @@ adversarial pass caught:
   the run looks healthy.
 - **A payload that validates is not a page that works.** Recompute the template's own key for every
   row and count hits against the files actually in `docs/` before calling a deploy good.
+
+---
+
+## 2026-08-15 19:30 UTC — the project is now HYPERION; the decomposition blocker is six phases
+
+### Name
+
+**Hyperion** — the Titan who fathered Helios and Selene. This database is the general
+semiconductor defect resource, not a chalcogenide one: it already holds In2O3, ZnIn2S4 monolayers
+and 5,091 compounds across PBE, PBEsol, HSE, HSE+SOC and PBE+U. A name tied to one anion family
+would promise less than the tree contains. Kosmos (wide-bandgap), Helios and Hyperion read as one
+family, with Hyperion as the parent rather than another sibling.
+
+`Selene` was tried first and rejected for exactly that reason — selenium's namesake promises
+chalcogenides only.
+
+```
+/eagle/wbg_defects/hyperion                          <- the project
+/eagle/wbg_defects/chalcogenide_defects -> hyperion  <- compat symlink
+/eagle/wbg_defects/selene               -> hyperion  <- compat symlink
+```
+
+Both symlinks exist so every script, path and log written before the rename still resolves.
+Note for search: Hyperion has been used for HPC systems before, so the name is not unique in
+computing; it is unambiguous in this project.
+
+### Why the decomposition energy is blank — six phases, not a formula problem
+
+`KRb₀.₅Ag₀.₅SrSn₀.₅Ge₀.₅SSeTe₂` classifies correctly as A2BCX4 (A = K+Rb+Ag = 2, B = Sr = 1,
+C = Sn+Ge = 1, X = S+Se+Te = 4) and its formation energy is fine at −1.06 eV/atom. Its
+decomposition is refused because the rule needs `E[CX₂]` for every C×X pair and two of them do not
+exist at HSE. **All 4,405 blocked rows reduce to six missing phase energies:**
+
+| phase | theory | rows blocked | state on disk |
+|---|---|---|---|
+| Cu2Se | HSE+SOC | 1,114 | directory exists, **OSZICAR has no `F=`** — never converged |
+| Cu2S | HSE+SOC | 1,062 | directory exists, **never converged** |
+| SnTe2 | HSE+SOC | 833 | no run at this theory (PBEsol only) |
+| GeTe2 | HSE+SOC | 787 | no run at this theory (PBEsol only) |
+| SnTe2 | HSE | 691 | no run at this theory (PBEsol only) |
+| GeTe2 | HSE | 649 | no run at this theory (PBEsol only) |
+
+Two things worth stating on the page: `SnTe2` and `GeTe2` are **not known stable compounds** — the
+ChalcoDB rule needs them as hypothetical CX₂ end members — and the refusal to substitute a zero is
+deliberate, because `cell_4.py`'s `.get(compound, 0)` would have made every one of these 4,405
+compounds look far more stable than it is.
+
+### Four phase calculations submitted
+
+Anvil, VASP 6.3.0, HSE06 static single-point on the PBEsol-relaxed geometry — the same recipe the
+campaign's other HSE phase energies used (`NSW = 0`, `IBRION = -1`), `vasp_ncl` selected
+automatically when `LSORBIT = .TRUE.`:
+
+```
+19950671  SnTe2_HSE      debug     19950695  GeTe2_HSE      shared
+19950694  SnTe2_HSESOC   debug     19950696  GeTe2_HSESOC   shared
+```
+
+Structures, k-meshes and POTCARs are copied from each phase's own PBEsol run, so the PAW set
+matches the campaign (`Sn_d`, `Ge_d`, `Te`). Cells are 3 and 12 atoms. `Cu2S`/`Cu2Se` at HSE+SOC
+are 144-atom cells and are NOT yet resubmitted — they are the expensive pair.
+
+**Trap:** `sbatch` failed four times with *"Job violates accounting/QOS policy (job submit limit,
+user's size and/or time limits)"*. It was not cores and not walltime — allocation **mat250008 was
+at its job-count limit** with 74 jobs already queued. The same script submitted immediately under
+**mat260069**. When a submit is refused, test another allocation before shrinking the job.
+
+### The DOS ceiling is real and it is not a parsing problem
+
+Every DOS file that exists is now **100 % element-projected** (18,099 of 18,099), after the
+vasprun `<partial>` recovery. The remaining gap is different: **1,967 published rows have no DOS
+file at all**, and an exhaustive search of every candidate directory for each of them — DOSCAR,
+vasprun with a `<dos>` block, in the compound directory and every variant beneath it — finds
+**nothing for 1,963**. Only 4 are recoverable.
+
+So the honest ceiling with the archived output is **12,417 of 13,788 rows (90.1 %)**. Closing the
+last 1,963 means recomputing those runs with `LORBIT` set and the DOSCAR retained. That is a
+campaign, not a parse.
+
+### Relaxation movie — the atoms were wrapping, not standing still
+
+Reported as "atoms are not moving". They move; XDATCAR folds fractional coordinates into [0,1),
+so an atom at z = 0.0001 reappears at 0.9999 and the viewer shows it teleporting across the cell.
+Measured: max |Δ| between the first and last frame came out as exactly **1.0** while the real
+displacement was **5 × 10⁻⁵**. Minimum-image unwrapping against the previous frame is now applied
+in `gen_traj.py` and all 4,994 trajectories are being rebuilt.
+
+Denominator worth quoting: only **3,681 of 13,788 rows are relaxations**. 10,082 are static
+single-points with one ionic step and have no intermediate geometry to animate at all.
