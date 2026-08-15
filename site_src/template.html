@@ -1683,6 +1683,7 @@ async function openStaticMovie(key,label,E,fmax,info){
   card.innerHTML=`
     <h5>Calculation summary</h5>
     <div class="row"><span>Calculation type</span><span>Static single-point</span></div>
+    ${nfo.theory?`<div class="row"><span>Level of theory</span><span>${nfo.theory}</span></div>`:""}
     <div class="row"><span>Total energy</span><span>${E!==null&&E!==undefined?E.toFixed(3)+" eV":"Unavailable"}</span></div>
     <div class="row"><span>Maximum atomic force</span><span style="color:${fmax===null||fmax===undefined?"#9a6b1d":(conv?"#237a4b":"#a25520")}">${forceValue}</span></div>
     <div class="row"><span>Force convergence threshold</span><span>${EDIFFG.toFixed(2)} eV/Å</span></div>
@@ -2120,8 +2121,17 @@ function provenanceHTML(r,ord){
     = ${D.E_pfu.toFixed(3)} − (${(D.sum*(D.pre||1)).toFixed(3)}) + (${(D.S||0).toFixed(3)})
     = <span class="mono">${(D.d0 + (D.S||0)).toFixed(3)}</span> eV/f.u., over <b>all ${D.terms.length}</b>
     competing phases:<br>&nbsp;&nbsp;${rows}<br>
-    Entropy uses the ideal configurational value per sublattice with site multiplicity
-    (${(D.S||0).toFixed(4)} eV); the convention previously published gives ${(D.S_used||0).toFixed(4)} eV.<br>`;
+    <b>Configurational entropy</b> −T·ΔS<sub>mix</sub> = k<sub>B</sub>T · Σ<sub>sublattice</sub> n<sub>sites</sub> · Σ f ln f
+    = <span class="mono">${(D.S||0).toFixed(4)}</span> eV/f.u.${
+      (D.S_terms&&D.S_terms.length)
+      ? `, built from ${D.S_terms.length} mixed sublattice${D.S_terms.length>1?"s":""}:<br>&nbsp;&nbsp;`
+        + D.S_terms.map(t=>`${t.sublattice} site (${t.sites_per_fu} per f.u.): `
+          + Object.entries(t.fractions).map(([e,f])=>`f<sub>${e}</sub> = ${f}`).join(", ")
+          + ` → Σ f ln f = ${t.sum_f_ln_f.toFixed(4)}, ${t.sites_per_fu} × k<sub>B</sub>T × ${t.sum_f_ln_f.toFixed(4)} = `
+          + `${t.contribution_eV.toFixed(4)} eV`).join("<br>&nbsp;&nbsp;")
+        + `<br>Fully occupied sublattices contribute zero and are omitted. `
+      : ". "
+    }The convention previously published gives ${(D.S_used||0).toFixed(4)} eV.<br>`;
   }
   if(v.length>9&&v[9]!==null&&v[9]!==undefined){
     const cats=Object.keys(comp).filter(e=>!["S","Se","Te"].includes(e));
