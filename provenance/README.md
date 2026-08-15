@@ -1067,3 +1067,95 @@ That is ~363 single-point runs — queued, not run.
   `if __name__ == "__main__":`, so importing it for its parsers is inert.
 - **Where the guard lives:** `log/build_defect_ef.py` (and the same wrap belongs on
   `build_all.py`, `build_payload.py`, `build_chempot.py` when they are next touched).
+
+---
+
+## 2026-08-15 05:10 UTC — everything optical recomputed from raw with vaspkit; two errors found
+
+User directive: **compute each from raw data, do not use any ready-made data.** So no
+`ABSORPTION.dat`, `REAL.in` or `SLME.dat` already sitting in a run directory is read. Every one is
+regenerated from `vasprun.xml` + `EIGENVAL` + `DOSCAR` in a scratch copy, and the run directory is
+never written to.
+
+### vaspkit on Eagle
+
+`software/vaspkit/` (1.5.0, bin + utilities, 9 MB, copied from Anvil). Tasks used:
+**911** band gap, **711** optical properties, **719** SLME. Solar spectrum is vaspkit's bundled
+`am1.5G.dat`, header *"ASTM G173-03 Reference Spectra Derived from SMARTS v. 2.9.2"* — that is
+what unblocked SLME; no spectrum is reconstructed or recalled.
+
+**Validation on the shipped `examples/GaAs_SLME`:** 31.4787 % here against the example's stored
+31.4549 % — 0.024 percentage points, a version difference in the stored example, and both inside
+the literature range for GaAs.
+
+`log/vk_sweep.py`, 24 shards over **35,799** bulk runs with a vasprun. Per run it records
+gap / VBM / CBM, ε_xx,yy,zz at ω→0 (REAL.in row 1), α(E), and the SLME curve at 0.5, 1, 2 and 5 µm
+per axis and averaged.
+
+**Trap:** crux `/tmp` is a **1.5 GB tmpfs** and a single `vasprun.xml` here reaches **500 MB**, so
+staging there dies with `No space left on device` after two runs. Scratch now lives on Eagle,
+one directory per shard, cleaned per run.
+
+### ERROR 1 — the band gap is wrong for every HSE+SOC run
+
+Comparing vaspkit against this project's own occupancy-based EIGENVAL parser on 26 runs:
+
+```
+mean |vaspkit - mine| = 0.6926 eV     median 0.0040 eV     within 0.01 eV: 15/26
+```
+
+The median says they agree. The mean says something is badly wrong, and the split is clean:
+
+| run | vaspkit | occupancy parser | Δ |
+|---|---|---|---|
+| `HSE+SOC/K1.5Cs0.5Ca1Zr1S4_kesterite` | **3.8171** | 0.0809 | 3.736 |
+| `HSE+SOC/Cs1.5Ag0.5Mg1Ge1S4_kesterite` | **3.0372** | 0.1912 | 2.846 |
+| `HSE+SOC/Cu1.5Ag0.5Ca1Zr1S4_stannite` | **2.0851** | 0.0932 | 1.992 |
+| `HSE+SOC/Cu2Zn0.5Cd0.5Zr1S4_stannite` | **1.8112** | 0.1300 | 1.681 |
+
+**Every disagreement is HSE+SOC, and the parser always reports a near-zero gap.** With
+`LSORBIT = .TRUE.` the occupancies are not the 2.0/0.0 the adaptive threshold assumes, so occupied
+and empty states are misclassified and the gap collapses. Non-SOC runs agree **15 of 15** to within
+0.01 eV, and on PBEsol CdTe the parser reproduces vaspkit exactly — gap 1.4539, VBM 1.8224,
+CBM 3.2762 to four decimals — so this is specific to SOC, not a general parser fault.
+
+Scope: **HSE+SOC is 6,959 bulk runs and 4,862 of the site's 13,789 rows.** Their gaps were wrong.
+Fix: the gap now comes from vaspkit for every run, so one validated tool produces gap, ε, α and
+SLME together.
+
+**The guard:** a median that looks clean can hide a whole functional. Always split the comparison
+by theory before declaring agreement.
+
+### ERROR 2 — the mixing-entropy term in `chalcodb_src/cell_4.py`
+
+`PROTOCOL.md` defines `mixing_entropy = kB_T · Σ frac·ln(frac)` and the code accumulates
+`entropy_sum += frac*log(frac)` **inside each of the A, B and C loops**, where `frac` is the
+competing-phase stoichiometric coefficient rather than a site fraction. Two consequences:
+
+- an anion-mixed A2BCX4 has its anion entropy counted once per cation family — three times;
+- the sublattice site multiplicity (2 A sites, 4 X sites per formula unit) is never applied.
+
+The two partly cancel, which is why it went unnoticed. Measured against the ideal configurational
+entropy computed per sublattice with multiplicity, at the same kB_T = 0.0257 eV:
+
+| compound | `cell_4` | correct | error |
+|---|---|---|---|
+| Cu2ZnSnS4 (ordered) | 0.0000 | 0.0000 | **0.0000** |
+| Cu2Zn0.5Cd0.5SnS4 (B-site) | −0.0178 | −0.0178 | **0.0000** |
+| Cu2ZnSnS2Se2 (anion) | −0.0534 | −0.0713 | **+0.0178** |
+| Cu1Ag1ZnSnS4 (A-site) | −0.0178 | −0.0356 | **+0.0178** |
+| Cu1Ag1Zn0.5Cd0.5SnS2Se2 | −0.0891 | −0.1247 | **+0.0356** |
+
+Ordered and B-site-mixed compounds are exactly right; A-site and anion mixing are under-stabilised
+by 18–36 meV/f.u. The bias is **composition-dependent, not a constant offset**, so it distorts the
+relative stability of cation-mixed against anion-mixed alloys — which is precisely the comparison
+the finite-temperature reordering result rests on, and 36 meV exceeds kB_T = 25.7 meV.
+
+**What is NOT wrong, checked and cleared:** the competing-phase dictionaries are complete —
+`BINARY_ENERGIES_A2BCX4_V3` has all 45 phases the A/B/C×X loops can request and
+`BINARY_ENERGIES_ABX2_V3` all 27 — so the `.get(compound, 0)` default never fires. It remains a
+latent hazard (a missing phase would silently contribute 0 eV and make the compound look far more
+stable) and should be `[compound]`, but it has not corrupted any published number.
+
+The A2BCX4 and ABX2 competing-phase algebra is also correct, including for mixed sites: the
+coefficients sum to exactly one formula unit of each competing phase in every case checked.
