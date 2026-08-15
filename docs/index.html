@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DefectDB — Chalcogenide Semiconductor Defect Library</title>
+<title>materialHUB — Semiconductor Bulk and Defect DFT Library</title>
 <meta name="description" content="Open DFT library for chalcogenide semiconductors: 6763 I–III–VI2 / I2–II–IV–VI4 compounds with computed properties, plus charged-defect formation energies for II–VI hosts. All DFT.">
 <style>
 :root{
@@ -369,7 +369,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="97b784c3d86b";
+  var BUILD_ID="96aa96028607";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -390,10 +390,10 @@ body{letter-spacing:-.006em}
 </div>
 
 <div id="titlebar">
-  <h1>DefectDB — A Chalcogenide Semiconductor Defect Library</h1>
+  <h1>materialHUB — A Semiconductor Bulk and Defect DFT Library</h1>
   <span class="stats" id="topstats"></span>
   <span class="right">
-    <a href="https://github.com/defectdatabase/chalcogenide-defects">GitHub</a>
+    <a href="https://github.com/defectdatabase/material_hub">GitHub</a>
     <a href="https://nanohub.org/tools/defectdatabase">nanoHUB tool</a>
   </span>
 </div>
@@ -479,11 +479,14 @@ body{letter-spacing:-.006em}
 <div class="view" id="view-rankings">
   <div class="filterrow">
     <input type="text" id="csearch" placeholder="Search compounds — e.g. Cu2ZnSnS4, AgGaS2…">
-
+    <select id="c-mode" title="What VASP was told to do, read from the run's own INCAR"></select>
+    <select id="c-steps" title="Ionic steps the run actually took"></select>
+    <select id="c-has" title="Per-row data available for download or display"></select>
   </div>
   <div class="checks">
     <label><input type="checkbox" id="ck-stable"> Stable (decomposition energy ≤ 0)</label>
     <label><input type="checkbox" id="ck-gap1"> Band gap 1.0–2.0 eV</label>
+    <label><input type="checkbox" id="ck-conv"> Relaxation reached EDIFFG</label>
   </div>
   <div class="covstrip" id="ccov"></div>
   <div class="tbox" id="ctbox">
@@ -589,7 +592,7 @@ body{letter-spacing:-.006em}
   <div class="dhead">Calculation inputs <span class="sub" id="incartitle"></span></div>
   <div class="notebox" id="incarbody" style="font-size:13.5px;line-height:1.6"></div>
 </div>
-<a id="reportbtn" href="https://github.com/defectdatabase/chalcogenide-defects/issues">⚑ report an issue</a>
+<a id="reportbtn" href="https://github.com/defectdatabase/material_hub/issues">⚑ report an issue</a>
 
 <script>
 let DEFECTS=[], COMPOUNDS=[], REFS={}, HAVE_STRUCT=new Set(), HAVE_TRAJ=new Set(), HAVE_DOS=new Set(), HAVE_RUN=new Set();
@@ -1086,6 +1089,7 @@ const CCOLS=[
   {k:"nat",label:"No. of atoms",w:100,num:1,cell:(r,v)=>`<span class="c num" style="width:100px">${v[6]||"—"}</span>`,val:r=>r.o[r.b][6]||0},
   {k:"latt",label:"Lattice parameter (Å)",w:170,cell:(r,v)=>`<span class="c" style="width:170px">${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)}`:"—"}</span>`,val:r=>r.o[r.b][8]?r.o[r.b][8][0]:0},
   {k:"ang",label:"α × β × γ (°)",w:140,cell:(r,v)=>`<span class="c" style="width:140px">${v.length>18&&v[18]?v[18].map(x=>x.toFixed(1)).join(" × "):"—"}</span>`,val:r=>{const w=r.o[r.b];return w.length>18&&w[18]?w[18][0]:null;}},
+  {k:"calc",label:"Calculation",w:150,cell:(r,v)=>`<span class="c" style="width:150px">${cCalcLabel(v)}</span>`,val:r=>cCalcLabel(r.o[r.b])},
   {k:"eform",label:"Formation energy (eV/atom)",w:190,num:1,vi:0},
   {k:"edec",label:"Decomposition energy (eV/f.u.)",w:210,num:1,vi:1},
   {k:"gap",label:"Band gap (eV)",w:130,num:1,vi:2},
@@ -1093,15 +1097,70 @@ const CCOLS=[
   {k:"slme",label:"SLME (%)",w:100,num:1,vi:4},
 ];
 CCOLS.forEach(c=>{ if(c.vi!==undefined) c.val=r=>r.o[r.b][c.vi]; });
+/* ---- calculation type. Indices 28-31 of a compound row are the ionic steps the run actually
+   took, the mode read from the run's OWN INCAR, whether EDIFFG was satisfied, and
+   [NSW, IBRION, ISIF] verbatim. Mode and step count are kept as separate filters on purpose:
+   a relaxation that met EDIFFG on its first ionic step also has one step, so the step count
+   alone cannot tell a relaxation from a static single-point. ---- */
+const CMODE_LABEL={"static":"Static single-point","relax-ions":"Relaxation — ions only",
+                   "relax-cell":"Relaxation — cell and ions","md":"Molecular dynamics"};
+const CSTEP_BINS=[["0","No ionic step recorded",n=>n===0],
+                  ["1","1 ionic step",n=>n===1],["2","2–9 ionic steps",n=>n>=2&&n<=9],
+                  ["10","10–49 ionic steps",n=>n>=10&&n<=49],["50","50 or more ionic steps",n=>n>=50]];
+const CHAS=[["dos","Element-projected DOS",(r,k,v)=>!!k&&HAVE_DOS.has(k)],
+            ["struct","Relaxed structure (CIF)",(r,k,v)=>!!k&&HAVE_STRUCT.has(k)],
+            ["run","Calculation breakdown",(r,k,v)=>!!k&&HAVE_RUN.has(k)],
+            ["movie","Relaxation movie",(r,k,v)=>HAVE_TRAJ.has(cMovieKey(r,r.b))],
+            ["optics","Dielectric constant and SLME",(r,k,v)=>v[3]!==null&&v[3]!==undefined]];
+function cMovieKey(r,ord){
+  const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
+  return r.rk==="HSE06 (A2BCX4)" ? `host__hse2x2x1__${r.n}_${ord}` : `host__${r.fk||FKEY}__${r.n}`;
+}
+const cSteps=v=>v.length>28?v[28]:null;
+const cMode =v=>v.length>29?v[29]:null;
+const cConv =v=>v.length>30?v[30]:null;
+function cCalcLabel(v){
+  const m=cMode(v),n=cSteps(v);
+  if(!m)return "—";
+  const short={"static":"static","relax-ions":"relax ions","relax-cell":"relax cell","md":"MD"}[m]||m;
+  return n===null||n===undefined?short:`${short} · ${n} step${n===1?"":"s"}`;
+}
+function cFillSelects(){
+  const nMode={},nStep={},nHas={};
+  COMPOUNDS.forEach(r=>{const v=r.o[r.b],k=structKeyOf(r,r.b);
+    const m=cMode(v); if(m)nMode[m]=(nMode[m]||0)+1;
+    const n=cSteps(v); if(n!==null&&n!==undefined){const b=CSTEP_BINS.find(([,,f])=>f(n)); if(b)nStep[b[0]]=(nStep[b[0]]||0)+1;}
+    CHAS.forEach(([id,,f])=>{if(f(r,k,v))nHas[id]=(nHas[id]||0)+1;});
+  });
+  const opt=(val,text,n)=>`<option value="${val}">${text}${n?` (${n.toLocaleString()})`:""}</option>`;
+  document.getElementById("c-mode").innerHTML=opt("","All calculation types",0)+
+    Object.keys(CMODE_LABEL).filter(m=>nMode[m]).map(m=>opt(m,CMODE_LABEL[m],nMode[m])).join("")+
+    (Object.values(nMode).reduce((a,b)=>a+b,0)<COMPOUNDS.length
+      ? opt("none","No INCAR recovered",COMPOUNDS.length-Object.values(nMode).reduce((a,b)=>a+b,0)):"");
+  document.getElementById("c-steps").innerHTML=opt("","Any number of ionic steps",0)+
+    CSTEP_BINS.filter(([id])=>nStep[id]).map(([id,label])=>opt(id,label,nStep[id])).join("");
+  document.getElementById("c-has").innerHTML=opt("","Any available data",0)+
+    CHAS.filter(([id])=>nHas[id]).map(([id,label])=>opt(id,label,nHas[id])).join("");
+}
 let cSort={k:"eform",asc:true},cSel=null,cFiltered=[],cOrd=null;
 function cApplyFilters(){
   const q=document.getElementById("csearch").value.trim().toLowerCase();
   const stable=document.getElementById("ck-stable").checked;
   const gap1=document.getElementById("ck-gap1").checked;
+  const conv=document.getElementById("ck-conv").checked;
+  const mode=document.getElementById("c-mode").value;
+  const stepb=document.getElementById("c-steps").value;
+  const has=document.getElementById("c-has").value;
+  const binf=stepb?CSTEP_BINS.find(([id])=>id===stepb)[2]:null;
+  const hasf=has?CHAS.find(([id])=>id===has)[2]:null;
   cFiltered=COMPOUNDS.filter(r=>{
     const v=r.o[r.b];
     if(stable&&!(v[1]!==null&&v[1]<=0))return false;
     if(gap1&&!(v[2]!==null&&v[2]>=1&&v[2]<=2))return false;
+    if(conv&&cConv(v)!==true)return false;
+    if(mode&&(mode==="none"?cMode(v)!==null&&cMode(v)!==undefined:cMode(v)!==mode))return false;
+    if(binf){const n=cSteps(v); if(n===null||n===undefined||!binf(n))return false;}
+    if(hasf&&!hasf(r,structKeyOf(r,r.b),v))return false;
     if(q&&!(r.n+" "+r.f+" "+Object.keys(r.o).join(" ")).toLowerCase().includes(q))return false;
     return true;
   });
@@ -1184,7 +1243,11 @@ function cOpenDetail(r,ord){
      <div><span>Number of atoms</span><span>${v[6]||"—"}</span></div>
      <div><span>Lattice parameters</span><span>${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"—"}</span></div>
      <div><span>Lattice angles α × β × γ</span><span>${v.length>18&&v[18]?v[18].map(x=>x.toFixed(2)).join(" × ")+" °":"—"}</span></div>
-     <div><span>Level of theory</span><span>${r.f}</span></div>`;
+     <div><span>Level of theory</span><span>${r.f}</span></div>
+     <div><span>Calculation type</span><span>${cMode(v)?CMODE_LABEL[cMode(v)]||cMode(v):"—"}${
+       v.length>31&&v[31]&&v[31][0]!==null?` — NSW ${v[31][0]}, IBRION ${v[31][1]}, ISIF ${v[31][2]}`:""}</span></div>
+     <div><span>Ionic steps</span><span>${cSteps(v)===null||cSteps(v)===undefined?"—":cSteps(v)}${
+       cConv(v)===true?" — reached EDIFFG":cConv(v)===false&&String(cMode(v)).startsWith("relax")?" — EDIFFG not reached":""}</span></div>`;
   document.getElementById("cnote").scrollTop=0;
   if(!OPTICS && r.o[cOrd] && r.o[cOrd].length>14 && r.o[cOrd][14]){
     // fetch the optics side-payload first so the panel types exactly once
@@ -1195,8 +1258,7 @@ function cOpenDetail(r,ord){
   }
   mountStructure(r,cOrd);
   drawInsight(r,cOrd);
-  const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
-  const mkey = r.rk==="HSE06 (A2BCX4)" ? `host__hse2x2x1__${r.n}_${cOrd}` : `host__${r.fk||FKEY}__${r.n}`;
+  const mkey = cMovieKey(r,cOrd);
   document.getElementById("cmoviebtn").innerHTML = HAVE_TRAJ.has(mkey)
     ? `<button class="cpill" style="background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
          onclick='openMovie(${JSON.stringify(mkey)},[{sub:"bulk",name:${JSON.stringify(r.f)}}],${JSON.stringify(subHTML(r.n))})'>▶ Relaxation movie</button>
@@ -1211,7 +1273,8 @@ function cOpenDetail(r,ord){
   cRenderRows();
 }
 document.getElementById("csearch").addEventListener("input",cApplyFilters);
-["ck-stable","ck-gap1"].forEach(id=>document.getElementById(id).addEventListener("change",cApplyFilters));
+["ck-stable","ck-gap1","ck-conv","c-mode","c-steps","c-has"].forEach(id=>
+  document.getElementById(id).addEventListener("change",cApplyFilters));
 
 
 async function fetchRun(key){
@@ -2224,6 +2287,7 @@ async function boot(){
   document.getElementById("topstats").textContent=
     `${DEFECTS.length.toLocaleString()} defect entries across ${new Set(DEFECTS.map(r=>r.h)).size} hosts · `+
     `${COMPOUNDS.length.toLocaleString()} DFT compounds — PBEsol · HSE06 · HSE+SOC — all-DFT`;
+  cFillSelects();
   dApplyFilters();
   cApplyFilters();
 }

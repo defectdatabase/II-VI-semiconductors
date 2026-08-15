@@ -1,6 +1,6 @@
-# DefectDB — Defect Thermodynamics in Chalcogenide Semiconductors
+# materialHUB — Bulk and Defect DFT for Semiconductors
 
-[![Website](https://img.shields.io/badge/website-defectdatabase.github.io-0e7490)](https://defectdatabase.github.io/chalcogenide-defects/)
+[![Website](https://img.shields.io/badge/website-defectdatabase.github.io-0e7490)](https://defectdatabase.github.io/material_hub/)
 [![nanoHUB tool](https://img.shields.io/badge/nanoHUB-defectdatabase-2e7d32)](https://nanohub.org/tools/defectdatabase)
 [![Dataset](https://img.shields.io/badge/dataset-DefectDB.zip%20(640%20MB)-blue)](https://github.com/msehabibur/DefectDB/releases/download/DefectDB/DefectDB.zip)
 [![Python](https://img.shields.io/badge/python-3.12-3776ab)](#installation)
@@ -12,7 +12,7 @@ The tool runs live in the browser on nanoHUB — no installation required:
 
 > **▶ Launch the tool: [nanohub.org/tools/defectdatabase](https://nanohub.org/tools/defectdatabase)**
 >
-> **🌐 Browse the library: [defectdatabase.github.io/chalcogenide-defects](https://defectdatabase.github.io/chalcogenide-defects/)** — a compound explorer with 6763 DFT-computed I–III–VI₂ / I₂–II–IV–VI₄ chalcogenides (formation energy, decomposition energy, band gap, dielectric constant, SLME) plus interactive defect formation-energy diagrams for II–VI hosts at PBEsol and HSE+SOC, computed live from the published dataset. The website reports DFT data only; the MLFF models are used in the simulation tool.
+> **🌐 Browse the library: [defectdatabase.github.io/material_hub](https://defectdatabase.github.io/material_hub/)** — a compound explorer with 6763 DFT-computed I–III–VI₂ / I₂–II–IV–VI₄ chalcogenides (formation energy, decomposition energy, band gap, dielectric constant, SLME) plus interactive defect formation-energy diagrams for II–VI hosts at PBEsol and HSE+SOC, computed live from the published dataset. The website reports DFT data only; the MLFF models are used in the simulation tool.
 
 Developed in the Mannodi research group at Purdue University (Md Habibur Rahman, Yi Yang, Arun Mannodi-Kanakkithodi).
 
@@ -82,8 +82,8 @@ The DFT defect dataset (relaxed supercells, total energies, formation energies, 
 The recommended way to use DefectDB is the hosted tool on [nanoHUB](https://nanohub.org/tools/defectdatabase). To run locally (Python 3.12):
 
 ```bash
-git clone https://github.com/defectdatabase/chalcogenide-defects.git
-cd chalcogenide-defects
+git clone https://github.com/defectdatabase/material_hub.git
+cd material_hub
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 jupyter nbclassic Cd_Zn_X_v3.ipynb
