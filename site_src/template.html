@@ -1236,7 +1236,7 @@ function stepTable(st){
 }
 function openIncar(theory,r,ord){
   document.getElementById("incartitle").innerHTML=r?subHTML(r.n):theory;
-  let body=(INCAR_TXT[theory]||INCAR_TXT[String(theory).split(" (")[0]]||"—").replace(/\n/g,"<br>");
+  let body="Reading this run's INCAR, POTCAR, KPOINTS and ionic steps…";
   if(r&&ord&&r.o[ord]){
     const v=r.o[ord], R=REFS[r.rk||r.f]||{}, paw=R.paw||{};
     const els=[...new Set((r.n.match(/[A-Z][a-z]?/g)||[]))];
@@ -1268,7 +1268,10 @@ function openIncar(theory,r,ord){
       h+=`<br><br><b>Ionic steps (${d.n_steps||d.steps.length})</b> — energy, force and stress at every step`
         +stepTable(d.steps);
     }
-    el.innerHTML=h+`<br><br><details><summary>campaign settings summary</summary>${body}</details>`;
+    // Only what this run's own files say. The per-theory summary that used to sit here was
+    // hand-written and contradicted the run: it asserted "LORBIT was unset, so this archived
+    // campaign contains total DOS only" on runs whose INCAR reads LORBIT = 11.
+    el.innerHTML=h;
   });
 }
 function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
