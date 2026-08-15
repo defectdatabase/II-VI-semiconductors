@@ -2102,6 +2102,27 @@ function provenanceHTML(r,ord){
   for(const el in comp){ const mu=R.el[el]; refsum+=comp[el]*nfu*mu;
     terms.push(`${comp[el]*nfu}·μ<sub>${el}</sub> = ${(comp[el]*nfu*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(2)} eV/atom)`); }
   const eform=(F-refsum)/nat;
+  // Prefer the decomposition the payload PUBLISHES, term by term. Recomputing it here from
+  // REFS.bin used a different competing-phase rule and an incomplete binary table, so the panel
+  // printed -4.12 eV/f.u. against the table's -0.29 and listed 2 of the 4 phases.
+  if(v.length>27&&v[27]&&v[27].terms&&v[27].terms.length){
+    const D=v[27];
+    const rows=D.terms.map(t=>`${t.coeff} · E(${subHTML(t.phase)}) = ${t.contribution.toFixed(3)} eV`
+      +`  [E(${subHTML(t.phase)}) = ${t.E_pfu.toFixed(3)} eV/f.u.]`).join("<br>&nbsp;&nbsp;");
+    const pre=(D.pre&&D.pre!==1)?`${D.pre} · `:"";
+    return `<b>Level of theory: ${th.split(" (")[0]}.</b><br>
+    Total energy: OSZICAR free energy F = <span class="mono">${F.toFixed(2)}</span> eV
+    for the ${nat}-atom cell (${nfu.toFixed(0)} formula units), E<sub>f.u.</sub> =
+    <span class="mono">${D.E_pfu.toFixed(3)}</span> eV.<br>
+    <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
+    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, against same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    <b>Decomposition energy</b> (${D.kind}) = E<sub>f.u.</sub> − ${pre}Σ f·E(phase) + k<sub>B</sub>T·Σ f ln f
+    = ${D.E_pfu.toFixed(3)} − (${(D.sum*(D.pre||1)).toFixed(3)}) + (${(D.S||0).toFixed(3)})
+    = <span class="mono">${(D.d0 + (D.S||0)).toFixed(3)}</span> eV/f.u., over <b>all ${D.terms.length}</b>
+    competing phases:<br>&nbsp;&nbsp;${rows}<br>
+    Entropy uses the ideal configurational value per sublattice with site multiplicity
+    (${(D.S||0).toFixed(4)} eV); the convention previously published gives ${(D.S_used||0).toFixed(4)} eV.<br>`;
+  }
   if(v.length>9&&v[9]!==null&&v[9]!==undefined){
     const cats=Object.keys(comp).filter(e=>!["S","Se","Te"].includes(e));
     const ans=Object.keys(comp).filter(e=>["S","Se","Te"].includes(e));
