@@ -719,3 +719,91 @@ rename so mistakes stay reversible.
   counted, never filled.
 - Site payloads have NOT been rebuilt or deployed from these derived products yet.
 - `x-mat230068_2026-05-26.tar` (5.4 TB) index still running.
+
+---
+
+## 2026-08-15 00:20 UTC — datasets landed, payload builder written, chem-pot gap found
+
+### In2O3 and ZnIn2X4 are on Eagle
+
+All four Globus tasks report SUCCEEDED (`--notify off`, as always):
+
+| label | task | bytes |
+|---|---|---|
+| `in2o3-to-eagle` | `9d492101` | 42,226,558,540 |
+| `znin2x4-1` | `9fc23b90` | 3,649,951,714 |
+| `znin2x4-2` | `a2200621` | 2,650,953 |
+| `znin2x4-3` | `a4235a4a` | 19,331,610,798 |
+
+They are in `incoming/` and extracting into `incoming/x/` with `WAVECAR*`, `CHGCAR*`, `CHG`,
+`PROCAR*`, `vaspout*`, `POT*` and `WAVEDER*` excluded. Eagle is at 34 TB of a **100 TB** quota, so
+space is not a constraint (an earlier "5 TB emergency" in this log was wrong).
+
+Layouts, read off the archives rather than assumed:
+
+```
+In2O3/pbesol/defect_calcs_pbesol/<defect>_<site>_<charge>/Rattled/{OSZICAR,OUTCAR,DOSCAR.gz,LOCPOT.gz,…}
+ZnIn2X4_Project_1/Ultrathin_ZnIn2Te4/reference_compound/<phase>/
+ZnIn2X4_Project_2/c_c_coupling_on_ultrathin_ZnIn2X4/<system>/<state>/
+ZnIn2X4_Project_3/HSE_Reference_Energy/<phase>/
+```
+
+Two things to carry into the extractor: In2O3 writes `DOSCAR.gz` / `LOCPOT.gz` / `POT.gz`, so the
+readers must accept a gzipped variant; and its charge state is baked into the directory name
+(`O_i_C2_-2`) rather than a `Charged-2` level.
+
+### The defect chem-pot gap — cause found
+
+Only **820 of 4,020** defect rows carried a formation energy, and the reason was not the physics:
+`chempot.json` had been built for **PBE only** (110 hosts, 40 with a solvable polytope, 196 phases).
+Every PBEsol, HSE and HSE+SOC defect therefore fell through to "no chem-pot vertex" and could only
+report a raw ΔE. `build_chempot.py` is now running over all four theories; the PBE-only file is kept
+as `chempot_PBE_only.json` so the before/after is checkable.
+
+**Guard:** a coverage number is only meaningful next to the input it was computed from. Print the
+per-theory host and vertex counts at the end of every chem-pot build, and read them before quoting
+any defect-Ef coverage.
+
+### `build_payload.py` — the site payload, from the derived products only
+
+`log/build_payload.py` reads `derived_bulk.json`, `derived_defect.json`, `chempot.json`,
+`dos_*.jsonl` and `steps_*.jsonl`, and writes `log/payload/`:
+
+| output | content |
+|---|---|
+| `data.json` | compounds, defects, elemental references, and the struct/dos/run key lists |
+| `dos/<key>.json.gz` | element-projected DOS, Fermi-shifted |
+| `runs/<key>.json.gz` | INCAR, PAW TITELs, k-mesh, EDIFFG, and per-ionic-step E, ΔE, Fmax + its atom |
+| `optics.json.gz` | ε tensor and α(E) per key |
+| `chempot.json.gz` | the polytope vertices, per theory and host |
+
+Two rules it enforces:
+
+- **One row per (theory, compound, polymorph), at the ground state.** The `-N` suffix
+  (`stannite-12`, `kesterite-3`) is a separate SQS ordering or relaxation stage of the same
+  material, so the lowest F/atom member is published and the configuration count plus the spread in
+  meV/atom ride along as provenance. Nothing is averaged.
+- **The run is matched to the compound by energy, not by position.** `derived_bulk.json` carries no
+  path, so where a compound has several variant directories the builder picks the one whose total
+  energy matches the published ground state. Taking the first would pair a compound's numbers with
+  a different run's INCAR and k-mesh — silently.
+
+The compound row keeps the 19 fields the shipped template already indexes and appends four:
+`[19] decomposes_to`, `[20] configurations merged`, `[21] spread meV/atom`, `[22] PAW potentials`.
+The template guards every high index with a `v.length>N` test, so appending is safe.
+
+Defect rows gain `vx` (Ef per named chem-pot vertex per charge), `tl` (transition levels), `dn`
+(the atoms added and removed), `nc`/`sp` (configurations and spread), and `corr`, which currently
+reads `uncorrected` on every charged state and must keep reading that until FNV is applied.
+
+### Status of the long-running jobs
+
+| job | where | progress |
+|---|---|---|
+| In2O3 + ZnIn2X4 extraction | Eagle | 35 GB, running |
+| HSE Cd-Zn-X extraction | Anvil `/anvil/scratch/x-mrahman2/cdznx_hse` | 166 GB, 13,227 of 39,147 OSZICARs |
+| chem-pot, all four theories | Eagle | running |
+| payload build | Eagle | 28,218 bulk rows read, dos/ and runs/ writing |
+
+Small-file writes on Lustre run about 600 files/minute, so the 28k + 28k dos/runs pair takes the
+better part of an hour. Tar the payload directory before moving it rather than copying file by file.
