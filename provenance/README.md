@@ -1280,3 +1280,140 @@ energy **and** atom count before anything is removed.
 - `quarantine_non_physics/diverged_energy` holds one run at **F = −6,691,361.8 eV**; the gate that
   should have caught it belongs in the builder, not in a human's eye.
 - Chem-pot PBEsol (1,177 polytopes) and the HSE Cd-Zn-X filer are still running.
+
+---
+
+## 2026-08-15 12:00 UTC — bulk is live and complete-ish; four of my own errors found and fixed
+
+Live site: **https://defectdatabase.github.io/chalcogenide-defects/** (repo
+`defectdatabase/chalcogenide-defects`, Pages source `main` / `/docs`). Not
+`defect-informatics.github.io/solar-defect` — confirm the URL from
+`gh api repos/<org>/<repo>/pages`, never from memory.
+
+### What the bulk table serves — 13,788 rows
+
+| field | source | rows |
+|---|---|---|
+| formation energy / atom | ChalcoDB formula, raw same-theory elemental references | 12,461 |
+| decomposition energy / f.u. | ChalcoDB competing-phase rule, **corrected** entropy | 9,951 |
+| band gap | vaspkit 911, else Fermi-referenced EIGENVAL | 12,278 |
+| ε_∞ | vaspkit `REAL.in` at ω→0 on raw vasprun | 4,665 |
+| SLME 0.5/1/2/5 µm | vaspkit 719, bundled ASTM G173-03 AM1.5G | 4,665 |
+
+| per-row asset | files | resolves on |
+|---|---|---|
+| calculation breakdown (INCAR, POTCAR, k-mesh, every ionic step with E, ΔE, max\|F\|, stress) | 20,561 | **13,763 (99.8 %)** |
+| relaxed structure | 19,925 | **13,676 (99.2 %)** |
+| element-projected DOS | 18,099 | **12,413 (90.0 %)** |
+| relaxation movie | 4,994 | 3,490 = **94.8 % of the rows that are relaxations** |
+
+**Only 3,681 of the 13,788 rows are relaxations.** 10,082 are static single-points with one ionic
+step and therefore have no intermediate geometry to animate — quote that denominator, not 25 %.
+
+**Key lists are built from the files that exist on disk**, never from computed keys. The page shows
+"No relaxed-structure payload" when the payload claims a key with no file behind it; that class of
+error is now structurally impossible (claimed-but-missing = 0 for structures, DOS, runs and trajs).
+
+### ERROR — I asserted the element projections "were never written". They were.
+
+Claimed that ~19 % of DOS files could only ever be total-only. The audit says otherwise: of 250
+sampled total-only runs, **all 250 set `LORBIT = 11`**, the DOSCAR is simply **absent for 227**, and
+**vasprun.xml is present for 250/250** — VASP writes the same per-ion projection into its
+`<partial>` block. A streaming recovery pulled it back for **3,450 of 3,451**, and DOS is now
+**100 % element-projected**, not 81 %.
+
+**The guard:** before calling data absent, check every file that can carry it — DOSCAR, vasprun
+`<partial>`, PROCAR — and read the INCAR to see whether it was requested at all.
+
+### ERROR — regenerating DOS instead of merging it CUT coverage
+
+Rebuilding DOS from each row's own DOSCAR produced 14,531 files but resolved only **10,135** rows,
+against 12,410 from the earlier sweep: the direct read misses a DOSCAR that lives in a variant
+subdirectory. Replacing one route with the other silently lost 2,275 rows. The payload now takes
+the **union** of every route, and a projected curve is never downgraded by a total-only one.
+
+### ERROR — the table and the breakdown panel disagreed, because the panel recomputed
+
+`Cs₂Mg₀.₅Sr₀.₅ZrS₄` showed **−0.29 eV/f.u.** in the table and **−4.12** in the panel. The table
+published the ChalcoDB A2BCX4 result; the panel rebuilt it client-side with a generic
+cation×anion rule and an incomplete `REFS.bin`, listing **2 of the 4** competing phases. The panel
+now renders the PUBLISHED terms:
+
+```
+Cs2S 1.0 x -10.800 = -10.800   MgS 0.5 x -10.310 = -5.155
+SrS  0.5 x -11.845 =  -5.923   ZrS2 1.0 x -26.279 = -26.279   sum -48.157
+E_fu -48.432 - (-48.157) + (-0.018) = -0.293 eV/f.u.
+```
+
+Entropy is broken out per sublattice too — occupancy, site fractions, Σ f ln f, site multiplicity
+and each contribution, on **9,149 rows** — instead of one bare number. Both conventions are shown
+side by side (corrected vs previously published).
+
+### ERROR — the panel contradicted the run it was describing
+
+A hand-written per-theory summary sat under the real INCAR asserting *"LORBIT was unset, so this
+archived campaign contains total DOS only"* on runs whose own INCAR reads `LORBIT = 11`. Deleted.
+The panel now shows only what the run's own files say.
+
+### Physics gates in the builder
+
+- a negative gap within 2 eV is a **metal**: clamp to 0 and flag (204 rows). Beyond that it is a
+  bad parse and is nulled (26 rows) — elemental Cu was reading **−61.46 eV**.
+- |Ef| > 5 eV/atom is not physical here and is nulled (3 rows). `Na2CdSnSe4` **kesterite** had
+  F = −300.25 eV on a 16-atom cell (−18.8 eV/atom) while its **stannite** twin sits at −4.26; the
+  energy does not belong to that cell.
+- the occupancy-based gap is **not used anywhere**, not even as a fallback: it is wrong for every
+  spin-orbit run. 2,103 rows carry no gap rather than a wrong one.
+
+### Defect tree — repaired, then partly regressed by me
+
+`file_incoming.py cdznx` split the source name on the FIRST DASH and stripped underscores from the
+host token, so the host swallowed the whole descriptor:
+`Cd0.50Zn0.50Te_single_Te_Zn_C1_...` became the directory
+`Cd0.50Zn0.50TesingleTeZnC1Te2.67Te2.71Zn4.400`. **132 of 178 HSE hosts** were malformed.
+
+Repaired by **re-deriving the defect from composition** rather than un-mangling the string (which
+is unrecoverable in general — `AsCdC1...` is `As_Cd` or `A_sCd`): 3,025 charge directories moved,
+HSE hosts 178 → 34.
+
+**Then I made it worse.** The second pass built its host vocabulary from BASE names and renamed
+`Ag1Al0.5Ga0.5S2_kesterite` → `Ag1Al0.5Ga0.5S2`, merging kesterite and stannite defects into one
+host separated only by a `-N` index. **No data was lost — 94,118 charge directories before and
+after** — but a real physical distinction left the names.
+
+Recovery attempt 1, matching the defect cell's axis ratios against each polymorph's pristine,
+**failed and was not applied**: kesterite and stannite are both tetragonal with near-identical
+ratios, so five distinct variants all landed on kesterite. Recovery attempt 2 uses
+`phys_defect_*.jsonl`, written BEFORE the rename — 4,419 of its records still carry
+`<host>_<polymorph>` with the run's energy, so matching on (theory, energy) restores the exact
+original name. **That only works because extraction ran before renaming.**
+
+### Still outside the contract
+
+`duplicates_across_campaigns` (6,088 runs), `incoming`, `defect_name_collisions`,
+`quarantine_non_physics`. A verified plan exists for the first: **4,526 moves · 800 deletes · 762
+held**, and only **13.1 %** of that folder is provably duplicated. Two ordering traps the
+adversarial pass caught:
+
+- **405 bulk moves target a compound directory that is itself a run.** Nesting a variant inside it
+  recreates the ancestor trap that once parked 34,728 real runs; each carries a `prereq` to promote
+  the incumbent through a temp sibling first.
+- **1,677 defect moves depend on two bulk runs inside the source folder** — they are the only
+  216-atom PBE pristines for `Cd0.25Zn0.75Te` and `Cd0.75Zn0.25Te` anywhere in the tree. Move them
+  first or the evidence path goes stale.
+
+762 runs are held rather than guessed: 727 have a Δn like `{As:+1, Cl:+1, Zn:−1}`, which is
+`As_Zn+Cl_i` and `Cl_Zn+As_i` alike — composition cannot pick and the folder name may not be read.
+
+### Operational traps added
+
+- **`pkill -f <pattern>` matches its own ssh command line** and killed the session, taking the
+  Cd-Zn-X filer and the chem-pot with it; both sat dead for an hour. Kill by explicit PID.
+- **Chem-pot vertex enumeration is C(m+k, k−1)**: 1,953 combinations for a ternary but **677,040**
+  for a 5-element host at a flat 60-phase cap. An adaptive cap holding it under 150,000 took PBEsol
+  from 5 h unfinished to **under 30 s** (`sha256=551b354cadda8086`). All four theories now solved.
+- **VASP prints a dashed rule immediately after the `TOTAL-FORCE` header.** Treating a dashed line
+  as the terminator ends the force block before it starts and every `fmax` comes back null while
+  the run looks healthy.
+- **A payload that validates is not a page that works.** Recompute the template's own key for every
+  row and count hits against the files actually in `docs/` before calling a deploy good.
