@@ -807,3 +807,111 @@ reads `uncorrected` on every charged state and must keep reading that until FNV 
 
 Small-file writes on Lustre run about 600 files/minute, so the 28k + 28k dos/runs pair takes the
 better part of an hour. Tar the payload directory before moving it rather than copying file by file.
+
+---
+
+## 2026-08-15 01:40 UTC — defect-Ef benchmark against the validated CSV: three real errors found
+
+Protocol source: `kosmos/skills/dft-defects.md` §L1 (assembly), §J (finite-size correction),
+§E (chemical potentials) and `kosmos/skills/chempot-to-partial-pressure.md`, all read in full.
+
+```
+E_f[X^q](E_F) = E_tot[X^q] - E_tot[pristine, SAME cell and settings]
+              + Sum_i n_i mu_i           (n_i = atoms REMOVED; added -> n_i < 0)
+              + q (E_VBM + E_F)
+              + E_corr(q)                E_corr = E_lattice(q) - q dV_align
+```
+
+The benchmark is `cdsete_defect_library_generation_pbesol.csv` — the campaign's own validated
+table, carrying `Toten_pure`, `Toten_{p2,p1,neut,m1,m2}`, `Corr_*`, `VBM`, `gap` and the summed
+chemical-potential term at the Cd-rich and Te-rich limits. Reproducing it from raw is the gate.
+
+### Finding 1 — the pristine reference was the wrong run, worth 0.84 eV on every CdTe defect
+
+PBEsol CdTe has two 216-atom pristine runs, and they are not interchangeable:
+
+| run | a (Å) | F (eV) | ISIF | k-points |
+|---|---|---|---|---|
+| `DFT/bulk/PBEsol/CdTe/216_atoms` | 19.497632 | **−592.11621** | 3 (vc-relax) | KSPACING 0.030 |
+| `DFT/bulk/PBEsol/CdTe` | 19.499945 | **−592.95479** | 3 | — |
+| every defect cell | **19.4999** | — | **2** (fixed cell) | **Γ-only** (ShakeNBreak) |
+
+Gate 2 requires the reference to share the defect cells' lattice, and L1 requires the same
+settings, so the reference is the **19.4999 Å** run at **−592.95479**. Taking the vc-relaxed
+216-atom run instead shifts every CdTe defect formation energy by **0.84 eV** — larger than most
+of the formation energies themselves.
+
+**Unresolved and stated as such:** the CSV's `Toten_pure = −592.22` matches **neither**. A sweep of
+every Cd108Te108 run in the tree (15 of them, all four theories) finds nothing at −592.22; the
+nearest PBEsol value is the `V_Te+Te_i` Frenkel pair at −592.19138, which has pristine
+composition but is not pristine. The CSV's reference run is not in this tree.
+
+### Finding 2 — 15 antisite directories were labelled backwards
+
+`Cd_Te` held a cell of **Cd107 Te109** — that is Te sitting on a Cd site, i.e. `Te_Cd`. Confirmed
+three independent ways before anything was renamed:
+
+- **composition** vs the cell-matched pristine (Cd108 Te108) → dn = {Cd −1, Te +1}
+- **NELECT** from the run's own OUTCAR against the PAW ZVALs → 1938 = 1944 − 12 + 6, the same swap
+- **the CSV** → its `Cd_Te` neutral is −587.25, which is the energy in the directory named `Te_Cd`
+  (−587.24137); its `Cl_Te` −591.06 matches `Cl_Te` −591.05638, so the convention is the CSV's
+
+Affected: PBEsol CdTe, CdSe0.25Te0.75, CdSe0.5Te0.5, CdSe0.75Te0.25 and HSE+SOC CdSe0.25Te0.75.
+**14 swapped**, and one pair collided because two directories held the same defect — that one is
+now `Cd_Se-2`, a second configuration, not a deletion. Zero `__swaptmp` left in the tree.
+
+A wrong antisite label is not cosmetic: it inverts the sign of dn, so `Sum n_i mu_i` is wrong by
+`mu_Cd − mu_Te`, which at the Cd-rich vertex of CdTe is the full width of the stability window.
+
+### Finding 3 — eFNV IS possible; the earlier "no site potentials anywhere" note was wrong
+
+The defect INCARs carry `ICORELEVEL = 0` **specifically** for the Kumagai-Oba correction
+(the comment in the file says so), and the OUTCARs do contain the block:
+
+```
+ average (electrostatic) potential at core
+  the test charge radii are     1.0698  1.1897  0.9406
+       1 -39.0982       2 -39.0417       3 -39.3071   ...
+```
+
+So the anisotropic eFNV scheme — which takes the ε **tensor** rather than a scalar and derives its
+alignment from the model charge instead of an eyeballed plateau — is available for this campaign,
+not just Makov-Payne. Per §J3 the plan is MP for continuity **and** eFNV in parallel, with any
+(defect, q) whose two schemes differ by more than 0.1 eV flagged provisional rather than quoted.
+
+### Energy cross-check — raw extraction reproduces the validated table
+
+| defect | raw (this pipeline) | CSV | Δ |
+|---|---|---|---|
+| `Cl_Te` neutral | −591.05638 | −591.06 | 0.004 |
+| `Cd_Te` neutral (post-fix) | −587.24137 | −587.25 | 0.009 |
+| `As_Te` neutral | −592.38232 | −592.40 | 0.018 |
+| `Cd_i` neutral | −592.38436 | −592.40 | 0.016 |
+| CdTe VBM | 2.140077 | 2.14 | 0.000 |
+| CdTe gap | 0.633557 | 0.64 | 0.006 |
+
+VBM and gap land exactly; the energies scatter by ≤0.02 eV, consistent with the CSV quoting a
+slightly different relaxation snapshot at 2 dp. No systematic offset.
+
+### Guards added
+
+- **Never take the pristine reference by name.** Match it by LATTICE against the defect cells and
+  by settings (k-mesh, ENCUT, POTCAR); for CdTe the name-matched choice is 0.84 eV wrong.
+- **Never trust a defect label.** Derive dn from the cell's composition against the cell-matched
+  pristine, and cross-check it against NELECT through the PAW ZVALs. The directory name is
+  provenance, not physics.
+- **Do not infer the pristine composition from the modal composition across defects.** Most of a
+  host's defects sit on the anion site, so the mode reports the anion one short and every label
+  then reads as shifted — that produced a bogus 30-of-79 mismatch on CdTe before it was caught.
+
+### Chemical potentials and the P–T growth window
+
+`chempot.json` covered PBE only (110 hosts, 40 with a polytope), which is why only 820 of 4,020
+defect rows had a formation energy. Per-theory builds are running for PBEsol, HSE and HSE+SOC;
+PBE re-ran clean with `sha256=b0ce59b6e5e9a744`.
+
+For the Kosmos-style (T, p) growth-window contour, the skill bundles Shomate blocks for **N₂, O₂,
+H₂ and F₂ only** and states explicitly that an unbundled gas must KeyError rather than be guessed.
+Chalcogenides need **S₂, Se₂ and Te₂**, so those blocks have to be pulled from NIST-JANAF and
+verified against the printed S°(298.15) before any contour is drawn — a recalled coefficient set
+is exactly the failure the skill's gate exists to catch.
