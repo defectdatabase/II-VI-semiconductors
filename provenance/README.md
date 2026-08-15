@@ -1703,3 +1703,91 @@ the tree.
 **The payload is now stale.** 9,000 runs moved into the tree and 2,456 defect directories were
 renamed, so `derived_bulk.json`, the defect payload, the structure/DOS/run/traj key lists and every
 `V_X` label on the live site must be regenerated before the site is trusted again.
+
+---
+
+## 2026-08-15 22:10 UTC — one naming rule per level: `<natoms>_atoms` for bulk, `-1..-N` for defects
+
+Two complaints, both correct, both about levels the earlier filing had not touched.
+
+### Bulk variants — `1`, `_HER`, and six campaign labels in one directory
+
+`DFT/bulk/PBE+U/ZnIn2S4/` held `1`, `opt`, `optics`, `HER_ZnIn2S4`, `HER_ZnIn2S4_H`,
+`pristine_defect_campaign`, `pristine_ggau_campaign`, `pristine_hse_campaign` — an opaque index,
+campaign labels the contract bans, and a directory that is not a variant of ZnIn2S4 at all.
+
+**Every bulk variant is now `<natoms>_atoms[-N]`, read from the run's own POSCAR or CONTCAR.**
+
+```
+DFT/bulk/PBE+U/ZnIn2S4/      126_atoms  126_atoms-2  126_atoms-3  126_atoms-4  14_atoms  14_atoms-2  56_atoms
+DFT/bulk/PBE+U/ZnIn2S4_H/    127_atoms
+```
+
+`126_atoms` tells a reader the cell; `pristine_ggau_campaign` tells them which grant paid for it.
+**38,366 variants across the tree now conform and 0 do not** — the check is
+`re.fullmatch(r"\\d+_atoms(-\\d+)?")` over every directory under every compound.
+
+Three shapes were repaired at once: **13,705 compound directories that were themselves a run** were
+promoted into their own `<natoms>_atoms` so a compound directory holds nothing but variants;
+**1,148 variant directories that were not runs but held runs** were flattened; and a variant whose
+cell carries an element the compound does not is a **different system**, so `HER_ZnIn2S4_H`
+(Zn 18, In 36, S 72, **H 1**) became `ZnIn2S4_H/127_atoms`.
+
+Ordering identity is not lost. Two cation orderings of the same cell become `64_atoms` and
+`64_atoms-2`; the payload labels orderings by grouping members, never by directory name.
+
+### `Ag_S-1`, `Ag_Se-2` — what the suffix is, and why it was inconsistent
+
+**`-N` is the configuration index**: symmetry-inequivalent sites and distinct relaxed minima of the
+*same* defect. `P_Zn` has 382 of them. It is not a duplicate and not a charge state — the charge is
+the directory below.
+
+The inconsistency was real: **`Ag_S` and `Ag_S-1` both existed under the same host in 662 cases**,
+so a reader could not tell whether the bare name was configuration 1 or something else. One rule
+now, applied to **6,914 directories**:
+
+```
+one configuration    ->  bare name        Ag_S
+more than one        ->  numbered 1..N    Ag_S-1  Ag_S-2  Ag_S-3
+```
+
+Two other spellings folded into the same index because they are configurations too: In2O3 wrote the
+symmetry and a fingerprint into the name (`In_i_C3i_O2.27`, `O_In_C2`) and the Cd-Zn-X generator
+wrote an interstitial site letter (`Fe_B`, `Cl_i_neut`). A single letter is only read as a site
+label when the **host does not contain that element**, so `O_Cs` in a caesium host stays caesium.
+
+## Mistakes & corrections log
+
+**2026-08-15 — `pkill`/`kill` by pattern killed my own ssh session, AGAIN.**
+WHAT I DID WRONG: ran `for p in $(pgrep -f "normalise2.py --go"); do kill $p; done` over ssh; the
+remote `bash -c` command line *contains that string*, so pgrep matched my own shell and killed the
+connection (exit 255). WHY IT WAS WRONG: this exact trap is already in this log from the
+`pkill -f gen_struct_dos` incident that killed the Cd-Zn-X filer and the chem-pot job for an hour —
+repeating a logged mistake is worse than making it. THE GUARD:
+`ps -eo pid,ppid,cmd | grep "[n]ormalise2" | grep -v "bash -c"`, read the PIDs, kill those.
+WHERE THE GUARD NOW LIVES: this log and the operational traps section.
+
+**2026-08-15 — a refused DELETE still fell through to `shutil.rmtree`.**
+WHAT I DID WRONG: converting a failed duplicate proof from DELETE to MOVE set a variable but did
+not skip the delete branch. WHY IT WAS WRONG: 14 runs would have been deleted *after* failing the
+proof that was supposed to protect them. THE GUARD: the dry run printed `deleted 800` where the
+arithmetic said 786 — compare dry-run counters against the number you expect, not against zero
+errors. WHERE THE GUARD NOW LIVES: `log/file_leftovers.py`, and the habit of arithmetic on counters.
+
+**2026-08-15 — a rename cycle crashed half way and left a directory called `__tmp0__`.**
+WHAT I DID WRONG: the configuration family was computed with `re.sub(r"-\\d+$", ...)`, which strips
+one index. Earlier passes had produced `Te_Cd-3-2`, so it formed its own family whose wanted bare
+name `Te_Cd-3` was already taken, and `os.rename` raised `Errno 39` mid-cycle. WHY IT WAS WRONG:
+a half-completed rename cycle leaves real data under a meaningless name; recovering it needed the
+composition (Cd 107, Te 55, Se 54 → `Te_Cd`) because the audit log was only written at the end.
+THE GUARD: strip `(?:-\\d+)+$`; park any name in the way before renaming onto it; and **flush the
+audit line by line** so a crash never loses the record of what already moved.
+WHERE THE GUARD NOW LIVES: `log/normalise2.py`.
+
+**2026-08-15 — the rename pass was not idempotent.**
+WHAT I DID WRONG: a leaf already correctly named `64_atoms` was scheduled to become `64_atoms-2`,
+because the next-free-name helper never checked whether the leaf was already where it belonged.
+WHY IT WAS WRONG: running the same normaliser twice would have doubled every variant index.
+THE GUARD: skip when the basename already matches `<stem>(-N)?` under the right parent, and
+**re-run the dry run after executing — it must report nothing to do.** It now reports
+`bulk_variant_already_correct 38366` and no renames. WHERE THE GUARD NOW LIVES: `log/normalise2.py`.
