@@ -1023,3 +1023,47 @@ spectroscopic constants ARE there (Huber & Herzberg): Se₂ X³Σ⁻g ω_e 385.3
 B_e 0.08992, r_e 2.1660 Å, D₀ 3.411 eV; Te₂ X³Σ⁻g ω_e 247.07 cm⁻¹, ω_e x_e 0.5148, B_e 0.039681,
 r_e 2.5574 Å. So the route is rigid-rotor/harmonic-oscillator statistical mechanics from those
 constants, gated against the JANAF S°(298.15) values — not a recalled coefficient set.
+
+---
+
+## 2026-08-15 03:20 UTC — first full-tree Ef run, and why 363 hosts had no reference
+
+First pass over all 524 (theory, host) targets: **157 hosts assembled, 363 blocked** on
+`no cell-matched pristine`, plus 76 `q_mismatch` and 5,990 of 7,969 charge states with no image
+term (no sourced ε). The block was diagnosed rather than relaxed, and it has three distinct causes:
+
+| host | defect cells | bulk run available | verdict |
+|---|---|---|---|
+| `PBE/CdTe` (2,181 defects) | 64 atoms, a = 13.216 Å | only 216 atoms, a = 19.8833 Å | pristine is in the **defect** tree |
+| `HSE+SOC/ZnTe` | 216 atoms, a = 18.2291 Å | 6-atom primitive, a = 4.2857 / c = 10.4869 | no supercell pristine exists |
+| `PBEsol/CdSe` | 216 atoms, a = 18.2855 Å | 216 atoms, a = **18.304 Å** | 0.0185 Å mismatch — vc-relaxed vs fixed cell |
+
+**The 64-atom SQS campaigns encode the pristine as a trivial self-antisite.** `Cd_Cd` is Cd
+replaced by Cd, so Δn is empty and the cell is the pristine — one per SQS ordering. A bulk-only
+search cannot find it. The builder now also accepts a defect directory matching `X_X`, and
+**confirms it by composition against the host stoichiometry** before using it, so the name alone is
+never trusted.
+
+**`PBEsol/CdSe` is the CdTe error in miniature.** The only 216-atom bulk was vc-relaxed to
+a = 18.304 Å while every defect sits at a fixed 18.2855 Å. That is 0.0185 Å — small enough to look
+like rounding, and exactly the class of mismatch that was worth 0.84 eV on CdTe. It stays blocked
+rather than being waved through by loosening the tolerance.
+
+Closing the remaining hosts needs one cheap fixed-cell SCF per host on the pristine supercell
+(`ICORELEVEL = 0`, so it also supplies the bulk-referenced ΔV the alignment currently lacks).
+That is ~363 single-point runs — queued, not run.
+
+### Mistakes & corrections log
+
+**2026-08-15 — I imported my own builder and re-ran the entire build, which is the exact
+`certify_mu.py` trap this skill set already documents.**
+- **What I did wrong:** wrote a diagnostic that did `from build_defect_ef import poscar, last_F`
+  to reuse two parsers. `build_defect_ef.py` had its driver at module level, so the import executed
+  the full 524-host build and overwrote `defect_ef_raw.json`.
+- **Why it was wrong:** `dft-defects.md` §E records this verbatim — "`certify_mu.py` HAS NO
+  `__main__` GUARD — importing it re-runs a full certification and REWRITES a chempots.json
+  (bit me 2026-07-26)". I read that section in full earlier the same night and then reproduced it.
+- **The guard:** every build script's driver now sits in `main()` behind
+  `if __name__ == "__main__":`, so importing it for its parsers is inert.
+- **Where the guard lives:** `log/build_defect_ef.py` (and the same wrap belongs on
+  `build_all.py`, `build_payload.py`, `build_chempot.py` when they are next touched).

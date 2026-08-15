@@ -203,232 +203,264 @@ def eps_for(host):
 
 
 # ---------------------------------------------------------------------------------------------
-print("Ewald gate:")
-g = gates()
-if not g["pass"]:
-    sys.exit("Ewald gates FAILED -- refusing to compute any correction")
+def main():
+    print("Ewald gate:")
+    g = gates()
+    if not g["pass"]:
+        raise SystemExit("Ewald gates FAILED -- refusing to compute any correction")
 
-CHEMPOT = {}
-for f in glob.glob(f"{LOG}/chempot_*.json"):
-    th = os.path.basename(f)[len("chempot_"):-len(".json")]
-    if th.endswith("_only"):
-        continue
-    try:
-        CHEMPOT[th] = json.load(open(f))
-    except Exception:
-        pass
-print(f"chempot theories loaded: {sorted(CHEMPOT)}")
-
-VBM_BY_PATH, VBM_BY_E = {}, {}
-for f in glob.glob(f"{LOG}/phys_bulk_*.jsonl"):
-    for line in open(f):
+    CHEMPOT = {}
+    for f in glob.glob(f"{LOG}/chempot_*.json"):
+        th = os.path.basename(f)[len("chempot_"):-len(".json")]
+        if th.endswith("_only"):
+            continue
         try:
-            r = json.loads(line)
+            CHEMPOT[th] = json.load(open(f))
         except Exception:
-            continue
-        if r.get("vbm") is None:
-            continue
-        if r.get("path"):
-            VBM_BY_PATH[r["path"]] = r["vbm"]
-        # also key on (theory, total energy): directories have been renamed since extraction,
-        # so a path lookup alone silently loses the band edge and q*(E_VBM + E_F) goes missing
-        if r.get("theory") is not None and r.get("F") is not None:
-            VBM_BY_E[(r["theory"], round(r["F"], 4))] = (r["vbm"], r.get("cbm"), r.get("gap"))
-print(f"band edges indexed for {len(VBM_BY_PATH)} paths / {len(VBM_BY_E)} energies")
+            pass
+    print(f"chempot theories loaded: {sorted(CHEMPOT)}")
 
-DEF = f"{B}/DFT/defect"
-targets = []
-for th in sorted(os.listdir(DEF)):
-    if not os.path.isdir(f"{DEF}/{th}"):
-        continue
-    for host in sorted(os.listdir(f"{DEF}/{th}")):
-        if os.path.isdir(f"{DEF}/{th}/{host}"):
-            targets.append((th, host))
-if ONLY:
-    t, h = ONLY.split("/")
-    targets = [(t, h)]
-print(f"{len(targets)} (theory, host) targets\n")
-
-out, stats = [], collections.Counter()
-for th, host in targets:
-    hd = f"{DEF}/{th}/{host}"
-    defects = [d for d in sorted(os.listdir(hd)) if os.path.isdir(f"{hd}/{d}")]
-    if not defects:
-        continue
-    # a representative defect cell fixes the lattice the pristine must match
-    ref_cell = None
-    for d in defects:
-        subs = [c for c in sorted(os.listdir(f"{hd}/{d}")) if os.path.isdir(f"{hd}/{d}/{c}")]
-        if subs:
-            p = poscar(f"{hd}/{d}/{subs[0]}")
-            if p:
-                ref_cell = p["cell"]
-                break
-    if ref_cell is None:
-        stats["no_defect_cell"] += 1
-        continue
-    ref_abc = [math.sqrt(sum(x * x for x in v)) for v in ref_cell]
-
-    # --- pristine: the bulk run whose lattice matches (gate 2) --------------------------------
-    broot = f"{B}/DFT/bulk/{th}"
-    cands = []
-    if os.path.isdir(broot):
-        for name in os.listdir(broot):
-            if host not in name and name.split("_")[0] != host.split("_")[0]:
+    VBM_BY_PATH, VBM_BY_E = {}, {}
+    for f in glob.glob(f"{LOG}/phys_bulk_*.jsonl"):
+        for line in open(f):
+            try:
+                r = json.loads(line)
+            except Exception:
                 continue
-            base = f"{broot}/{name}"
-            paths = [base]
-            if os.path.isdir(base):
-                paths += [f"{base}/{s}" for s in os.listdir(base)
-                          if os.path.isdir(f"{base}/{s}")]
-            for pth in paths:
-                pp = poscar(pth)
-                if not pp:
+            if r.get("vbm") is None:
+                continue
+            if r.get("path"):
+                VBM_BY_PATH[r["path"]] = r["vbm"]
+            # also key on (theory, total energy): directories have been renamed since extraction,
+            # so a path lookup alone silently loses the band edge and q*(E_VBM + E_F) goes missing
+            if r.get("theory") is not None and r.get("F") is not None:
+                VBM_BY_E[(r["theory"], round(r["F"], 4))] = (r["vbm"], r.get("cbm"), r.get("gap"))
+    print(f"band edges indexed for {len(VBM_BY_PATH)} paths / {len(VBM_BY_E)} energies")
+
+    DEF = f"{B}/DFT/defect"
+    targets = []
+    for th in sorted(os.listdir(DEF)):
+        if not os.path.isdir(f"{DEF}/{th}"):
+            continue
+        for host in sorted(os.listdir(f"{DEF}/{th}")):
+            if os.path.isdir(f"{DEF}/{th}/{host}"):
+                targets.append((th, host))
+    if ONLY:
+        t, h = ONLY.split("/")
+        targets = [(t, h)]
+    print(f"{len(targets)} (theory, host) targets\n")
+
+    out, stats = [], collections.Counter()
+    for th, host in targets:
+        hd = f"{DEF}/{th}/{host}"
+        defects = [d for d in sorted(os.listdir(hd)) if os.path.isdir(f"{hd}/{d}")]
+        if not defects:
+            continue
+        # a representative defect cell fixes the lattice the pristine must match
+        ref_cell = None
+        for d in defects:
+            subs = [c for c in sorted(os.listdir(f"{hd}/{d}")) if os.path.isdir(f"{hd}/{d}/{c}")]
+            if subs:
+                p = poscar(f"{hd}/{d}/{subs[0]}")
+                if p:
+                    ref_cell = p["cell"]
+                    break
+        if ref_cell is None:
+            stats["no_defect_cell"] += 1
+            continue
+        ref_abc = [math.sqrt(sum(x * x for x in v)) for v in ref_cell]
+
+        # --- pristine: any run of this host whose lattice matches the defect cells (gate 2) ---
+        # Two places hold one. The bulk tree has it for the 216-atom campaigns. The 64-atom SQS
+        # campaigns encode it INSIDE the defect tree as a trivial self-antisite (`Cd_Cd`), one
+        # per ordering -- which is why a bulk-only search reported 363 hosts with no reference.
+        broot = f"{B}/DFT/bulk/{th}"
+        cands = []
+
+        def consider(pth):
+            pp = poscar(pth)
+            if not pp:
+                return
+            abc = [math.sqrt(sum(x * x for x in v)) for v in pp["cell"]]
+            if max(abs(a - b) for a, b in zip(abc, ref_abc)) >= 0.01:
+                return
+            F = last_F(pth)
+            if F is not None:
+                cands.append((pth, pp, F))
+
+        if os.path.isdir(broot):
+            for name in os.listdir(broot):
+                if host not in name and name.split("_")[0] != host.split("_")[0]:
                     continue
-                abc = [math.sqrt(sum(x * x for x in v)) for v in pp["cell"]]
-                if max(abs(a - b) for a, b in zip(abc, ref_abc)) < 0.01:
-                    F = last_F(pth)
-                    if F is not None:
-                        cands.append((pth, pp, F))
-    if not cands:
-        stats["no_cell_matched_pristine"] += 1
-        out.append({"theory": th, "host": host, "blocked": "no cell-matched pristine reference"})
-        continue
-    ppath, pdata, E_pristine = sorted(cands)[0]
-    pbits = outcar_bits(ppath)
+                base = f"{broot}/{name}"
+                paths = [base]
+                if os.path.isdir(base):
+                    paths += [f"{base}/{s}" for s in os.listdir(base)
+                              if os.path.isdir(f"{base}/{s}")]
+                for pth in paths:
+                    consider(pth)
 
-    alpha_M, L, V = madelung(pdata["cell"])
-    eps, eps_kind, eps_src = eps_for(host)
-
-    # host VBM from the extraction records for this same run
-    # host VBM: from the SAME pristine supercell run whose energy is the reference, so the
-    # reservoir term q(E_VBM + E_F) and the energy term share one calculation
-    vbm = VBM_BY_PATH.get(ppath.replace(B + "/", ""))
-    gap = cbm = None
-    hit = VBM_BY_E.get((th, round(E_pristine, 4)))
-    if hit:
-        if vbm is None:
-            vbm = hit[0]
-        cbm, gap = hit[1], hit[2]
-
-    hostrec = {"theory": th, "host": host,
-               "pristine": {"path": ppath.replace(B + "/", ""), "E": E_pristine,
-                            "comp": pdata["comp"], "natoms": pdata["natoms"],
-                            "a": round(ref_abc[0], 4)},
-               "alpha_M": round(alpha_M, 6), "L_ang": round(L, 4), "volume": round(V, 3),
-               "eps_static": eps, "eps_kind": eps_kind, "eps_source": eps_src,
-               "vbm": vbm, "cbm": cbm, "gap": gap, "defects": {}}
-
-    for dname in defects:
-        dp = f"{hd}/{dname}"
-        charges = [c for c in sorted(os.listdir(dp)) if os.path.isdir(f"{dp}/{c}")]
-        # The alignment reference is this defect's OWN NEUTRAL cell, not the pristine.
-        # The pristine bulk run was written with ICORELEVEL=1 and carries no core-potential
-        # table, while every defect run has one (ICORELEVEL=0, set for exactly this purpose).
-        # Charged-vs-neutral is also the cleaner comparison: identical cell, identical atom
-        # ordering, so the potentials subtract atom-for-atom with no image matching at all, and
-        # it isolates precisely what the correction targets -- the offset introduced by the
-        # compensating background, which the neutral cell does not carry.
-        neut = outcar_bits(f"{dp}/Neutral") if os.path.isdir(f"{dp}/Neutral") else {}
-        neut_pos = poscar(f"{dp}/Neutral") if os.path.isdir(f"{dp}/Neutral") else None
-        rec = {"charges": {}, "align_ref": "own neutral cell"}
-        for cname in charges:
-            cd = f"{dp}/{cname}"
-            pdc = poscar(cd)
-            E = last_F(cd)
-            if not pdc or E is None:
+        # A self-antisite X_X removes and replaces the same species, so its cell IS the pristine.
+        # Confirmed by COMPOSITION against the host stoichiometry, never by the name alone.
+        ratio = host_ratio(host)
+        tot = sum(ratio.values())
+        for dname in defects:
+            if not re.fullmatch(r"([A-Z][a-z]?)_\1(-\d+)?", dname):
                 continue
-            dn = {e: pdc["comp"].get(e, 0) - pdata["comp"].get(e, 0)
-                  for e in set(pdc["comp"]) | set(pdata["comp"])}
-            dn = {e: v for e, v in dn.items() if v}
-            q = 0 if cname == "Neutral" else int(cname.replace("Charged", ""))
-            bits = outcar_bits(cd)
-            # gate 3: the electron count must equal sum(ZVAL) - q, with the ZVALs read from
-            # THIS run's own OUTCAR so extrinsic species are covered too
-            qcheck = None
-            if bits.get("nelect") is not None and bits.get("zval"):
-                order = list(pdc["comp"])
-                if len(bits["zval"]) >= len(order):
-                    z = dict(zip(order, bits["zval"]))
-                    n0 = sum(pdc["comp"][e] * z[e] for e in order)
-                    qcheck = round(n0 - bits["nelect"], 3)
+            nd = f"{hd}/{dname}/Neutral"
+            if not os.path.isdir(nd):
+                continue
+            pp = poscar(nd)
+            if not pp or not tot:
+                continue
+            scale = pp["natoms"] / tot
+            expect = {e: r * scale for e, r in ratio.items()}
+            if set(pp["comp"]) == set(expect) and \
+               all(abs(pp["comp"].get(e, 0) - v) < 1e-6 for e, v in expect.items()):
+                consider(nd)
+        if not cands:
+            stats["no_cell_matched_pristine"] += 1
+            out.append({"theory": th, "host": host, "blocked": "no cell-matched pristine reference"})
+            continue
+        ppath, pdata, E_pristine = sorted(cands)[0]
+        pbits = outcar_bits(ppath)
 
-            # --- alignment: this charge state against its own neutral, far region ----------
-            dV = dV_sd = n_far = None
-            site = None
-            if q and bits.get("corepot") and neut.get("corepot") and neut_pos and \
-               len(bits["corepot"]) == pdc["natoms"] and \
-               len(neut["corepot"]) == neut_pos["natoms"] and \
-               pdc["natoms"] == neut_pos["natoms"] and \
-               pdc["species"] == neut_pos["species"]:
-                # defect centre: the introduced atom where there is one, else the vacated site
-                added = [e for e, v in dn.items() if v > 0]
-                removed = [e for e, v in dn.items() if v < 0]
-                if added:
-                    idx = [i for i, sp in enumerate(pdc["species"]) if sp == added[0]]
-                    if idx:
-                        site = pdc["coords"][idx[-1]]
-                if site is None and removed:
-                    for i, sp in enumerate(pdata["species"]):
-                        if sp != removed[0]:
-                            continue
-                        near = min((mic(pdc["coords"][j], pdata["coords"][i], pdata["cell"])
-                                    for j, s2 in enumerate(pdc["species"]) if s2 == sp),
-                                   default=9e9)
-                        if near > 1.0:
-                            site = pdata["coords"][i]
-                            break
-                if site is not None:
-                    rcut = 0.35 * min(ref_abc)
-                    diffs = []
-                    for j, fj in enumerate(pdc["coords"]):
-                        if mic(fj, site, pdc["cell"]) < rcut:
-                            continue
-                        diffs.append(bits["corepot"][j] - neut["corepot"][j])
-                    if len(diffs) >= 8:
-                        dV = sum(diffs) / len(diffs)
-                        dV_sd = math.sqrt(sum((x - dV) ** 2 for x in diffs) / (len(diffs) - 1))
-                        n_far = len(diffs)
+        alpha_M, L, V = madelung(pdata["cell"])
+        eps, eps_kind, eps_src = eps_for(host)
 
-            # Makov-Payne image term, and the Lany-Zunger screened variant. J1 calls LZ optional
-            # and requires the choice to be stated; both are carried so a consumer can see the
-            # spread rather than inherit an unlabelled convention.
-            E_lat = E_lat_lz = None
-            if q and eps:
-                E_lat = q * q * alpha_M * HARTREE_ANG / (2.0 * eps * L)
-                E_lat_lz = E_lat * (1.0 - (1.0 / 3.0) * (1.0 - 1.0 / eps))
-            E_corr = E_corr_lz = None
-            if q == 0:
-                E_corr = E_corr_lz = 0.0
-            elif E_lat is not None and dV is not None:
-                E_corr = E_lat - q * dV
-                E_corr_lz = E_lat_lz - q * dV
+        # host VBM from the extraction records for this same run
+        # host VBM: from the SAME pristine supercell run whose energy is the reference, so the
+        # reservoir term q(E_VBM + E_F) and the energy term share one calculation
+        vbm = VBM_BY_PATH.get(ppath.replace(B + "/", ""))
+        gap = cbm = None
+        hit = VBM_BY_E.get((th, round(E_pristine, 4)))
+        if hit:
+            if vbm is None:
+                vbm = hit[0]
+            cbm, gap = hit[1], hit[2]
 
-            rec["charges"][cname] = {
-                "q": q, "E": E, "dE": round(E - E_pristine, 6), "dn": dn,
-                "nelect": bits.get("nelect"), "q_from_nelect": qcheck,
-                "q_consistent": (qcheck is None or abs(qcheck - q) < 1e-3),
-                "E_lattice": None if E_lat is None else round(E_lat, 5),
-                "E_lattice_LZ": None if E_lat_lz is None else round(E_lat_lz, 5),
-                "E_corr_LZ": None if E_corr_lz is None else round(E_corr_lz, 5),
-                "dV_align": None if dV is None else round(dV, 5),
-                "dV_sd": None if dV_sd is None else round(dV_sd, 5),
-                "dV_n_atoms": n_far,
-                "E_corr": None if E_corr is None else round(E_corr, 5),
-                "corr_scheme": ("Makov-Payne image + core-potential alignment"
-                                if E_corr not in (None, 0.0) else
-                                ("none needed (q=0)" if q == 0 else "BLOCKED")),
-            }
-            stats["charge_states"] += 1
-            if E_corr is None and q:
-                stats["corr_blocked"] += 1
-            if qcheck is not None and abs(qcheck - q) > 1e-3:
-                stats["q_mismatch"] += 1
-        if rec["charges"]:
-            hostrec["defects"][dname] = rec
-    out.append(hostrec)
-    stats["hosts"] += 1
+        hostrec = {"theory": th, "host": host,
+                   "pristine": {"path": ppath.replace(B + "/", ""), "E": E_pristine,
+                                "comp": pdata["comp"], "natoms": pdata["natoms"],
+                                "a": round(ref_abc[0], 4)},
+                   "alpha_M": round(alpha_M, 6), "L_ang": round(L, 4), "volume": round(V, 3),
+                   "eps_static": eps, "eps_kind": eps_kind, "eps_source": eps_src,
+                   "vbm": vbm, "cbm": cbm, "gap": gap, "defects": {}}
 
-json.dump(out, open(f"{LOG}/defect_ef_raw.json", "w"), indent=1)
-print(f"\nwrote {LOG}/defect_ef_raw.json")
-print("stats:", dict(stats))
+        for dname in defects:
+            dp = f"{hd}/{dname}"
+            charges = [c for c in sorted(os.listdir(dp)) if os.path.isdir(f"{dp}/{c}")]
+            # The alignment reference is this defect's OWN NEUTRAL cell, not the pristine.
+            # The pristine bulk run was written with ICORELEVEL=1 and carries no core-potential
+            # table, while every defect run has one (ICORELEVEL=0, set for exactly this purpose).
+            # Charged-vs-neutral is also the cleaner comparison: identical cell, identical atom
+            # ordering, so the potentials subtract atom-for-atom with no image matching at all, and
+            # it isolates precisely what the correction targets -- the offset introduced by the
+            # compensating background, which the neutral cell does not carry.
+            neut = outcar_bits(f"{dp}/Neutral") if os.path.isdir(f"{dp}/Neutral") else {}
+            neut_pos = poscar(f"{dp}/Neutral") if os.path.isdir(f"{dp}/Neutral") else None
+            rec = {"charges": {}, "align_ref": "own neutral cell"}
+            for cname in charges:
+                cd = f"{dp}/{cname}"
+                pdc = poscar(cd)
+                E = last_F(cd)
+                if not pdc or E is None:
+                    continue
+                dn = {e: pdc["comp"].get(e, 0) - pdata["comp"].get(e, 0)
+                      for e in set(pdc["comp"]) | set(pdata["comp"])}
+                dn = {e: v for e, v in dn.items() if v}
+                q = 0 if cname == "Neutral" else int(cname.replace("Charged", ""))
+                bits = outcar_bits(cd)
+                # gate 3: the electron count must equal sum(ZVAL) - q, with the ZVALs read from
+                # THIS run's own OUTCAR so extrinsic species are covered too
+                qcheck = None
+                if bits.get("nelect") is not None and bits.get("zval"):
+                    order = list(pdc["comp"])
+                    if len(bits["zval"]) >= len(order):
+                        z = dict(zip(order, bits["zval"]))
+                        n0 = sum(pdc["comp"][e] * z[e] for e in order)
+                        qcheck = round(n0 - bits["nelect"], 3)
+
+                # --- alignment: this charge state against its own neutral, far region ----------
+                dV = dV_sd = n_far = None
+                site = None
+                if q and bits.get("corepot") and neut.get("corepot") and neut_pos and \
+                   len(bits["corepot"]) == pdc["natoms"] and \
+                   len(neut["corepot"]) == neut_pos["natoms"] and \
+                   pdc["natoms"] == neut_pos["natoms"] and \
+                   pdc["species"] == neut_pos["species"]:
+                    # defect centre: the introduced atom where there is one, else the vacated site
+                    added = [e for e, v in dn.items() if v > 0]
+                    removed = [e for e, v in dn.items() if v < 0]
+                    if added:
+                        idx = [i for i, sp in enumerate(pdc["species"]) if sp == added[0]]
+                        if idx:
+                            site = pdc["coords"][idx[-1]]
+                    if site is None and removed:
+                        for i, sp in enumerate(pdata["species"]):
+                            if sp != removed[0]:
+                                continue
+                            near = min((mic(pdc["coords"][j], pdata["coords"][i], pdata["cell"])
+                                        for j, s2 in enumerate(pdc["species"]) if s2 == sp),
+                                       default=9e9)
+                            if near > 1.0:
+                                site = pdata["coords"][i]
+                                break
+                    if site is not None:
+                        rcut = 0.35 * min(ref_abc)
+                        diffs = []
+                        for j, fj in enumerate(pdc["coords"]):
+                            if mic(fj, site, pdc["cell"]) < rcut:
+                                continue
+                            diffs.append(bits["corepot"][j] - neut["corepot"][j])
+                        if len(diffs) >= 8:
+                            dV = sum(diffs) / len(diffs)
+                            dV_sd = math.sqrt(sum((x - dV) ** 2 for x in diffs) / (len(diffs) - 1))
+                            n_far = len(diffs)
+
+                # Makov-Payne image term, and the Lany-Zunger screened variant. J1 calls LZ optional
+                # and requires the choice to be stated; both are carried so a consumer can see the
+                # spread rather than inherit an unlabelled convention.
+                E_lat = E_lat_lz = None
+                if q and eps:
+                    E_lat = q * q * alpha_M * HARTREE_ANG / (2.0 * eps * L)
+                    E_lat_lz = E_lat * (1.0 - (1.0 / 3.0) * (1.0 - 1.0 / eps))
+                E_corr = E_corr_lz = None
+                if q == 0:
+                    E_corr = E_corr_lz = 0.0
+                elif E_lat is not None and dV is not None:
+                    E_corr = E_lat - q * dV
+                    E_corr_lz = E_lat_lz - q * dV
+
+                rec["charges"][cname] = {
+                    "q": q, "E": E, "dE": round(E - E_pristine, 6), "dn": dn,
+                    "nelect": bits.get("nelect"), "q_from_nelect": qcheck,
+                    "q_consistent": (qcheck is None or abs(qcheck - q) < 1e-3),
+                    "E_lattice": None if E_lat is None else round(E_lat, 5),
+                    "E_lattice_LZ": None if E_lat_lz is None else round(E_lat_lz, 5),
+                    "E_corr_LZ": None if E_corr_lz is None else round(E_corr_lz, 5),
+                    "dV_align": None if dV is None else round(dV, 5),
+                    "dV_sd": None if dV_sd is None else round(dV_sd, 5),
+                    "dV_n_atoms": n_far,
+                    "E_corr": None if E_corr is None else round(E_corr, 5),
+                    "corr_scheme": ("Makov-Payne image + core-potential alignment"
+                                    if E_corr not in (None, 0.0) else
+                                    ("none needed (q=0)" if q == 0 else "BLOCKED")),
+                }
+                stats["charge_states"] += 1
+                if E_corr is None and q:
+                    stats["corr_blocked"] += 1
+                if qcheck is not None and abs(qcheck - q) > 1e-3:
+                    stats["q_mismatch"] += 1
+            if rec["charges"]:
+                hostrec["defects"][dname] = rec
+        out.append(hostrec)
+        stats["hosts"] += 1
+
+    json.dump(out, open(f"{LOG}/defect_ef_raw.json", "w"), indent=1)
+    print(f"\nwrote {LOG}/defect_ef_raw.json")
+    print("stats:", dict(stats))
+
+
+if __name__ == "__main__":
+    main()
