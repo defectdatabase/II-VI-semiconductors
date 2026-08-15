@@ -915,3 +915,111 @@ H₂ and F₂ only** and states explicitly that an unbundled gas must KeyError r
 Chalcogenides need **S₂, Se₂ and Te₂**, so those blocks have to be pulled from NIST-JANAF and
 verified against the printed S°(298.15) before any contour is drawn — a recalled coefficient set
 is exactly the failure the skill's gate exists to catch.
+
+---
+
+## 2026-08-15 02:40 UTC — the defect-Ef pipeline, built to the skill and benchmarked
+
+`log/build_defect_ef.py` + `log/ewald.py`. Every term is measured from the run tree; nothing is
+inherited from a convention or another host.
+
+### Ewald gate — passes exactly
+
+α_M comes from the ACTUAL supercell by Ewald summation, never a hard-coded constant (that is the
+J4 bug that made every non-AlN correction in the WBG campaign wrong):
+
+```
+sc  2.837297 (spec 2.837297)   fcc 2.888282 (2.888282)   bcc 2.888462 (2.888462)
+gamma-independence spread 1.09e-09     (spec: nothing in the 6th decimal)
+```
+
+The gate runs on every invocation and the build **refuses to compute any correction** if it fails.
+Real-space and reciprocal cutoffs had to go to 9/γ and 9γ; at 6 the sc value was 2.837361, off in
+the 5th decimal — close enough to look right and wrong enough to fail the gate.
+
+### What the build measures, per host
+
+| term | source | CdTe (PBEsol) |
+|---|---|---|
+| pristine E_tot | bulk run matched by **lattice** to the defect cells | −592.95479 eV, Cd108Te108, a = 19.4999 Å |
+| α_M, L | Ewald on that cell | 2.837297, 19.4999 Å |
+| ε_static | sourced, with the citation carried in the record | 10.31 (expt) |
+| E_VBM, gap | same pristine supercell run | 2.131234 eV, 0.636431 eV |
+| Δn | defect composition − pristine, cross-checked against NELECT | e.g. Cl_Te {Te −1, Cl +1} |
+| ΔV | core potentials, far region | −0.003 eV, 181 atoms, sd 0.001–0.03 eV |
+
+**ε provenance is part of the record, not an assumption.** CdTe 10.31 and ZnSe 8.80 are
+Strzalkowski, Joshi & Crowell, *Appl. Phys. Lett.* **28**, 350 (1976), doi:10.1063/1.88755
+(ε₀ extrapolated to 0 K; metadata confirmed through CrossRef). ZnS 9.48 is this project's own
+ph.x ε_∞ + Gonze-Lee ionic value from `kosmos/DFT/_tables/host_eps_static.json`. Alloys are Vegard
+interpolations between their binary parents and are labelled `vegard`. **A host with no sourced ε
+gets no image term at all and says `BLOCKED`** — it never inherits a neighbour's constant.
+
+### Gate 3 (electron count) passes on all 395 CdTe charge states
+
+q from the directory name equals `Σ ZVAL − NELECT` computed from each run's own OUTCAR, for
+Neutral through Charged±2, natives and extrinsics alike.
+
+### The alignment reference had to change, and why
+
+The pristine bulk runs were written with `ICORELEVEL = 1` and carry **no** core-potential table,
+while every defect run has one (`ICORELEVEL = 0`, set in the INCAR explicitly "if using the
+kumagai-oba (efnv) anisotropic charge correction scheme"). No LOCPOT survives for the CdTe
+pristine either. So ΔV is taken **charged-vs-its-own-neutral**: identical cell, identical atom
+ordering, so the potentials subtract atom-for-atom with no image matching, and it isolates exactly
+what the correction targets — the offset from the compensating background, which the neutral cell
+does not carry. Far region = beyond 0.35·a from the defect centre; 178–181 atoms sampled per
+state; plateau sd 0.001–0.03 eV.
+
+**Stated limitation:** this makes ΔV small (~0.003 eV), so the correction is essentially the image
+term. A bulk-referenced ΔV would need one cheap SCF per host with `ICORELEVEL = 0` on the pristine
+supercell — 510 runs, not done.
+
+### Benchmark against the shipped CSV — both schemes, 13 (defect, q) pairs
+
+| defect | q | MP | MP + align | LZ | LZ + align | CSV `Corr` |
+|---|---|---|---|---|---|---|
+| As_Te | +1 | 0.1016 | 0.1055 | 0.0710 | 0.0749 | 0.01 |
+| As_Te | +2 | 0.4064 | 0.4226 | 0.2841 | 0.3003 | **0.29** |
+| Cd_Te | +1 | 0.1016 | 0.1047 | 0.0710 | 0.0741 | **0.10** |
+| Cl_Te | +1 | 0.1016 | 0.1050 | 0.0710 | 0.0744 | **0.07** |
+| Cl_Te | +2 | 0.4064 | 0.4275 | 0.2841 | 0.3052 | 0.19 |
+| Sb_i | +1 | 0.1016 | 0.0601 | 0.0710 | 0.0295 | 0.15 |
+
+```
+mean |MP + align − CSV| = 0.078 eV        mean |LZ + align − CSV| = 0.055 eV
+```
+
+The Lany-Zunger screened variant is the closer of the two, and its q = +1 value for CdTe
+(0.0710 eV) reproduces the CSV's `Cl_Te` 0.07 and its q = +2 value (0.284) reproduces `As_Te`'s
+0.29 — so **the shipped table is consistent with LZ-screened Makov-Payne**. J1 calls LZ optional
+and requires the choice to be stated, so both numbers are carried in every record and neither is
+silently adopted.
+
+What is NOT reproduced is the CSV's **per-defect** spread at fixed q (0.01 → 0.15 at q = +1). That
+variation can only come from a bulk-referenced ΔV, which this tree cannot supply. Said plainly
+rather than tuned away.
+
+### Chemical potentials
+
+Restricting the polytope solve to the **510 hosts that actually have defects** is what made it
+tractable — enumerating every bulk compound is C(m, k−1) over ~5,000 hosts and does not finish.
+HSE (`4db2ee16e3b70cc3`), HSE+SOC (`fc6894812e24dddf`) and PBE (`71faa6f2fdab8db5`) completed in
+under a minute; PBEsol has 1,177 polytopes and is running. **The PBE hash changed from the earlier
+`b0ce59b6e5e9a744` because the host SET changed, not because the solver drifted** — same inputs,
+narrower scope.
+
+### P–T growth window — the gas data
+
+S₂ is bundled and verified: NIST WebBook (Chase, *NIST-JANAF Thermochemical Tables*, 4th ed., 1998),
+298–6000 K, A 33.51313, B 5.065360, C −1.059670, D 0.089905, E −0.211911, F 117.6855, G 266.0919,
+**H 128.6003**. Recomputing S°(298.15) from those coefficients gives **228.19** against NIST's
+printed 228.2 J/mol/K — gate passed. Note H ≠ 0 here: S₂ is not the elemental reference state, and
+copying the N₂ pattern with H = 0 would put every S₂ number out by 1.33 eV/molecule.
+
+**Se₂ and Te₂ have no Shomate fit in the WebBook** — checked twice (Type=JANAFG returns an internal
+error; the plain gas-phase page lists only ion energetics and diatomic constants). Their
+spectroscopic constants ARE there (Huber & Herzberg): Se₂ X³Σ⁻g ω_e 385.303 cm⁻¹, ω_e x_e 0.96363,
+B_e 0.08992, r_e 2.1660 Å, D₀ 3.411 eV; Te₂ X³Σ⁻g ω_e 247.07 cm⁻¹, ω_e x_e 0.5148, B_e 0.039681,
+r_e 2.5574 Å. So the route is rigid-rotor/harmonic-oscillator statistical mechanics from those
+constants, gated against the JANAF S°(298.15) values — not a recalled coefficient set.
