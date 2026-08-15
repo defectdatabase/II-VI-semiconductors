@@ -193,6 +193,10 @@ button,select,input,textarea{font:inherit}
 #detail .notebox,#cdetail .notebox{background:var(--wbg-surface) !important;color:#475569 !important}
 #cdetail #cnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
 #cdetail #cmapnote{background:transparent !important;border:none;border-radius:0;padding:2px 0}
+.steptab{border-collapse:collapse;margin-top:8px;font-size:12px;width:100%}
+.steptab th,.steptab td{border-bottom:1px solid var(--wbg-line,#ddd);padding:2px 8px;text-align:left}
+.steptab td.num,.steptab th{text-align:right}
+.steptab th:first-child,.steptab td:first-child{text-align:left}
 #incarbody,#cdetail #cnote,#cdetail #cmapnote,#dsigma{text-align:justify}
 #cdetail #cnote .caret{display:inline-block;width:7px;background:var(--wbg-accent);height:1em;
   vertical-align:text-bottom;animation:mvblink .8s steps(1) infinite}
@@ -588,7 +592,7 @@ body{letter-spacing:-.006em}
 <a id="reportbtn" href="https://github.com/defectdatabase/chalcogenide-defects/issues">⚑ report an issue</a>
 
 <script>
-let DEFECTS=[], COMPOUNDS=[], REFS={}, HAVE_STRUCT=new Set(), HAVE_TRAJ=new Set(), HAVE_DOS=new Set();
+let DEFECTS=[], COMPOUNDS=[], REFS={}, HAVE_STRUCT=new Set(), HAVE_TRAJ=new Set(), HAVE_DOS=new Set(), HAVE_RUN=new Set();
 let plotlyP=null;
 let OPTICS=null, opticsP=null;
 let CHEMPOT=null, chempotP=null;
@@ -1210,6 +1214,26 @@ document.getElementById("csearch").addEventListener("input",cApplyFilters);
 ["ck-stable","ck-gap1"].forEach(id=>document.getElementById(id).addEventListener("change",cApplyFilters));
 
 
+async function fetchRun(key){
+  try{
+    const resp=await fetch(`runs/${encodeURIComponent(key)}.json.gz`);
+    if(resp.ok&&typeof DecompressionStream!=="undefined"){
+      const ds=new DecompressionStream("gzip");
+      return JSON.parse(await new Response(resp.body.pipeThrough(ds)).text());
+    }
+  }catch(e){}
+  return null;
+}
+function stepTable(st){
+  if(!st||!st.length) return "";
+  const num=x=>(x===null||x===undefined)?"—":(typeof x==="number"?x.toFixed(x>=1000?2:5):x);
+  const rows=st.map(s=>`<tr><td class="mono">${s.n}</td><td class="mono num">${num(s.E)}</td>`
+    +`<td class="mono num">${num(s.dE)}</td><td class="mono num">${num(s.fmax)}</td>`
+    +`<td class="mono num">${s.fmax_atom===null||s.fmax_atom===undefined?"—":s.fmax_atom}</td>`
+    +`<td class="mono num">${num(s.stress)}</td></tr>`).join("");
+  return `<table class="steptab"><thead><tr><th>step</th><th>E (eV)</th><th>ΔE (eV)</th>`
+    +`<th>max|F| (eV/Å)</th><th>on atom</th><th>max|σ| (kBar)</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 function openIncar(theory,r,ord){
   document.getElementById("incartitle").innerHTML=r?subHTML(r.n):theory;
   let body=(INCAR_TXT[theory]||INCAR_TXT[String(theory).split(" (")[0]]||"—").replace(/\n/g,"<br>");
@@ -1226,6 +1250,26 @@ function openIncar(theory,r,ord){
   }
   document.getElementById("incarmodal").classList.add("on");
   document.getElementById("incarbody").innerHTML=body;
+  // the authoritative breakdown is this run's OWN archived INCAR / POTCAR / KPOINTS and every
+  // ionic step, not the per-theory summary above
+  const rk=r&&ord?structKeyOf(r,ord):null;
+  if(rk) fetchRun(rk).then(d=>{
+    if(!d) return;
+    const el=document.getElementById("incarbody"); if(!el) return;
+    const inc=d.incar||{};
+    const tags=Object.keys(inc).sort().map(k=>`${k} = ${inc[k]}`).join(" · ");
+    let h=`<b>INCAR actually used</b><br><span class="mono">${tags||"—"}</span>`;
+    if(d.potcar&&d.potcar.length) h+=`<br><br><b>POTCAR</b><br><span class="mono">${d.potcar.join(" · ")}</span>`;
+    if(d.kmesh) h+=`<br><br><b>KPOINTS</b> <span class="mono">${d.kmesh}</span>`;
+    if(d.ediffg!==null&&d.ediffg!==undefined) h+=` · <b>EDIFFG</b> <span class="mono">${d.ediffg}</span>`;
+    if(d.force_converged!==null&&d.force_converged!==undefined)
+      h+=` · forces converged: <b>${d.force_converged?"yes":"no"}</b>`;
+    if(d.steps&&d.steps.length){
+      h+=`<br><br><b>Ionic steps (${d.n_steps||d.steps.length})</b> — energy, force and stress at every step`
+        +stepTable(d.steps);
+    }
+    el.innerHTML=h+`<br><br><details><summary>campaign settings summary</summary>${body}</details>`;
+  });
 }
 function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
 /* ---------- Kosmos structure viewer (vendored pages/structgrid) ----------
@@ -2127,6 +2171,7 @@ async function boot(){
   const D = await (await fetch("data.json")).json();
   DEFECTS=D.defects; COMPOUNDS=D.compounds; REFS=D.refs;
   HAVE_STRUCT=new Set(D.structKeys); HAVE_TRAJ=new Set(D.trajKeys); HAVE_DOS=new Set(D.dosKeys||[]);
+  HAVE_RUN=new Set(D.runKeys||[]);
   DEFECTS.forEach(r=>{
     r.cls = classify(r);
     r.clset = structClasses(r);

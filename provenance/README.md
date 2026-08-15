@@ -1159,3 +1159,124 @@ stable) and should be `[compound]`, but it has not corrupted any published numbe
 
 The A2BCX4 and ABX2 competing-phase algebra is also correct, including for mixed sites: the
 coefficients sum to exactly one formula unit of each competing phase in every case checked.
+
+---
+
+## 2026-08-15 07:00 UTC — bulk shipped, then found broken; folder contract enforced to one rule
+
+### The live site is `defectdatabase.github.io/chalcogenide-defects`
+
+Not `defect-informatics.github.io/solar-defect`. The git remote is
+`github.com/defectdatabase/chalcogenide-defects`, Pages source `main` / `/docs`, status *built*.
+An earlier live check hung for ten minutes because it was polling the wrong domain entirely —
+**confirm the Pages URL from `gh api repos/<org>/<repo>/pages`, never from memory.**
+
+### The bulk payload — 13,788 rows
+
+`log/build_bulk_payload.py`, from the recomputed products only. Pushed as `cb6a7273`.
+
+| field | source | rows |
+|---|---|---|
+| formation energy / atom | ChalcoDB formula, raw elemental references, same functional | 12,462 (90.4 %) |
+| decomposition energy / f.u. | ChalcoDB competing-phase rule, **corrected** entropy | 9,951 (72.2 %) |
+| band gap | vaspkit 911 where a DOSCAR exists, else Fermi-referenced EIGENVAL | 12,301 (89.2 %) |
+| ε_∞ | vaspkit `REAL.in` row 1 on raw vasprun | 4,665 (33.8 %) |
+| SLME (0.5/1/2/5 µm, per axis) | vaspkit 719, bundled ASTM G173-03 AM1.5G | 4,665 (33.8 %) |
+
+Every row also carries the total energy, cell, angles, k-mesh, PAW set, configuration count and
+spread, the decomposition products, **both** entropy conventions (`Decomp_pfu_asused` at index 23
+alongside the corrected value at index 1) and a gap cross-check flag at index 25.
+
+**The occupancy gap is no longer used anywhere, not even as a fallback** — it is wrong for every
+spin-orbit run. Where neither vaspkit nor the Fermi route can produce a gap the field is null
+(2,103 rows) rather than filled with a number known to be bad.
+
+### ERROR — I shipped it with the calculation breakdown dead on every row
+
+Measured after the push, against the deployed page rather than the payload:
+
+```
+rows 13,788   rows the template can build a key for 13,592
+  DOS resolves          12,214
+  structure resolves    11,642
+  run breakdown          0      <- docs/runs/ did not exist
+```
+
+Two independent mistakes stacked. `runs.tar` (19,890 members: INCAR, POTCAR, k-mesh, EDIFFG, every
+ionic step) was built on Eagle and **never deployed**; and the template had no code path to fetch
+it — `openIncar` rendered a hard-coded per-theory blurb. Both fixed: `docs/runs/` is deployed and
+`openIncar` now fetches `runs/<key>.json.gz` and renders the run's own INCAR, POTCAR, k-mesh,
+EDIFFG, convergence verdict and a per-step table.
+
+**The guard:** a payload that validates is not a page that works. Check what the PAGE can resolve —
+recompute the template's own key for every row and count hits against the files actually in
+`docs/` — before claiming a deploy is good.
+
+### Per-ionic-step energy, force AND stress
+
+`log/steps_stress.py`, 39,533 bulk runs. One pass per OUTCAR yields the INCAR, PAW TITELs, k-mesh,
+EDIFFG and for every ionic step: `E`, `dE`, `max|F|`, the atom it acts on, `max|stress|` and the
+full six-component tensor in kBar.
+
+```
+{"n":2,"E":-318.996528,"dE":-0.956466,"fmax":0.51581,"fmax_atom":40,
+ "stress":17.619,"stress_tensor":[-17.23,-17.23,-17.619,5.391,0.0,0.0]}
+```
+
+**Trap:** VASP prints a dashed rule immediately after the `TOTAL-FORCE` header. Treating a dashed
+line as the block terminator ends the force block before it starts, and every `fmax` comes back
+null while the run looks fine. Count force rows read; only terminate after at least one.
+
+### ERROR — 18 fake hosts, from deriving the host out of the defect cell
+
+`DFT/defect/HSE/` had `Zn17In36S72_monolayer`, `Zn17In36S73_monolayer`, `Zn18In35S72_monolayer`,
+`Zn19In36S71_monolayer` … one "host" per defect. The host name was computed from each DEFECT
+cell's host-element composition, so a Zn vacancy in ZnIn2S4 became host `Zn17In36S72` and an In
+antisite became `Zn17In37S72`.
+
+**A host is a property of the pristine, never of the defect cell.** All 18 merged into `ZnIn2S4`:
+HSE 52 defects, PBE 17, PBE+U 21. Empty shells removed afterwards.
+
+### The folder contract, now enforced to a single rule
+
+**Nothing is organised by campaign purpose. A calculation is bulk or defect, then theory, full
+stop** (user directive). Applied:
+
+- `surfaces_catalysis/` dissolved — slab + adsorbed H + point defect went to `defect/` under host
+  `ZnIn2S4_H` (the adsorbate is part of the system, so it stays in the name); pristine slab
+  optimisation / bands / optics / AIMD went to `bulk/`.
+- A `q=<n>` path component under `defects/` marks a CHARGE STATE: the first pass sent
+  `defects/q=+2/In_Zn` to **bulk**, which is a defect wearing a bulk label. Caught in the dry run.
+- `_monolayer` dropped from every compound and host name; the slab nature is already in the cell.
+- `GGA_U_optimization_bulk` was sitting where a compound belongs — it is `ZnIn2S4`.
+- Variants inside `bulk/` renamed off campaign purposes: `defect_calculations_hse` →
+  `pristine_hse_campaign`, `loptics` → `optics`, `defects_bulk` → `pristine_defect_campaign`.
+- `unclassified/` (323 dirs, 40 GB, **1,549 runs** including HSE A2BCX4/ABX2) filed, not deleted;
+  removed only after confirming what remained was 0 OSZICAR / 0 OUTCAR / 0 vasprun.
+- A new theory exists: **`PBE+U`**. 17 ZnIn2S4 monolayer defects carried `LDAU = .TRUE.` and had
+  been filed as plain PBE because the filer read LHFCALC and GGA=PS but not LDAU.
+
+Tree now: **94,118 defect directories at exactly `<theory>/<host>/<defect>/<charge>`**, theories
+HSE · HSE+SOC · PBE · PBEsol · PBE+U.
+
+### Still outside the contract, deliberately not deleted yet
+
+| folder | runs | size |
+|---|---|---|
+| `duplicates_across_campaigns` | **6,088** | 504 GB |
+| `incoming` | 454 | 70 GB |
+| `defect_name_collisions` | 341 | 2.8 GB |
+| `quarantine_non_physics` | 68 | 69 GB (parked on purpose) |
+
+`duplicates_across_campaigns` is a **claim, not evidence**. Twice this session a directory labelled
+a duplicate turned out to be a different supercell — `CdTe v_Te` at −516.28 eV against the tree's
+−156.55 eV (216-atom vs 64-atom). Three read-only agents are verifying duplicate status by final
+energy **and** atom count before anything is removed.
+
+### Open
+
+- DOS resolves for 12,214 of 13,592 keyable rows; the gap must be closed before "DOS for all rows".
+- ε and SLME cover 33.8 % of rows — only runs that set `LOPTICS` can have them.
+- `quarantine_non_physics/diverged_energy` holds one run at **F = −6,691,361.8 eV**; the gate that
+  should have caught it belongs in the builder, not in a human's eye.
+- Chem-pot PBEsol (1,177 polytopes) and the HSE Cd-Zn-X filer are still running.
