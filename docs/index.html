@@ -378,7 +378,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="488809c5461f";
+  var BUILD_ID="4dd35c274721";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -2211,10 +2211,21 @@ function provenanceHTML(r,ord){
     comp[el]=(comp[el]||0)+n;
   const apfu = Object.values(comp).reduce((a,b)=>a+b,0);
   const nfu = nat/apfu, epfu = F/nfu;
-  let terms=[], refsum=0;
-  for(const el in comp){ const mu=R.el[el]; refsum+=comp[el]*nfu*mu;
-    terms.push(`${comp[el]*nfu}·μ<sub>${el}</sub> = ${(comp[el]*nfu*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(2)} eV/atom)`); }
-  const eform=(F-refsum)/nat;
+  // An element with no elemental reference AT THIS THEORY has mu === undefined, and calling
+  // .toFixed on it threw right here -- which aborted cOpenDetail half-rendered, so the row never
+  // finished opening and the Calculation inputs card kept whatever the PREVIOUS row had put there.
+  // That is what made In2O3 read "HSE+SOC" in the table and show a PBEsol INCAR.
+  let terms=[], refsum=0, missing=[];
+  for(const el in comp){
+    const mu=R.el?R.el[el]:undefined;
+    if(mu===undefined||mu===null){ missing.push(el); continue; }
+    refsum+=comp[el]*nfu*mu;
+    terms.push(`${comp[el]*nfu}·μ<sub>${el}</sub> = ${(comp[el]*nfu*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(2)} eV/atom)`);
+  }
+  const eform = missing.length ? null : (F-refsum)/nat;
+  // printed in four places below; a null must read as a dash, never crash the panel
+  const efTxt = eform===null ? "unavailable — no elemental reference at this theory for "
+                               + missing.join(", ") : eform.toFixed(2);
   // Prefer the decomposition the payload PUBLISHES, term by term. Recomputing it here from
   // REFS.bin used a different competing-phase rule and an incomplete binary table, so the panel
   // printed -4.12 eV/f.u. against the table's -0.29 and listed 2 of the 4 phases.
@@ -2228,7 +2239,7 @@ function provenanceHTML(r,ord){
     for the ${nat}-atom cell (${nfu.toFixed(0)} formula units), E<sub>f.u.</sub> =
     <span class="mono">${D.E_pfu.toFixed(3)}</span> eV.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
-    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, against same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    = <span class="mono">${efTxt}</span> eV/atom, against same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> (${D.kind}) = E<sub>f.u.</sub> − ${pre}Σ f·E(phase) + k<sub>B</sub>T·Σ f ln f
     = ${D.E_pfu.toFixed(3)} − (${(D.sum*(D.pre||1)).toFixed(3)}) + (${(D.S||0).toFixed(3)})
     = <span class="mono">${(D.d0 + (D.S||0)).toFixed(3)}</span> eV/f.u., over <b>all ${D.terms.length}</b>
@@ -2260,7 +2271,7 @@ function provenanceHTML(r,ord){
     Total energy: OSZICAR free energy F = <span class="mono">${F.toFixed(2)}</span> eV
     for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units).<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
-    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    = <span class="mono">${efTxt}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> (pseudo-binary alloy) = E<sub>f.u.</sub> − Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
     = ${epfu.toFixed(2)} − (${sc2.toFixed(2)}) + ${(0.0257*v[9]).toFixed(2)}
     = <span class="mono">${edec2.toFixed(2)}</span> eV/f.u. versus the same-library end-member binaries:<br>&nbsp;&nbsp;${bins2.join("<br>&nbsp;&nbsp;")}<br>
@@ -2284,7 +2295,7 @@ function provenanceHTML(r,ord){
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
-    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>
+    = <span class="mono">${efTxt}</span> eV/atom, with same-theory elemental references:<br>
     &nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     ${miss
       ? `The stoichiometric binary decomposition needs ${miss} binary phase(s) not archived at this level
@@ -2297,7 +2308,7 @@ function provenanceHTML(r,ord){
       ? "HSE06 (AEXX=0.25, HFSCREEN=0.2, GGA=PS, ENCUT 400) full relaxation (ISIF=3)"
       : "static "+(th==="HSE+SOC"?"HSE06+SOC (AEXX=0.25, HFSCREEN=0.2, LOPTICS)":"PBEsol (ENCUT 500, Γ 2×2×2)")} run.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F!==null?F.toFixed(2):"—"} − (${refsum.toFixed(2)}))/${nat}
-    = <span class="mono">${eform.toFixed(2)}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    = <span class="mono">${efTxt}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> = E<sub>f.u.</sub> − ${kes?"":"½"}Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
     = ${epfu.toFixed(2)} − ${(kes?sc:0.5*sc).toFixed(2)} + ${(0.0257*ent).toFixed(2)}
     = <span class="mono">${edec.toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
