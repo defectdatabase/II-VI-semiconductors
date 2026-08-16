@@ -378,7 +378,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="cd51cab1976b";
+  var BUILD_ID="c9dfb0a53682";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -488,6 +488,7 @@ body{letter-spacing:-.006em}
 <div class="view" id="view-rankings">
   <div class="filterrow">
     <input type="text" id="csearch" placeholder="Search compounds — e.g. Cu2ZnSnS4, AgGaS2…">
+    <select id="c-theory" title="Level of theory of the run"></select>
     <select id="c-mode" title="What VASP was told to do, read from the run's own INCAR"></select>
     <select id="c-steps" title="Ionic steps the run actually took"></select>
     <select id="c-has" title="Per-row data available for download or display"></select>
@@ -1145,13 +1146,16 @@ function cCalcLabel(v){
   return n===null||n===undefined?short:`${short} · ${n} step${n===1?"":"s"}`;
 }
 function cFillSelects(){
-  const nMode={},nStep={},nHas={};
+  const nMode={},nStep={},nHas={},nTh={};
   COMPOUNDS.forEach(r=>{const v=r.o[r.b],k=structKeyOf(r,r.b);
+    if(r.f)nTh[r.f]=(nTh[r.f]||0)+1;
     const m=cMode(v); if(m)nMode[m]=(nMode[m]||0)+1;
     const n=cSteps(v); if(n!==null&&n!==undefined){const b=CSTEP_BINS.find(([,,f])=>f(n)); if(b)nStep[b[0]]=(nStep[b[0]]||0)+1;}
     CHAS.forEach(([id,,f])=>{if(f(r,k,v))nHas[id]=(nHas[id]||0)+1;});
   });
   const opt=(val,text,n)=>`<option value="${val}">${text}${n?` (${n.toLocaleString()})`:""}</option>`;
+  document.getElementById("c-theory").innerHTML=opt("","All levels of theory",0)+
+    Object.keys(nTh).sort().map(t=>opt(t,t,nTh[t])).join("");
   document.getElementById("c-mode").innerHTML=opt("","All calculation types",0)+
     Object.keys(CMODE_LABEL).filter(m=>nMode[m]).map(m=>opt(m,CMODE_LABEL[m],nMode[m])).join("")+
     (Object.values(nMode).reduce((a,b)=>a+b,0)<COMPOUNDS.length
@@ -1167,12 +1171,14 @@ function cApplyFilters(){
   const stable=document.getElementById("ck-stable").checked;
   const gap1=document.getElementById("ck-gap1").checked;
   const mode=document.getElementById("c-mode").value;
+  const th=document.getElementById("c-theory").value;
   const stepb=document.getElementById("c-steps").value;
   const has=document.getElementById("c-has").value;
   const binf=stepb?CSTEP_BINS.find(([id])=>id===stepb)[2]:null;
   const hasf=has?CHAS.find(([id])=>id===has)[2]:null;
   cFiltered=COMPOUNDS.filter(r=>{
     const v=r.o[r.b];
+    if(th&&r.f!==th)return false;
     if(stable&&!(v[1]!==null&&v[1]<=0))return false;
     if(gap1&&!(v[2]!==null&&v[2]>=1&&v[2]<=2))return false;
     if(mode&&(mode==="none"?cMode(v)!==null&&cMode(v)!==undefined:cMode(v)!==mode))return false;
@@ -1294,7 +1300,7 @@ function cOpenDetail(r,ord){
   cRenderRows();
 }
 document.getElementById("csearch").addEventListener("input",cApplyFilters);
-["ck-stable","ck-gap1","c-mode","c-steps","c-has"].forEach(id=>
+["ck-stable","ck-gap1","c-theory","c-mode","c-steps","c-has"].forEach(id=>
   document.getElementById(id).addEventListener("change",cApplyFilters));
 
 
