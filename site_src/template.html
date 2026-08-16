@@ -1750,7 +1750,7 @@ async function mountTraj(key,sub,label,boxId){
            <option value="100">×100</option></select></label>
        <span id="${P}info" style="font-size:13.5px;color:var(--wbg-muted)"></span>
      </div>
-     <div id="${P}struct" style="width:100%;height:340px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
+     <div id="${P}struct" style="width:70%;margin:0 auto;height:240px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
      <div id="${P}plot" style="width:100%;height:210px;margin-top:8px"></div>
      <div class="notebox">${label} — ${t.nframes} ionic steps from XDATCAR; energies from OSZICAR (F),
        forces are max |F| per step from OUTCAR. ${t.frames.length<t.nframes?`Showing ${t.frames.length} evenly sampled frames. `:""}${dispNote(t)}</div>`;
