@@ -188,7 +188,7 @@ button,select,input,textarea{font:inherit}
 .mvm-note{font-size:12.5px;color:var(--wbg-muted);line-height:1.5;margin-top:8px;text-align:justify}
 .mvpane-head{position:absolute;top:5px;left:10px;z-index:6;pointer-events:none;
   font-size:12.5px;color:var(--wbg-ink)}
-#incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:90;
+#incarmodal{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:90;max-height:88vh;overflow-y:auto;overscroll-behavior:contain;
   background:#fff;border:1px solid var(--wbg-border);border-radius:12px;padding:20px 24px;
   max-width:640px;width:88%;box-shadow:0 20px 60px rgba(10,25,50,.35)}
 #incarmodal.on{display:block}
@@ -378,7 +378,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="382c4396f738";
+  var BUILD_ID="f70a068757d3";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -1270,7 +1270,9 @@ function cOpenDetail(r,ord){
     // Show the breakdown NOW from what is already loaded, then refresh once the optics side-payload
     // lands. Blanking the panel for the duration of a 20 MB fetch is what made it look broken.
     typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd));
-    loadOptics().then(()=>{ if(cSel===r) document.getElementById("cnote").innerHTML=provenanceHTML(r,cOrd); })
+    // Re-TYPE rather than assign innerHTML: the first reveal is still running on an interval and
+    // would overwrite a plain assignment, which is what dropped the SLME and dielectric blocks.
+    loadOptics().then(()=>{ if(cSel===r) typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd)); })
                 .catch(()=>{});
   } else {
     typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd));
@@ -1316,6 +1318,30 @@ function stepTable(st){
   return `<table class="steptab"><thead><tr><th>step</th><th>E (eV)</th><th>ΔE (eV)</th>`
     +`<th>max|F| (eV/Å)</th><th>on atom</th><th>max|σ| (kBar)</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
+let INCAR_TYPER=null;
+// Type the inputs card out line by line. Word-by-word would jitter the aligned "=" column of a
+// fixed-pitch block on every token, so a monospace listing reveals a whole line at a time.
+function typeLines(el, html, done){
+  if(INCAR_TYPER){clearInterval(INCAR_TYPER);INCAR_TYPER=null;}
+  const tmp=document.createElement("div"); tmp.innerHTML=html;
+  const blocks=[...tmp.children];
+  el.replaceChildren();
+  let bi=0, li=0, lines=null, target=null;
+  const step=()=>{
+    if(bi>=blocks.length){clearInterval(INCAR_TYPER);INCAR_TYPER=null;if(done)done();return;}
+    const b=blocks[bi];
+    if(!b.classList||!b.classList.contains("tw")){ el.appendChild(b.cloneNode(true)); bi++; return; }
+    if(lines===null){
+      lines=b.innerHTML.split("\n");
+      target=b.cloneNode(false); target.textContent=""; el.appendChild(target); li=0;
+    }
+    const chunk=Math.max(1,Math.ceil(lines.length/12));       // any block finishes in ~12 ticks
+    target.innerHTML=lines.slice(0,Math.min(lines.length,li+=chunk)).join("\n");
+    if(li>=lines.length){ bi++; lines=null; target=null; }
+  };
+  INCAR_TYPER=setInterval(step,40);
+  step();
+}
 let INCAR_TICKET=0;
 function openIncar(theory,r,ord){
   document.getElementById("incartitle").innerHTML=r?subHTML(r.n):theory;
@@ -1354,7 +1380,7 @@ function openIncar(theory,r,ord){
     const keys=Object.keys(inc).sort();
     const pad=keys.reduce((m,k)=>Math.max(m,k.length),0);
     const tags=keys.map(k=>`<span class="k">${esc(k.padEnd(pad))}</span> = ${esc(String(inc[k]))}`).join("\n");
-    let h=`<b>INCAR actually used</b><span class="tw">${tags||"—"}</span>`;
+    let h=`<b>INCAR</b><span class="tw">${tags||"—"}</span>`;
     if(d.potcar&&d.potcar.length)
       h+=`<div class="twname"><b>POTCAR</b></div><span class="tw">${d.potcar.map(esc).join("\n")}</span>`;
     if(d.kmesh) h+=`<div class="twname"><b>KPOINTS</b></div><span class="tw">${esc(d.kmesh)}</span>`;
@@ -1370,7 +1396,7 @@ function openIncar(theory,r,ord){
     // Only what this run's own files say. The per-theory summary that used to sit here was
     // hand-written and contradicted the run: it asserted "LORBIT was unset, so this archived
     // campaign contains total DOS only" on runs whose INCAR reads LORBIT = 11.
-    el.innerHTML=h;
+    typeLines(el,h);
   });
 }
 function closeIncar(){ document.getElementById("incarmodal").classList.remove("on"); }
