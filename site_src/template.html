@@ -1084,7 +1084,7 @@ document.querySelectorAll("#view-explorer .cpill").forEach(p=>p.onclick=()=>{
 /* ================= COMPOUND TABLE ================= */
 /* record: {n:name, f:theory, o:{ordering:[eform,edec,gap,eps,slme,F,nat,cell]}, b:bestOrdering} */
 const CCOLS=[
-  {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}</span>`,val:r=>r.n},
+  {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}${r.po?` <span style="color:var(--wbg-muted);font-weight:400">${r.po}</span>`:""}</span>`,val:r=>r.n+(r.po||"")},
   {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
   {k:"nat",label:"No. of atoms",w:100,num:1,cell:(r,v)=>`<span class="c num" style="width:100px">${v[6]||"—"}</span>`,val:r=>r.o[r.b][6]||0},
   {k:"latt",label:"Lattice parameter (Å)",w:170,cell:(r,v)=>`<span class="c" style="width:170px">${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)}`:"—"}</span>`,val:r=>r.o[r.b][8]?r.o[r.b][8][0]:0},
@@ -1226,7 +1226,7 @@ function cOpenDetail(r,ord){
   document.getElementById("cdetail").classList.add("on");document.getElementById("modalback").classList.add("on");
   const ords=Object.keys(r.o);
   const oname=o=>ords.length>1?`Ordering ${ords.indexOf(o)+1}`:"Ordering 1";
-  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)}` + (ords.length>1
+  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)}${r.po?` — ${r.po}`:""}` + (ords.length>1
     ? `<span style="margin-left:14px">cation ordering
         <select id="ordsel" style="margin-left:6px">${ords.map(o=>
           `<option value="${o}"${o===cOrd?" selected":""}>${oname(o)}${o===r.b?" — lowest energy":""}</option>`).join("")}</select></span>`
