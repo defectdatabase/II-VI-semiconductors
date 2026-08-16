@@ -2057,7 +2057,12 @@ async function drawDOS(r,ord,key){
   const parts=decompParts(r,ord);
   const Tstar=(parts&&parts.ent!==0&&parts.d0>0&&parts.ent<0)?-parts.d0/(KB*parts.ent):null;
   head.innerHTML="Element-projected electronic density of states";
-  note.innerHTML=`Element-projected density of states from this run's DOSCAR. Per-atom orbital projections are summed by element. Energies are relative to the Fermi level at ${d.ef.toFixed(2)} eV, marked by the dashed red line. The displayed energy window is -4 to +4 eV; drag to zoom and double-click to reset.`+
+  // Not every DOS file carries a Fermi energy (the EIGENVAL-broadened route has none), and
+  // d.ef.toFixed threw here -- which aborted drawDOS and left the PREVIOUS compound's DOS on
+  // screen, In and O plotted under ZnIn2S4.
+  const efTxt = (typeof d.ef==="number") ? `the Fermi level at ${d.ef.toFixed(2)} eV, marked by the dashed red line`
+                                         : `the Fermi level, which this run's DOS file does not record`;
+  note.innerHTML=`Element-projected density of states from this run's DOSCAR. Per-atom orbital projections are summed by element. Energies are relative to ${efTxt}. The displayed energy window is -4 to +4 eV; drag to zoom and double-click to reset.`+
     (parts?` Stability: ${r.o[ord][1]<=0?"stable against the binary decomposition at 298 K":(Tstar&&Tstar<2000?`metastable at 298 K, entropy-stabilized above ~${Tstar.toFixed(0)} K`:"metastable (positive ΔE<sub>decomp</sub>)")} .`:"");
   return "projected";
 }
@@ -2205,7 +2210,12 @@ function provenanceHTML(r,ord){
         ? `Elemental standard state — its energy per atom (μ<sub>${els[0]}</sub> = ${F!==null?(F/nat).toFixed(2):"—"} eV/atom) is the reference all formation energies are measured against; its own formation energy is zero by definition.`
         : `Binary reference phase — computed at the same level of theory; it serves as a competing phase in the decomposition analysis of the ternary and quaternary compounds.`}`;
   }
-  const R = REFS[r.rk||th]; if(!R) return "";
+  // rk names a campaign ("HSE06 (A2BCX4)") while REFS is keyed by the plain theory, so the
+  // campaign-specific lookup misses and the whole breakdown rendered empty. Fall back to the
+  // theory's own reference set, and say so plainly if even that is absent.
+  const R = REFS[r.rk] || REFS[th];
+  if(!R) return `<b>Level of theory: ${th}.</b><br>No elemental reference set is published for `
+    +`this level of theory, so no formation energy is derived here.`;
   const comp = {};
   for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0], parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
     comp[el]=(comp[el]||0)+n;
