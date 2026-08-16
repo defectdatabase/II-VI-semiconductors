@@ -1630,7 +1630,32 @@ function latParams(m){
   return {a:n(m[0]),b:n(m[1]),c:n(m[2]),
           alpha:ang(m[1],m[2]),beta:ang(m[0],m[2]),gamma:ang(m[0],m[1]),volume:vol};
 }
-function trajStructure(fr){
+let TAMP=1;   // displacement amplification, a VIEWING aid only -- never changes published numbers
+// The median host relaxation moves its furthest atom 0.02 A over the whole run, which is far below
+// what any renderer can show: the movie looks frozen because the motion is real but invisible.
+// Amplifying the displacement about frame 0 (minimum image, so a wrapped coordinate does not fly
+// across the cell) makes the path visible while the stated energies and forces stay untouched.
+function ampFrame(fr){
+  if(TAMP===1||!TRAJ||!TRAJ.frames||!TRAJ.frames.length) return fr;
+  const p0=TRAJ.frames[0].p;
+  return Object.assign({},fr,{p:fr.p.map((abc,i)=>abc.map((x,k)=>{
+    let d=x-p0[i][k]; d-=Math.round(d);
+    return p0[i][k]+d*TAMP;
+  }))});
+}
+function frameDisp(fr){
+  if(!TRAJ||!TRAJ.frames||!TRAJ.frames.length) return null;
+  const p0=TRAJ.frames[0].p, lat=fr.lat||TRAJ.lat;
+  let best=0;
+  for(let i=0;i<fr.p.length;i++){
+    const d=fr.p[i].map((x,k)=>{let t=x-p0[i][k];return t-Math.round(t);});
+    const c=[0,1,2].map(j=>d[0]*lat[0][j]+d[1]*lat[1][j]+d[2]*lat[2][j]);
+    best=Math.max(best,Math.hypot(c[0],c[1],c[2]));
+  }
+  return best;
+}
+function trajStructure(fr0){
+  const fr = ampFrame(fr0);
   const lat = fr.lat || TRAJ.lat;
   const lp = latParams(lat);
   return {"@module":"pymatgen.core.structure","@class":"Structure","charge":0,"properties":{},
@@ -1660,9 +1685,11 @@ async function showFrame(i){
   const info=document.getElementById(TPFX+"info");
   if(!host||!info){ stopTraj(); return; }
   sgShow(host,{type:"struct",cif:structureCIF(trajStructure(fr))});
+  const fd=frameDisp(fr);
   info.innerHTML =
     `step <b>${fr.i+1}</b> of ${TRAJ.nframes} &nbsp;·&nbsp; E = <b>${fr.e!==null&&fr.e!==undefined?fr.e.toFixed(2):"—"}</b> eV`+
-    `&nbsp;·&nbsp; F<sub>max</sub> = <b>${fr.f!==null&&fr.f!==undefined?fr.f.toFixed(2):"—"}</b> eV/Å`;
+    `&nbsp;·&nbsp; F<sub>max</sub> = <b>${fr.f!==null&&fr.f!==undefined?fr.f.toFixed(2):"—"}</b> eV/Å`+
+    (fd!==null?`&nbsp;·&nbsp; moved <b>${fd.toFixed(3)}</b> Å${TAMP>1?` (drawn ×${TAMP})`:""}`:"");
   const sl=document.getElementById(TPFX+"slider"); if(sl) sl.value=TFRAME;
   const pl=document.getElementById(TPFX+"plot");
   if(window.Plotly&&pl&&pl.data&&pl.data.length>=4)
@@ -1715,6 +1742,12 @@ async function mountTraj(key,sub,label,boxId){
        <button class="cpill" id="${P}play" onclick="playTraj()">▶ play</button>
        <input type="range" id="${P}slider" min="0" max="${t.frames.length-1}" value="0" style="flex:1 1 180px"
               oninput="showFrame(+this.value)">
+       <label style="font-size:12.5px;color:var(--wbg-muted);display:flex;gap:5px;align-items:center">motion
+         <select id="${P}amp" onchange="TAMP=+this.value;showFrame(TFRAME)"
+                 style="padding:2px 6px;border-radius:6px;border:1px solid var(--wbg-border)">
+           <option value="1">×1 (true)</option><option value="5">×5</option>
+           <option value="20" selected>×20</option><option value="50">×50</option>
+           <option value="100">×100</option></select></label>
        <span id="${P}info" style="font-size:13.5px;color:var(--wbg-muted)"></span>
      </div>
      <div id="${P}struct" style="width:100%;height:340px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
@@ -2227,8 +2260,10 @@ function opticsHTML(v,key){
        (REAL.in) was not archived for this run, so only the mean is quoted.`
     : `<br>No LOPTICS in this campaign, so the dielectric constant and SLME are not published.`;
   const e=v[13], mean=(e[0]+e[1]+e[2])/3;
-  let out=`<br><b>Dielectric constant</b> — ε<sub>∞</sub> = (ε<sub>xx</sub> + ε<sub>yy</sub> + ε<sub>zz</sub>)/3,
-    the zero-frequency real part of the density–density dielectric function from the LOPTICS run;
+  let out=`<br><b>Dielectric constant</b> — ε<sub>∞</sub> = ⅓ Tr[ε<sub>1</sub>(E → 0)] = (ε<sub>xx</sub> + ε<sub>yy</sub> + ε<sub>zz</sub>)/3,
+    read off the first row of REAL.in, which IS ε<sub>1</sub> at zero frequency. This is the
+    ELECTRONIC (high-frequency, ε<sub>∞</sub>) constant only — LOPTICS holds the ions fixed, so the
+    lattice-polarisation term that LEPSILON with IBRION 8 would add is not included;
     diagonal components ε<sub>xx</sub> = <span class="mono">${e[0].toFixed(2)}</span>,
     ε<sub>yy</sub> = <span class="mono">${e[1].toFixed(2)}</span>,
     ε<sub>zz</sub> = <span class="mono">${e[2].toFixed(2)}</span> →
@@ -2239,8 +2274,14 @@ function opticsHTML(v,key){
   if(v.length>14&&v[14]){
     if(absCurve&&absCurve.length){
       const pick=absCurve.filter(a=>a[1]>0).filter((a,i)=>i%2===0).slice(0,6);
-      out+=`<br><b>Absorption</b> — α(E) from the LOPTICS dielectric (Im ε → α = 2ωk/c, vaspkit):
-        ${pick.map(a=>`α(${a[0].toFixed(2)} eV) = ${Number(a[1]).toExponential(1)} cm<sup>−1</sup>`).join(" · ")}.`;
+      // Show the route from the dielectric function to alpha, then the values, rather than only
+      // quoting the result: the absorption coefficient is derived, not measured.
+      out+=`<br><b>Absorption coefficient</b> — derived from the same LOPTICS run, not fitted:<br>
+        &nbsp;&nbsp;1. VASP writes the frequency-dependent dielectric function ε(E) = ε<sub>1</sub>(E) + iε<sub>2</sub>(E)
+             (ε<sub>2</sub> from the independent-particle transitions, ε<sub>1</sub> by Kramers–Kronig).<br>
+        &nbsp;&nbsp;2. extinction coefficient k(E) = √( (√(ε<sub>1</sub>² + ε<sub>2</sub>²) − ε<sub>1</sub>) / 2 ).<br>
+        &nbsp;&nbsp;3. α(E) = 2ωk/c = 4πk/λ, evaluated by vaspkit task 711 and returned in cm<sup>−1</sup>.<br>
+        &nbsp;&nbsp;giving ${pick.map(a=>`α(${a[0].toFixed(2)} eV) = ${Number(a[1]).toExponential(1)} cm<sup>−1</sup>`).join(" · ")}.`;
     }
     if(slmeCurve&&slmeCurve.length){
       // v[14] used to be a single [thickness, SLME] pair and is now the whole curve
@@ -2249,9 +2290,22 @@ function opticsHTML(v,key){
       // on every row that has an SLME. Take the peak from the curve itself.
       const peak=(v[14]||[]).reduce((b,a)=>(Array.isArray(a)&&(!b||a[1]>b[1]))?a:b, null)||[0,0];
       const pk=slmeCurve.filter((a,i)=>i%3===0).slice(0,4);
-      out+=`<br><b>SLME</b> (Yu–Zunger, from α(E) and E<sub>g</sub> at 293.15 K) vs absorber thickness L:
+      out+=`<br><b>SLME</b> — spectroscopic limited maximum efficiency (Yu &amp; Zunger,
+        <i>Phys. Rev. Lett.</i> <b>108</b>, 068701 (2012)), computed by vaspkit task 719 at
+        T = 293.15 K against the ASTM G173-03 AM1.5G spectrum:<br>
+        &nbsp;&nbsp;1. absorptivity of a film of thickness L with a perfect back reflector:
+             a(E) = 1 − exp(−2α(E)L).<br>
+        &nbsp;&nbsp;2. short-circuit current J<sub>sc</sub> = e ∫ a(E)·I<sub>AM1.5G</sub>(E)/E dE.<br>
+        &nbsp;&nbsp;3. reverse saturation current J<sub>0</sub> = J<sub>0</sub><sup>r</sup>/f<sub>r</sub>,
+             with f<sub>r</sub> = exp(−Δ/k<sub>B</sub>T) the fraction of radiative recombination and
+             Δ = E<sub>g</sub><sup>da</sup> − E<sub>g</sub> the direct-allowed minus fundamental gap
+             (Δ = 0 here gives the Shockley–Queisser limit).<br>
+        &nbsp;&nbsp;4. J(V) = J<sub>sc</sub> − J<sub>0</sub>(e<sup>eV/k<sub>B</sub>T</sup> − 1);
+             SLME = max<sub>V</sub>(J·V) / ∫I<sub>AM1.5G</sub>(E)dE, the denominator being 1000.37 W m<sup>−2</sup>.<br>
+        &nbsp;&nbsp;evaluated at each thickness:
         ${pk.map(a=>`SLME(${a[0].toFixed(1)} µm) = ${a[1].toFixed(1)}%`).join(" · ")} →
-        maximum <span class="mono">${peak[1].toFixed(2)}%</span> at L = ${peak[0].toFixed(1)} µm (published value).`;
+        the published value is the thick-film limit,
+        <span class="mono">${peak[1].toFixed(2)}%</span> at L = ${peak[0].toFixed(1)} µm.`;
     }
   }
   return out;
@@ -2332,7 +2386,8 @@ function provenanceBody(r,ord){
           + `${t.contribution_eV.toFixed(4)} eV`).join("<br>&nbsp;&nbsp;")
         + `<br>Fully occupied sublattices contribute zero and are omitted. `
       : ". "
-    }The convention previously published gives ${(D.S_used||0).toFixed(4)} eV.<br>`;
+    }The convention previously published gives ${(D.S_used||0).toFixed(4)} eV.<br>
+    ${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
   }
   if(v.length>9&&v[9]!==null&&v[9]!==undefined){
     const cats=Object.keys(comp).filter(e=>!["S","Se","Te"].includes(e));
