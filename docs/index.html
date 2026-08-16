@@ -260,10 +260,10 @@ body{letter-spacing:-.006em}
 .structure-viewbar{position:absolute;z-index:12;top:8px;left:50%;transform:translateX(-50%);display:flex;gap:2px;padding:3px;background:rgba(255,255,255,.92);border:1px solid var(--wbg-border);border-radius:7px;box-shadow:0 3px 14px rgba(35,54,63,.09)}
 .structure-viewbar button{border:0;background:transparent;color:var(--wbg-muted);padding:4px 8px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer}
 .structure-viewbar button:hover{color:var(--wbg-ink);background:#eef4f6}.structure-viewbar button.on{color:#fff;background:var(--wbg-accent)}
-#moviemodal{padding:0;overflow:hidden;width:min(756px,calc(100vw - 32px));height:min(620px,calc(100vh - 32px));max-height:none;flex-direction:column}
+#moviemodal{padding:0;overflow:hidden;width:min(756px,calc(100vw - 32px));height:min(434px,calc(100vh - 32px));max-height:none;flex-direction:column}
 #moviemodal.on{display:flex}
 /* Kosmos's trajectory page renders a four-pane grid plus its chart; give it room to breathe. */
-#moviemodal.continuous{width:min(1148px,calc(100vw - 24px));height:min(960px,calc(100vh - 24px))}
+#moviemodal.continuous{width:min(1148px,calc(100vw - 24px));height:min(672px,calc(100vh - 24px))}
 #moviemodal:has(#mvm-body.static){width:min(800px,calc(100vw - 64px));height:auto;max-height:calc(100vh - 32px)}
 #mvm-head{padding:10px 14px;background:#fff;min-height:50px}#mvm-head>span:first-child{font-weight:700;text-transform:none}
 #mvm-info{padding:7px 14px;margin:0;background:#f7fafb;border-bottom:1px solid var(--wbg-border);font-size:12.5px}
@@ -378,7 +378,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="b341bab7381e";
+  var BUILD_ID="9692ccf8d23f";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
