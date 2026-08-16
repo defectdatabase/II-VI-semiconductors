@@ -686,7 +686,10 @@ const THEORY = {pbesol:"PBEsol", hsesoc:"HSE+SOC"};
 
 /* ---------- formatting ---------- */
 const dropOnes = s => s.replace(/([A-Z][a-z]?)1(?![\d.])/g,"$1");
-const subHTML = s => dropOnes(s).replace(/([A-Za-z\)])([\d.]+)/g,(m,a,n)=>a+"<sub>"+n+"</sub>");
+// kesterite/stannite are cation orderings of the same compound, not different materials —
+// spell that out instead of printing the bare mineral name
+const subHTML = s => dropOnes(String(s).replace(/_(kesterite|stannite)\b/g," (cation ordering: $1)"))
+  .replace(/([A-Za-z\)])([\d.]+)/g,(m,a,n)=>a+"<sub>"+n+"</sub>");
 // INCAR and POTCAR strings are quoted verbatim, so they go through here first: a POTCAR TITEL
 // carries a date and a slash, and an INCAR value can carry a '<'.
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -742,7 +745,7 @@ if(urltab&&document.querySelector(`#tabbar .tab[data-v="${urltab}"]`))
 
 /* ================= DEFECT TABLE ================= */
 const DCOLS=[
-  {k:"h",label:"Host",w:150,cell:r=>`<span class="c hostc" style="width:150px">${subHTML(r.h)}</span>`,val:r=>r.h},
+  {k:"h",label:"Host",w:235,cell:r=>`<span class="c hostc" style="width:235px">${subHTML(r.h)}</span>`,val:r=>r.h},
   {k:"d",label:"Defect",w:190,cell:r=>`<span class="c defc" style="width:190px">${defHTML(r.d)}</span>`,val:r=>r.d},
   {k:"cls",label:"Class",w:94,cell:r=>`<span class="c ${["vacancy","interstitial"].some(x=>r.clset.has(x))&&r.cls!=="complex"?"cls-teal":"cls-amber"}" style="width:94px">${r.cls}</span>`,val:r=>r.cls},
   {k:"f",label:"Theory",w:92,cell:r=>`<span class="c" style="width:92px">${THEORY[r.f]}</span>`,val:r=>r.f},
