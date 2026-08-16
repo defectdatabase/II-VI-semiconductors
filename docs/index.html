@@ -378,7 +378,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="ed5ba92a0aef";
+  var BUILD_ID="637bb6b4ff2e";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -394,8 +394,7 @@ body{letter-spacing:-.006em}
   <a href="mailto:imd.habiburrahman@gmail.com">imd.habiburrahman@gmail.com</a> ·
   <a href="mailto:rahma103@purdue.edu">rahma103@purdue.edu</a> ·
   <a href="https://msehabibur.github.io">msehabibur.github.io</a><br>
-  If you use this library, please cite the associated paper. DFT calculations used a plane-wave basis;
-  computations performed on the Purdue Anvil supercomputer (ACCESS allocations) — data mirrored on ALCF Eagle.
+  If you use this library, please cite the associated papers.
 </div>
 
 <div id="titlebar">
@@ -540,21 +539,6 @@ body{letter-spacing:-.006em}
 <!-- ================= METHODS ================= -->
 <div class="view" id="view-methods">
   <div class="refs" style="margin:0;max-width:1100px">
-    <p class="footnote" style="text-align:left">
-      <b>Bulk compounds.</b> 6763 I–III–VI<sub>2</sub> chalcopyrites and I<sub>2</sub>–II–IV–VI<sub>4</sub>
-      kesterites/stannites. Ground-state configurations selected from a PBEsol 2×2×1 polymorph screen
-      (21,242 static calculations); production properties from HSE06+SOC (AEXX = 0.25, HFSCREEN = 0.2,
-      LOPTICS) static runs. Formation energy per atom versus elemental references computed at the same
-      level of theory; decomposition energy per formula unit versus the stoichiometric binary decomposition
-      (A<sub>2</sub>X + BX + CX<sub>2</sub> for kesterites; ½(A<sub>2</sub>X + B<sub>2</sub>X<sub>3</sub>)
-      for chalcopyrites) including the ideal-mixing entropy at k<sub>B</sub>T = 0.0257 eV. Band gaps from
-      eigenvalue band properties; dielectric constant is the electronic (ion-clamped) LOPTICS value at
-      E = 0; SLME from the Shockley–Queisser-like metric (vaspkit), maximum over absorber thickness.
-      <b>Defects.</b> Charged-defect supercells (q = −2 … +2) for CdTe and CdSe<sub>x</sub>Te<sub>1−x</sub>
-      alloys at PBEsol and HSE+SOC. E<sub>f</sub>(q, E<sub>F</sub>) = E<sub>defect,q</sub> −
-      E<sub>pristine</sub> + Σn<sub>i</sub>μ<sub>i</sub> + q(E<sub>VBM</sub> + E<sub>F</sub>) +
-      E<sub>corr</sub>, with chemical potentials at the Cd-rich and Te-rich limits and Kumagai–Oba (eFNV)
-      finite-size corrections. Raw data (~10.8 TB) archived on ALCF Eagle.</p>
     <p class="footnote" style="text-align:left"><b>Data sources.</b> All data presented on this site are
       taken from the following publications:</p>
     <ol class="footnote" style="text-align:left;margin-top:4px;padding-left:22px;line-height:1.6">
