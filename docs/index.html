@@ -378,7 +378,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="9692ccf8d23f";
+  var BUILD_ID="35a111debb1a";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -687,12 +687,15 @@ const fq=q=>q===null?"—":(q>0?"+"+q:String(q));
 
 /* ---------- defect physics ---------- */
 const HOSTELS = h => h.match(/[A-Z][a-z]?/g) || [];
-function envelope(r, cond, x){       // x = EF (eV); returns [Ef, q]
-  const mu = cond==="mc"?r.mc:r.mt;
-  if(mu===null) return [null,null];
+// x = EF (eV), 0 at the VBM. Ef_VBM/Ef_CBM already carry the vertex's own chemical potentials
+// and E_VBM (see build_payload.py) -- a straight line between the two endpoints IS the physics,
+// no re-derivation of mu needed here.
+function envelope(r, vname, x){
+  const vx = r.vx && r.vx[vname]; if(!vx) return [null,null];
   let best=null,bq=null;
-  for(const q of QS){ if(!(q in r.e)) continue;
-    const v=r.e[q]+mu+(+q)*(r.v+x);
+  for(const q in vx.q){
+    const c=vx.q[q]; if(c.vbm===null||c.vbm===undefined||c.cbm===null||c.cbm===undefined) continue;
+    const v=c.vbm+(c.cbm-c.vbm)*(r.g?x/r.g:0);
     if(best===null||v<best){best=v;bq=+q;} }
   return [best,bq];
 }
@@ -734,12 +737,12 @@ const DCOLS=[
   {k:"d",label:"Defect",w:190,cell:r=>`<span class="c defc" style="width:190px">${defHTML(r.d)}</span>`,val:r=>r.d},
   {k:"cls",label:"Class",w:94,cell:r=>`<span class="c ${["vacancy","interstitial"].some(x=>r.clset.has(x))&&r.cls!=="complex"?"cls-teal":"cls-amber"}" style="width:94px">${r.cls}</span>`,val:r=>r.cls},
   {k:"f",label:"Theory",w:92,cell:r=>`<span class="c" style="width:92px">${THEORY[r.f]}</span>`,val:r=>r.f},
-  {k:"efVc",label:"Eᶠ@VBM cation-rich",w:124,num:1,val:r=>r.efVc},
-  {k:"efVt",label:"Eᶠ@VBM anion-rich",w:124,num:1,val:r=>r.efVt},
-  {k:"efMc",label:"Eᶠ@mid cation-rich",w:124,num:1,val:r=>r.efMc},
-  {k:"efMt",label:"Eᶠ@mid anion-rich",w:124,num:1,val:r=>r.efMt},
-  {k:"efCc",label:"Eᶠ@CBM cation-rich",w:124,num:1,val:r=>r.efCc},
-  {k:"efCt",label:"Eᶠ@CBM anion-rich",w:124,num:1,val:r=>r.efCt},
+  {k:"efVc",label:"Eᶠ@VBM (limit 1)",w:124,num:1,val:r=>r.efVc},
+  {k:"efVt",label:"Eᶠ@VBM (limit 2)",w:124,num:1,val:r=>r.efVt},
+  {k:"efMc",label:"Eᶠ@mid (limit 1)",w:124,num:1,val:r=>r.efMc},
+  {k:"efMt",label:"Eᶠ@mid (limit 2)",w:124,num:1,val:r=>r.efMt},
+  {k:"efCc",label:"Eᶠ@CBM (limit 1)",w:124,num:1,val:r=>r.efCc},
+  {k:"efCt",label:"Eᶠ@CBM (limit 2)",w:124,num:1,val:r=>r.efCt},
 ];
 let dSort={k:"efMt",asc:true},dSel=null,dFiltered=[];
 let dClass="all";
@@ -818,46 +821,43 @@ async function dOpenDetail(r){
   dSel=r;
   const panel=document.getElementById("detail");panel.classList.add("on");document.getElementById("modalback").classList.add("on");
   document.getElementById("dtitle").innerHTML=`${defHTML(r.d)} in ${subHTML(r.h)} — ${THEORY[r.f]}`;
-  // Name the two limits from THIS host, not from CdTe. The anion is the most electronegative
-  // element present; the cation-rich limit is named for the host's leading cation.
-  const ANION=["O","F","S","Cl","Se","Br","Te","I","N","P","As","Sb"];
-  const hels=HOSTELS(r.h);
-  const anions=hels.filter(e=>ANION.includes(e));
-  const anion=anions.length?anions.join("/"):"anion";
-  const cation=hels.filter(e=>!ANION.includes(e))[0]||"cation";
-  const conds=[["mc",`${cation}-rich`],["mt",`${anion}-rich`]].filter(([c])=>r[c]!==null);
+  // The chemical-potential picker now lists whichever vertices actually solved for THIS defect
+  // (r.vxu, from build_payload.py) -- real facet names, not a hardcoded cation/anion-rich pair,
+  // since a ternary/quaternary host does not have just two limits.
+  const vlist = r.vxu||[];
   const csel=document.getElementById("dcondsel");
-  csel.innerHTML=conds.map(([c,l],i)=>`<option value="${c}"${i===0?" selected":""}>${l}</option>`).join("");
-  csel.style.display=conds.length?"":"none";
+  csel.innerHTML=vlist.map((v,i)=>`<option value="${v}"${i===0?" selected":""}>${subHTML(v)}</option>`).join("");
+  csel.style.display=vlist.length?"":"none";
   // ---------- sigma blocks: one per vertex, everything read from the archived record ----------
-  const qsAll=QS.filter(q=>(r.rq&&q in r.rq)||q in r.e||(r.u&&q in r.u));
-  const vert=[["mc","Cd-rich",`${r.h} + Cd`],["mt",anion+"-rich",`${r.h} + ${anion}`]];
   let sig=`<p class="footnote" style="margin:2px 0 8px">${defHTML(r.d)} — every number below is read from the
     raw campaign record, not recomputed.<br>
     E<sub>f</sub><sup>q</sup>(E<sub>F</sub>) = (E<sub>defect,q</sub> − E<sub>pristine</sub>) + Σ(n<sub>i</sub>μ<sub>i</sub>) + q(E<sub>VBM</sub> + E<sub>F</sub>) + E<sub>corr</sub><br>
-    E<sub>pristine</sub> = ${r.eb!==undefined?r.eb.toFixed(2)+" eV":"—"} · E<sub>VBM</sub> = ${fmt(r.v)} eV · gap ${fmt(r.g)} eV · ${THEORY[r.f]}</p>`;
-  for(const [c,cname,phases] of vert){
-    const mu=r[c]; if(mu===null) continue;
-    sig+=`<div style="margin:10px 0 4px"><b>${cname} vertex</b>
+    E<sub>VBM</sub> = ${fmt(r.v)} eV · gap ${fmt(r.g)} eV · ${THEORY[r.f]}</p>`;
+  if(!vlist.length)
+    sig+=`<div class="notebox">No chemical-potential vertex has been solved for this host yet —
+      Σn<sub>i</sub>μ<sub>i</sub> is unpublished, so E<sub>f</sub>(E<sub>F</sub>) cannot be placed on
+      an absolute scale. The raw ΔE = E<sub>defect,q</sub> − E<sub>pristine</sub> term is still shown
+      below where it was archived.</div>`;
+  for(const vname of vlist){
+    const vxv=r.vx[vname];
+    const phases=(vxv.facet||[]).length?vxv.facet.join(" + "):vname;
+    // mu is not stored as its own scalar; back it out from whichever charge state solved
+    // (mu = Ef_VBM - dE - q*E_VBM, and the q term vanishes at q=0)
+    let muTxt="—";
+    for(const q in vxv.q){ const c=vxv.q[q];
+      if(c.vbm!=null&&c.dE!=null){ muTxt=(c.vbm-c.dE-(+q)*r.v).toFixed(2)+" eV"; break; } }
+    sig+=`<div style="margin:10px 0 4px"><b>${subHTML(vname)} vertex</b>
       <span style="color:var(--wbg-muted)">(bounding phases: ${subHTML(phases)})</span></div>
-      <div style="color:var(--wbg-muted);font-size:13px;margin-bottom:4px">Σn<sub>i</sub>μ<sub>i</sub> = <b>${mu.toFixed(2)} eV</b>
+      <div style="color:var(--wbg-muted);font-size:13px;margin-bottom:4px">Σn<sub>i</sub>μ<sub>i</sub> = <b>${muTxt}</b>
       (archived chem_pot vertex for this defect's exchanged atoms)</div>
-      <table class="minitbl"><tr><th>q</th><th>E<sub>defect,q</sub></th><th>E<sub>corr</sub></th><th>ΔE</th><th>Eᶠ@VBM</th></tr>`+
+      <table class="minitbl"><tr><th>q</th><th>ΔE (raw)</th><th>Correction</th><th>Eᶠ@VBM</th><th>Eᶠ@CBM</th></tr>`+
       QS.map(q=>{
-        const has=(r.rq&&q in r.rq)||q in r.e||(r.u&&q in r.u);
-        if(!has) return `<tr><td>${+q>0?"+"+q:q}</td><td colspan="4" style="color:var(--wbg-muted)">not run</td></tr>`;
-        const raw=r.rq&&q in r.rq?r.rq[q].toFixed(2):"—";
-        const k=r.k&&q in r.k?r.k[q].toFixed(2):(q==="0"?"0.00":"—");
-        const de=q in r.e?r.e[q]:(r.u&&q in r.u?r.u[q]:null);
-        const warn=!(q in r.e);
-        const ef=de!==null?de+mu+(+q)*r.v:null;
-        return `<tr><td>${+q>0?"+"+q:q}</td><td>${raw}</td><td>${k}</td>
-          <td${warn?' style="color:#a5541a"':''}>${de!==null?de.toFixed(2):"—"}${warn?" *":""}</td>
-          <td${warn?' style="color:#a5541a"':''}><b>${ef!==null?ef.toFixed(2):"—"}</b></td></tr>`;
+        const c=vxv.q[q];
+        if(!c) return `<tr><td>${+q>0?"+"+q:q}</td><td colspan="4" style="color:var(--wbg-muted)">not run</td></tr>`;
+        const corrTxt = r.corr&&r.corr[q] ? "eFNV" : "uncorrected";
+        return `<tr><td>${+q>0?"+"+q:q}</td><td>${fmt(c.dE)}</td><td${r.corr&&r.corr[q]?'':' style="color:#a5541a"'}>${corrTxt}</td>
+          <td><b>${fmt(c.vbm)}</b></td><td>${fmt(c.cbm)}</td></tr>`;
       }).join("")+`</table>`;
-    if("0" in r.e && r.eb!==undefined && r.rq && "0" in r.rq)
-      sig+=`<div style="color:var(--wbg-muted);font-size:12.5px;margin:3px 0 6px">check (q=0):
-        ${r.rq["0"].toFixed(2)} − (${r.eb.toFixed(2)}) + ${mu.toFixed(2)} = ${(r.rq["0"]-r.eb+mu).toFixed(2)} eV</div>`;
   }
   sig+=`<p class="footnote" style="margin-top:6px">* charged state without an archived eFNV correction —
     shown uncorrected, excluded from the envelope and the transition levels. Corrections are the
@@ -904,10 +904,11 @@ async function dOpenDetail(r){
     const eps=(e2-e1)/(q1-q2)-r.v;    // EF where Ef(q1)=Ef(q2), relative to VBM
     levels.push({t:`(${q1>0?"+"+q1:q1}/${q2>0?"+"+q2:q2}`+")",eps});
   }
-  // keep only levels on the lower envelope (thermodynamic)
+  // keep only levels on the lower envelope (thermodynamic). mu is a constant added equally to
+  // every charge state's curve at a shared vertex, so it never changes WHICH curve is lowest --
+  // dropping it here means this test needs no vertex/chem-pot at all, only the raw archived dE.
   const envLv=levels.filter(L=>{
-    const efAt=x=>Math.min(...qsC.map(q=>r.e[String(q)]+ (r.mc!==null?r.mc:r.mt) +q*(r.v+x)));
-    const twoAt=x=>{const vals=qsC.map(q=>({q,v:r.e[String(q)]+(r.mc!==null?r.mc:r.mt)+q*(r.v+x)}));
+    const twoAt=x=>{const vals=qsC.map(q=>({q,v:r.e[String(q)]+q*(r.v+x)}));
       vals.sort((u,w)=>u.v-w.v); return Math.abs(vals[0].v-vals[1].v)<1e-6;};
     return L.eps>-r.g*0.5 && L.eps<r.g*1.5 && twoAt(L.eps);
   });
@@ -971,8 +972,14 @@ async function dRedrawPlot(){
   const r=dSel; if(!r) return;
   await loadPlotly();
   const sel=document.getElementById("dcondsel");
-  const pick=sel&&sel.value&&r[sel.value]!==null?sel.value:(r.mc!==null?"mc":"mt");
-  const mu=pick==="mc"?r.mc:r.mt; if(mu===null) return;
+  const vlist=r.vxu||[];
+  const pick=sel&&sel.value&&r.vx[sel.value]?sel.value:vlist[0];
+  const box0=document.getElementById("efdetailplot");
+  if(!pick){ if(window.Plotly&&box0.data) Plotly.purge(box0);
+    box0.innerHTML='<div class="notebox">No chemical-potential vertex has been solved for this '+
+      'host yet, so E<sub>f</sub>(E<sub>F</sub>) cannot be placed on an absolute scale.</div>';
+    return; }
+  if(box0.innerHTML && !box0.data) box0.innerHTML="";
   // one curve — the selected growth condition (the shape is condition-independent)
   const xs=[],ys=[];
   for(let i=0;i<=80;i++){const x=r.g*i/80;xs.push(x);ys.push(envelope(r,pick,x)[0]);}
@@ -2499,10 +2506,14 @@ async function boot(){
     r.cls = classify(r);
     r.clset = structClasses(r);
     r.nq = QS.filter(q=>q in r.e).length;
+    // "limit 1"/"limit 2" are just the first two vertices whose chemical potentials actually
+    // solved (r.vxu, written by build_payload.py) -- not a fixed cation-rich/anion-rich pair,
+    // since a ternary/quaternary host's facets are not that binary.
+    const v1=r.vxu&&r.vxu[0], v2=r.vxu&&r.vxu[1];
     const mid = r.g/2;
-    [r.efVc,r.qVc]=envelope(r,"mc",0); [r.efVt,r.qVt]=envelope(r,"mt",0);
-    [r.efMc,r.qMc]=envelope(r,"mc",mid); [r.efMt,r.qMt]=envelope(r,"mt",mid);
-    [r.efCc,r.qCc]=envelope(r,"mc",r.g); [r.efCt,r.qCt]=envelope(r,"mt",r.g);
+    [r.efVc,r.qVc]=v1?envelope(r,v1,0):[null,null];       [r.efVt,r.qVt]=v2?envelope(r,v2,0):[null,null];
+    [r.efMc,r.qMc]=v1?envelope(r,v1,mid):[null,null];     [r.efMt,r.qMt]=v2?envelope(r,v2,mid):[null,null];
+    [r.efCc,r.qCc]=v1?envelope(r,v1,r.g):[null,null];     [r.efCt,r.qCt]=v2?envelope(r,v2,r.g):[null,null];
     r.spont = (r.efMc!==null&&r.efMc<0)||(r.efMt!==null&&r.efMt<0);
     r.de0 = "0" in r.e ? r.e["0"] : null;
   });

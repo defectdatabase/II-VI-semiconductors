@@ -200,35 +200,51 @@ for (theory, name), ords in sorted(byname.items()):
 print(f"compounds {len(compounds)}  dos files {n_dos}  run files {n_runs}  optics {len(optics)}")
 
 # ---------------------------------------------------------------- defects
+#
+# dE (E_defect,q - E_pristine) is the SAME across every vertex of a given defect+charge -- it
+# excludes the chemical-potential term entirely. Ef_VBM/Ef_CBM DO vary by vertex, since they add
+# that vertex's own mu solve: Ef_VBM = dE + sum(n_i*mu_i) + q*E_VBM, Ef_CBM = Ef_VBM + q*gap. Using
+# a single arbitrary "first vertex" to define which charge states exist (the previous r["e"]) meant
+# a defect with a real archived trajectory but an unresolved chem-pot vertex silently lost its
+# charge ladder, its movie button, and its transition levels -- three unrelated features died from
+# one field. r["e"] is now keyed from dE (vertex-independent), so archived-but-unsolved defects
+# still show their raw physics; only the chemical-potential-dependent Ef(E_F) plot needs a vertex.
 dd = json.load(open(f"{LOG}/derived_defect.json"))
 dd = list(dd.values()) if isinstance(dd, dict) else dd
 defects = []
 for r in dd:
     theory = THEORY.get(r["theory"], r["theory"])
     vx = {}
+    e = {}
+    corr = {}
     for vname, v in (r.get("vertices") or {}).items():
         ch = {}
         for cname, c in (v.get("charges") or {}).items():
-            ch[str(c["q"])] = {"dE": c.get("dE"), "vbm": c.get("Ef_VBM"), "cbm": c.get("Ef_CBM"),
-                               "note": c.get("note")}
+            q = str(c["q"])
+            ch[q] = {"dE": c.get("dE"), "vbm": c.get("Ef_VBM"), "cbm": c.get("Ef_CBM"),
+                     "note": c.get("note")}
+            if c.get("dE") is not None and q not in e:
+                e[q] = c["dE"]
+            if q not in corr:
+                corr[q] = bool(c.get("corrected"))
         vx[vname] = {"facet": v.get("facet") or [], "q": ch}
-    # e{} keeps the shipped shape: Ef at E_F = VBM, at the first named vertex
-    first = next(iter(vx.values()), None)
-    e = {q: c["vbm"] for q, c in (first["q"].items() if first else [])
-         if c.get("vbm") is not None}
+    # a vertex is USABLE for the Ef(E_F) plot only if it actually solved (has vbm/cbm, not just
+    # the elemental-rich fallback that ships dE with vbm/cbm left null)
+    usable = [vn for vn, v in vx.items()
+              if any(c.get("vbm") is not None for c in v["q"].values())]
     defects.append({
         "f": FK.get(theory, theory), "h": r["host"], "d": r["defect"],
         "t": r.get("host_bulk_match", "raw"),
         "g": r.get("host_gap"), "v": r.get("host_vbm"),
-        "e": e, "mc": None, "mt": None,
+        "e": e, "corr": corr,
         "src": f"raw ({r.get('host_bulk_match')})",
         "u": None, "rq": None,
         "dn": r.get("dn"), "nat": r.get("natoms"),
         "nc": r.get("n_configs"), "sp": r.get("config_spread_meV"),
-        "vx": vx, "tl": r.get("transition_levels") or [],
-        "gs": r.get("ground_state"), "corr": "uncorrected",
+        "vx": vx, "vxu": usable, "tl": r.get("transition_levels") or [],
+        "gs": r.get("ground_state"),
     })
-print(f"defects {len(defects)}")
+print(f"defects {len(defects)}  ({sum(1 for d in defects if d['vxu'])} with a resolved chem-pot vertex)")
 
 # ---------------------------------------------------------------- refs from the chem-pot build
 cp = json.load(open(f"{LOG}/chempot.json"))
