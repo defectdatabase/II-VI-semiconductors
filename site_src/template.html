@@ -486,7 +486,6 @@ body{letter-spacing:-.006em}
   <div class="checks">
     <label><input type="checkbox" id="ck-stable"> Stable (decomposition energy ≤ 0)</label>
     <label><input type="checkbox" id="ck-gap1"> Band gap 1.0–2.0 eV</label>
-    <label><input type="checkbox" id="ck-conv"> Relaxation reached EDIFFG</label>
   </div>
   <div class="covstrip" id="ccov"></div>
   <div class="tbox" id="ctbox">
@@ -1084,7 +1083,7 @@ document.querySelectorAll("#view-explorer .cpill").forEach(p=>p.onclick=()=>{
 /* ================= COMPOUND TABLE ================= */
 /* record: {n:name, f:theory, o:{ordering:[eform,edec,gap,eps,slme,F,nat,cell]}, b:bestOrdering} */
 const CCOLS=[
-  {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}${r.po?` <span style="color:var(--wbg-muted);font-weight:400">${r.po}</span>`:""}</span>`,val:r=>r.n+(r.po||"")},
+  {k:"name",label:"Compound",w:230,cell:(r,v)=>`<span class="c hostc" style="width:230px">${subHTML(r.n)}</span>`,val:r=>r.n},
   {k:"theory",label:"Theory",w:92,cell:(r,v)=>`<span class="c" style="width:92px">${r.f}</span>`,val:r=>r.f},
   {k:"nat",label:"No. of atoms",w:100,num:1,cell:(r,v)=>`<span class="c num" style="width:100px">${v[6]||"—"}</span>`,val:r=>r.o[r.b][6]||0},
   {k:"latt",label:"Lattice parameter (Å)",w:170,cell:(r,v)=>`<span class="c" style="width:170px">${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)}`:"—"}</span>`,val:r=>r.o[r.b][8]?r.o[r.b][8][0]:0},
@@ -1147,7 +1146,6 @@ function cApplyFilters(){
   const q=document.getElementById("csearch").value.trim().toLowerCase();
   const stable=document.getElementById("ck-stable").checked;
   const gap1=document.getElementById("ck-gap1").checked;
-  const conv=document.getElementById("ck-conv").checked;
   const mode=document.getElementById("c-mode").value;
   const stepb=document.getElementById("c-steps").value;
   const has=document.getElementById("c-has").value;
@@ -1157,7 +1155,6 @@ function cApplyFilters(){
     const v=r.o[r.b];
     if(stable&&!(v[1]!==null&&v[1]<=0))return false;
     if(gap1&&!(v[2]!==null&&v[2]>=1&&v[2]<=2))return false;
-    if(conv&&cConv(v)!==true)return false;
     if(mode&&(mode==="none"?cMode(v)!==null&&cMode(v)!==undefined:cMode(v)!==mode))return false;
     if(binf){const n=cSteps(v); if(n===null||n===undefined||!binf(n))return false;}
     if(hasf&&!hasf(r,structKeyOf(r,r.b),v))return false;
@@ -1226,7 +1223,7 @@ function cOpenDetail(r,ord){
   document.getElementById("cdetail").classList.add("on");document.getElementById("modalback").classList.add("on");
   const ords=Object.keys(r.o);
   const oname=o=>ords.length>1?`Ordering ${ords.indexOf(o)+1}`:"Ordering 1";
-  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)}${r.po?` — ${r.po}`:""}` + (ords.length>1
+  document.getElementById("ctitle").innerHTML=`${subHTML(r.n)}` + (ords.length>1
     ? `<span style="margin-left:14px">cation ordering
         <select id="ordsel" style="margin-left:6px">${ords.map(o=>
           `<option value="${o}"${o===cOrd?" selected":""}>${oname(o)}${o===r.b?" — lowest energy":""}</option>`).join("")}</select></span>`
@@ -1273,7 +1270,7 @@ function cOpenDetail(r,ord){
   cRenderRows();
 }
 document.getElementById("csearch").addEventListener("input",cApplyFilters);
-["ck-stable","ck-gap1","ck-conv","c-mode","c-steps","c-has"].forEach(id=>
+["ck-stable","ck-gap1","c-mode","c-steps","c-has"].forEach(id=>
   document.getElementById(id).addEventListener("change",cApplyFilters));
 
 

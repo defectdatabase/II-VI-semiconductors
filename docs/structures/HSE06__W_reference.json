@@ -1,0 +1,1 @@
+{"lattice":{"matrix":[[3.187414,0.0,2e-16],[5e-16,3.187414,2e-16],[0.0,0.0,3.187414]]},"sites":[{"species":[{"element":"W","occu":1}],"abc":[0.0,0.0,0.0],"label":"W","properties":{}},{"species":[{"element":"W","occu":1}],"abc":[0.5,0.5,0.5],"label":"W","properties":{}}],"@module":"pymatgen.core.structure","@class":"Structure","charge":0,"properties":{}}
