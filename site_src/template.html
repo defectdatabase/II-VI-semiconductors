@@ -1088,7 +1088,6 @@ const CCOLS=[
   {k:"nat",label:"No. of atoms",w:100,num:1,cell:(r,v)=>`<span class="c num" style="width:100px">${v[6]||"—"}</span>`,val:r=>r.o[r.b][6]||0},
   {k:"latt",label:"Lattice parameter (Å)",w:170,cell:(r,v)=>`<span class="c" style="width:170px">${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)}`:"—"}</span>`,val:r=>r.o[r.b][8]?r.o[r.b][8][0]:0},
   {k:"ang",label:"α × β × γ (°)",w:140,cell:(r,v)=>`<span class="c" style="width:140px">${v.length>18&&v[18]?v[18].map(x=>x.toFixed(1)).join(" × "):"—"}</span>`,val:r=>{const w=r.o[r.b];return w.length>18&&w[18]?w[18][0]:null;}},
-  {k:"calc",label:"Calculation",w:150,cell:(r,v)=>`<span class="c" style="width:150px">${cCalcLabel(v)}</span>`,val:r=>cCalcLabel(r.o[r.b])},
   {k:"eform",label:"Formation energy (eV/atom)",w:190,num:1,vi:0},
   {k:"edec",label:"Decomposition energy (eV/f.u.)",w:210,num:1,vi:1},
   {k:"gap",label:"Band gap (eV)",w:130,num:1,vi:2},
@@ -1982,7 +1981,28 @@ async function drawDOS(r,ord,key){
   if(!d||!d.e||!d.e.length) return "missing";
   if(cSel!==r) return "stale";
   const elementNames=Object.keys(d.el||{});
-  if(!elementNames.length) return d.total&&d.total.length?"total-only":"missing";
+  if(!elementNames.length){
+    // no per-ion projection in this run, but the total curve is real: draw it and say so,
+    // rather than showing an empty panel
+    if(!(d.total&&d.total.length)) return "missing";
+    head.style.display="";note.style.display="";
+    head.innerHTML="Total electronic density of states";
+    el.style.height="250px";
+    await loadPlotly();
+    if(cSel!==r) return "stale";
+    if(window.Plotly&&el.data) Plotly.purge(el);
+    el.replaceChildren();
+    Plotly.react(el,[{x:d.e,y:d.total,name:"total",mode:"lines",fill:"tozeroy",
+      line:{color:"#0e7490",width:1.6},fillcolor:"#0e749033",
+      hovertemplate:"total: %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"}],{
+      margin:{l:60,r:10,t:8,b:44},font:{family:"Arial Narrow, Arial, sans-serif",size:12},
+      xaxis:{title:{text:"Energy relative to Fermi level (eV)",font:{size:12}},range:[-4,4],zeroline:false,showgrid:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
+      yaxis:{title:{text:"Density of states (states/eV)",font:{size:12}},showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
+      shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1.2,dash:"dash"}}],
+      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+    note.innerHTML=`Total density of states only — this run wrote no per-ion projection. Source: ${d.source||"archived DOS"}.`;
+    return "projected";
+  }
   head.style.display=""; note.style.display="";
   head.innerHTML="Element-projected electronic density of states";
   el.style.height="250px";
