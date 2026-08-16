@@ -2217,15 +2217,30 @@ function opticsHTML(v,key){
         ${pick.map(a=>`α(${a[0].toFixed(2)} eV) = ${Number(a[1]).toExponential(1)} cm<sup>−1</sup>`).join(" · ")}.`;
     }
     if(slmeCurve&&slmeCurve.length){
+      // v[14] used to be a single [thickness, SLME] pair and is now the whole curve
+      // [[0.5,31.5],[1.0,32.6],...]. Reading v[14][1].toFixed against the new shape threw, and
+      // because the throw happened inside the provenance render it blanked the ENTIRE breakdown
+      // on every row that has an SLME. Take the peak from the curve itself.
+      const peak=(v[14]||[]).reduce((b,a)=>(Array.isArray(a)&&(!b||a[1]>b[1]))?a:b, null)||[0,0];
       const pk=slmeCurve.filter((a,i)=>i%3===0).slice(0,4);
       out+=`<br><b>SLME</b> (Yu–Zunger, from α(E) and E<sub>g</sub> at 293.15 K) vs absorber thickness L:
         ${pk.map(a=>`SLME(${a[0].toFixed(1)} µm) = ${a[1].toFixed(1)}%`).join(" · ")} →
-        maximum <span class="mono">${v[14][1].toFixed(2)}%</span> at L = ${v[14][0].toFixed(1)} µm (published value).`;
+        maximum <span class="mono">${peak[1].toFixed(2)}%</span> at L = ${peak[0].toFixed(1)} µm (published value).`;
     }
   }
   return out;
 }
+// Four separate crashes inside this render have blanked the whole breakdown today. The panel is
+// assembled from independent blocks, so one failing block should cost that block, not the page.
 function provenanceHTML(r,ord){
+  try{ return provenanceBody(r,ord); }
+  catch(e){
+    return `<b>Level of theory: ${r.f}.</b><br>Part of this breakdown could not be rendered `
+      + `(${String(e && e.message).slice(0,120)}). The table values above come straight from the `
+      + `payload and are unaffected.`;
+  }
+}
+function provenanceBody(r,ord){
   const th = r.f;
   const v = r.o[ord]; const F = v[5], nat = v[6];
   if(r.ref){
