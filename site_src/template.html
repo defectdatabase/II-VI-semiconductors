@@ -1267,9 +1267,11 @@ function cOpenDetail(r,ord){
        cConv(v)===true?" — reached EDIFFG":cConv(v)===false&&String(cMode(v)).startsWith("relax")?" — EDIFFG not reached":""}</span></div>`;
   document.getElementById("cnote").scrollTop=0;
   if(!OPTICS && r.o[cOrd] && r.o[cOrd].length>14 && r.o[cOrd][14]){
-    // fetch the optics side-payload first so the panel types exactly once
-    document.getElementById("cnote").innerHTML="";
-    loadOptics().then(()=>{ if(cSel===r) typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd)); });
+    // Show the breakdown NOW from what is already loaded, then refresh once the optics side-payload
+    // lands. Blanking the panel for the duration of a 20 MB fetch is what made it look broken.
+    typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd));
+    loadOptics().then(()=>{ if(cSel===r) document.getElementById("cnote").innerHTML=provenanceHTML(r,cOrd); })
+                .catch(()=>{});
   } else {
     typeInto(document.getElementById("cnote"), provenanceHTML(r,cOrd));
   }
@@ -2153,7 +2155,12 @@ function typeInto(el, html){
   const gen=++TYPEGEN;
   const tokens=html.split(/(<[^>]+>|\s+)/).filter(t=>t!=="");
   if(document.hidden){ el.innerHTML=html; return; }
-  const perTick=1;                                            // one word per tick — steady, deliberate
+  // One word per 44 ms tick meant a 250-word provenance block took ELEVEN SECONDS to appear, and
+  // for a row with optics the panel was cleared first and stayed visibly blank the whole time.
+  // Read as "why is it empty", and fairly. Scale the rate so any block finishes in about 600 ms:
+  // still a deliberate reveal, never a wait.
+  const words=tokens.filter(t=>!/^</.test(t)&&t.trim()).length;
+  const perTick=Math.max(1, Math.ceil(words/14));              // ~14 ticks x 44 ms
   let i=0, buf="";
   el.innerHTML="";
   TYPETIMER=setInterval(()=>{
