@@ -378,7 +378,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="9bd1459d8522";
+  var BUILD_ID="488809c5461f";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -1305,6 +1305,7 @@ function stepTable(st){
   return `<table class="steptab"><thead><tr><th>step</th><th>E (eV)</th><th>ΔE (eV)</th>`
     +`<th>max|F| (eV/Å)</th><th>on atom</th><th>max|σ| (kBar)</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
+let INCAR_TICKET=0;
 function openIncar(theory,r,ord){
   document.getElementById("incartitle").innerHTML=r?subHTML(r.n):theory;
   let body="Reading this run's INCAR, POTCAR, KPOINTS and ionic steps…";
@@ -1324,8 +1325,19 @@ function openIncar(theory,r,ord){
   // the authoritative breakdown is this run's OWN archived INCAR / POTCAR / KPOINTS and every
   // ionic step, not the per-theory summary above
   const rk=r&&ord?structKeyOf(r,ord):null;
+  // Every open gets a ticket. runs/<key>.json.gz for a 288-atom cell takes far longer to arrive
+  // than it takes to click the next row, and without this the SLOWER fetch wins: the card showed
+  // a PBE INCAR under a PBE+U title, and a PBEsol INCAR under an HSE+SOC one, reproducibly.
+  const ticket=++INCAR_TICKET;
   if(rk) fetchRun(rk).then(d=>{
-    if(!d) return;
+    if(ticket!==INCAR_TICKET) return;          // a later row opened while this was in flight
+    if(!d){
+      const el0=document.getElementById("incarbody");
+      if(el0) el0.innerHTML=`<b>Calculation inputs</b><br>This run's INCAR, POTCAR and KPOINTS `
+        +`are not in the published archive, so nothing is shown rather than something borrowed `
+        +`from another run.`;
+      return;
+    }
     const el=document.getElementById("incarbody"); if(!el) return;
     const inc=d.incar||{};
     const keys=Object.keys(inc).sort();
