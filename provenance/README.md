@@ -1519,7 +1519,7 @@ levels of theory, so the name had to be general. Applied in the same pass so not
 old one:
 
 ```
-/eagle/wbg_defects/material_hub                      <- the project
+/eagle/wbg_defects/materialHUB                      <- the project
 /eagle/wbg_defects/hyperion             -> material_hub
 /eagle/wbg_defects/selene               -> material_hub
 /eagle/wbg_defects/chalcogenide_defects -> material_hub
@@ -1527,7 +1527,7 @@ old one:
 
 All three compat symlinks point straight at `material_hub` (not chained), so every script, log and
 absolute path written before today still resolves. `log/build_bulk_payload.py` now names
-`/eagle/wbg_defects/material_hub` directly.
+`/eagle/wbg_defects/materialHUB` directly.
 
 | | before | after |
 |---|---|---|
@@ -1631,7 +1631,7 @@ and nothing at top level except `DFT`, `log`, `software`, `README.md`.
 
 `selene`, `hyperion` and `chalcogenide_defects` were symlinks beside `material_hub`. All three are
 **deleted**, and the 24 scripts in `log/` that still named an old path were rewritten to
-`/eagle/wbg_defects/material_hub` (0 references remain). Five stray `core.*` dumps in the parent
+`/eagle/wbg_defects/materialHUB` (0 references remain). Five stray `core.*` dumps in the parent
 directory went too.
 
 ### The three traps, each caught by a second route
