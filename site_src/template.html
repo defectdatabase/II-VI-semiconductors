@@ -674,7 +674,10 @@ function classify(r){
   const hostEls = new Set(HOSTELS(r.h));
   const parts = r.d.split("_");
   const added = parts[0];
-  if(added==="V") return "native";           // vacancy of a host atom
+  // The archive spells a vacancy Vac_X. It used to be V_X, and this test was never updated when
+  // the tree was renamed -- so "Vac" was not the host element, fell through, and EVERY vacancy in
+  // the library was labelled a dopant (Vac_Al in AgAl0.5Ga0.5Se2 among them).
+  if(added==="Vac"||added==="V") return "native";
   return hostEls.has(added) ? "native" : "dopant";
 }
 function structClasses(r){
@@ -704,12 +707,12 @@ const DCOLS=[
   {k:"d",label:"Defect",w:190,cell:r=>`<span class="c defc" style="width:190px">${defHTML(r.d)}</span>`,val:r=>r.d},
   {k:"cls",label:"Class",w:94,cell:r=>`<span class="c ${["vacancy","interstitial"].some(x=>r.clset.has(x))&&r.cls!=="complex"?"cls-teal":"cls-amber"}" style="width:94px">${r.cls}</span>`,val:r=>r.cls},
   {k:"f",label:"Theory",w:92,cell:r=>`<span class="c" style="width:92px">${THEORY[r.f]}</span>`,val:r=>r.f},
-  {k:"efVc",label:"Eᶠ@VBM Cd-rich",w:124,num:1,val:r=>r.efVc},
-  {k:"efVt",label:"Eᶠ@VBM Te-rich",w:124,num:1,val:r=>r.efVt},
-  {k:"efMc",label:"Eᶠ@mid Cd-rich",w:124,num:1,val:r=>r.efMc},
-  {k:"efMt",label:"Eᶠ@mid Te-rich",w:124,num:1,val:r=>r.efMt},
-  {k:"efCc",label:"Eᶠ@CBM Cd-rich",w:124,num:1,val:r=>r.efCc},
-  {k:"efCt",label:"Eᶠ@CBM Te-rich",w:124,num:1,val:r=>r.efCt},
+  {k:"efVc",label:"Eᶠ@VBM cation-rich",w:124,num:1,val:r=>r.efVc},
+  {k:"efVt",label:"Eᶠ@VBM anion-rich",w:124,num:1,val:r=>r.efVt},
+  {k:"efMc",label:"Eᶠ@mid cation-rich",w:124,num:1,val:r=>r.efMc},
+  {k:"efMt",label:"Eᶠ@mid anion-rich",w:124,num:1,val:r=>r.efMt},
+  {k:"efCc",label:"Eᶠ@CBM cation-rich",w:124,num:1,val:r=>r.efCc},
+  {k:"efCt",label:"Eᶠ@CBM anion-rich",w:124,num:1,val:r=>r.efCt},
 ];
 let dSort={k:"efMt",asc:true},dSel=null,dFiltered=[];
 let dClass="all";
@@ -788,8 +791,14 @@ async function dOpenDetail(r){
   dSel=r;
   const panel=document.getElementById("detail");panel.classList.add("on");document.getElementById("modalback").classList.add("on");
   document.getElementById("dtitle").innerHTML=`${defHTML(r.d)} in ${subHTML(r.h)} — ${THEORY[r.f]}`;
-  const anion=/Se/.test(r.h)&&/Te/.test(r.h)?"Se/Te":(/Se/.test(r.h)?"Se":"Te");
-  const conds=[["mc",`Cd-rich`],["mt",`${anion}-rich`]].filter(([c])=>r[c]!==null);
+  // Name the two limits from THIS host, not from CdTe. The anion is the most electronegative
+  // element present; the cation-rich limit is named for the host's leading cation.
+  const ANION=["O","F","S","Cl","Se","Br","Te","I","N","P","As","Sb"];
+  const hels=HOSTELS(r.h);
+  const anions=hels.filter(e=>ANION.includes(e));
+  const anion=anions.length?anions.join("/"):"anion";
+  const cation=hels.filter(e=>!ANION.includes(e))[0]||"cation";
+  const conds=[["mc",`${cation}-rich`],["mt",`${anion}-rich`]].filter(([c])=>r[c]!==null);
   const csel=document.getElementById("dcondsel");
   csel.innerHTML=conds.map(([c,l],i)=>`<option value="${c}"${i===0?" selected":""}>${l}</option>`).join("");
   csel.style.display=conds.length?"":"none";
@@ -1604,6 +1613,17 @@ function trajStructure(fr){
            abc[0]*lat[0][2]+abc[1]*lat[1][2]+abc[2]*lat[2][2]],
       label:TSPECIES[i],properties:{}}))};
 }
+// A host relaxation starts from an already-relaxed cell, so the atoms genuinely barely move --
+// the median largest displacement across this library is 0.015 A, which is invisible and reads as
+// a broken viewer. State the number instead of leaving the reader to guess.
+function dispNote(t){
+  const d=t.disp;
+  if(typeof d!=="number") return "";
+  if(d<0.02) return `Largest atomic displacement over the whole relaxation: <b>${d.toFixed(3)} A</b> \u2014 `
+    +`this run started from an already-relaxed cell, so the motion is real but far below what is visible at this scale.`;
+  if(d<0.1)  return `Largest atomic displacement over the whole relaxation: <b>${d.toFixed(3)} A</b> \u2014 small but visible.`;
+  return `Largest atomic displacement over the whole relaxation: <b>${d.toFixed(2)} A</b>.`;
+}
 async function showFrame(i){
   if(!TRAJ||!TRAJ.frames) return;
   TFRAME=Math.max(0,Math.min(TRAJ.frames.length-1,i));
@@ -1672,7 +1692,7 @@ async function mountTraj(key,sub,label,boxId){
      <div id="${P}struct" style="width:100%;height:340px;border:1px solid var(--wbg-border);border-radius:8px;background:#fff"></div>
      <div id="${P}plot" style="width:100%;height:210px;margin-top:8px"></div>
      <div class="notebox">${label} — ${t.nframes} ionic steps from XDATCAR; energies from OSZICAR (F),
-       forces are max |F| per step from OUTCAR. ${t.frames.length<t.nframes?`Showing ${t.frames.length} evenly sampled frames.`:""}</div>`;
+       forces are max |F| per step from OUTCAR. ${t.frames.length<t.nframes?`Showing ${t.frames.length} evenly sampled frames. `:""}${dispNote(t)}</div>`;
   const xs=t.frames.map(f=>f.i), es=t.frames.map(f=>f.e), fs=t.frames.map(f=>f.f);
   await loadPlotly();
   Plotly.newPlot(P+"plot",[
