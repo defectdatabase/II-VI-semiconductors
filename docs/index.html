@@ -378,7 +378,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="0a4961b30006";
+  var BUILD_ID="b341bab7381e";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -670,9 +670,10 @@ const THEORY = {pbesol:"PBEsol", hsesoc:"HSE+SOC"};
 
 /* ---------- formatting ---------- */
 const dropOnes = s => s.replace(/([A-Z][a-z]?)1(?![\d.])/g,"$1");
-// kesterite/stannite are cation orderings of the same compound, not different materials —
-// spell that out instead of printing the bare mineral name
-const subHTML = s => dropOnes(String(s).replace(/_(kesterite|stannite)\b/g," (cation ordering: $1)"))
+// kesterite/stannite are cation orderings of the same compound, and the mineral names are
+// meaningless for an alloy — number them the way the compound detail already does
+const ORDNUM = {kesterite:"ordering 1", stannite:"ordering 2"};
+const subHTML = s => dropOnes(String(s).replace(/_(kesterite|stannite)\b/g,(m,o)=>` (${ORDNUM[o]})`))
   .replace(/([A-Za-z\)])([\d.]+)/g,(m,a,n)=>a+"<sub>"+n+"</sub>");
 // INCAR and POTCAR strings are quoted verbatim, so they go through here first: a POTCAR TITEL
 // carries a date and a slash, and an INCAR value can carry a '<'.
@@ -1251,7 +1252,7 @@ document.getElementById("ctview").addEventListener("scroll",cRenderRows);
 function cRenderMeta(){
   document.getElementById("cfoot").innerHTML=
     `One row per compound and level of theory; the table shows the lowest-energy cation ordering —
-     click a row to switch between orderings (kesterite / stannite are ordering variants of the same
+     click a row to switch between orderings (ordering 1 / ordering 2 are cation-ordering variants of the same
      compound). Formation energy per atom versus same-theory elemental references; decomposition
      energy per formula unit versus the stoichiometric binary decomposition including ideal-mixing
      entropy (red = unstable); band gap from occupied-band counting on EIGENVAL; ε<sub>∞</sub> is the electronic LOPTICS dielectric;
