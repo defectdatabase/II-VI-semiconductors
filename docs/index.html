@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="a7c0a63d1588";
+  var BUILD_ID="ec9086a5bf09";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -893,11 +893,13 @@ async function dOpenDetail(r){
     const anyq=QS.map(q=>vxv.q[q]).find(c=>c&&c.muterms);
     if(anyq){
       sig+=`<div style="color:var(--wbg-muted);font-size:12.5px;margin:4px 0 2px">Chemical-potential term, per element
-        (n<sub>i</sub> = atoms exchanged with the reservoir; −n<sub>i</sub>μ<sub>i</sub> is its contribution):</div>
-        <table class="minitbl"><tr><th>element</th><th>n<sub>i</sub></th><th>μ<sub>i</sub> (eV)</th><th>−n<sub>i</sub>μ<sub>i</sub> (eV)</th></tr>`+
+        (n<sub>i</sub> &gt; 0 = atoms removed to the reservoir, e.g. a vacancy; n<sub>i</sub> &lt; 0 = atoms
+        taken from it, e.g. an interstitial or the substituting species; n<sub>i</sub>μ<sub>i</sub> is the
+        contribution in the formula above):</div>
+        <table class="minitbl"><tr><th>element</th><th>n<sub>i</sub></th><th>μ<sub>i</sub> (eV)</th><th>n<sub>i</sub>μ<sub>i</sub> (eV)</th></tr>`+
         Object.keys(anyq.muterms).map(e=>{
           const mui=(anyq.mu||{})[e];
-          const ni=(mui!==undefined&&mui!==0)?(-anyq.muterms[e]/mui):null;
+          const ni=(mui!==undefined&&mui!==0)?(anyq.muterms[e]/mui):null;
           return `<tr><td>${subHTML(e)}</td><td>${ni===null?"—":ni.toFixed(3)}</td>
             <td>${fmt(mui,3)}</td><td>${fmt(anyq.muterms[e])}</td></tr>`;
         }).join("")+
@@ -907,7 +909,8 @@ async function dOpenDetail(r){
     if(r.hF!==undefined&&r.hF!==null)
       sig+=`<div style="color:var(--wbg-muted);font-size:12.5px;margin:3px 0 6px">Bulk reference: host total
         F = <b>${r.hF.toFixed(3)} eV</b> over ${r.hN} atoms = <b>${(r.hpa||0).toFixed(4)} eV/atom</b>;
-        E<sub>bulk ref</sub> above is that per-atom energy times this defect cell's atom count.</div>`;
+        E<sub>bulk ref</sub> = that per-atom energy × <b>${r.nps||"?"}</b> atoms — the commensurate
+        pristine supercell this defect cell derives from (defect cell: ${r.nat} atoms).</div>`;
   }
   sig+=`<p class="footnote" style="margin-top:6px">* charged state without an archived eFNV correction —
     shown uncorrected, excluded from the envelope and the transition levels. Corrections are the
@@ -2219,7 +2222,8 @@ async function mvmLoad(sub){
   const t=MVM.data[sub]; MVM.cur=t; MVM.frame=0;
   const frames=t.frames, eLast=frames[frames.length-1].e;
   const dE0=Number.isFinite(frames[0].e)&&Number.isFinite(eLast)?frames[0].e-eLast:null;
-  const decreaseText=dE0===null?"Unavailable":Math.abs(dE0)<.01?`${(dE0*1000).toFixed(2)} meV`:`${dE0.toFixed(2)} eV`;
+  const decreaseText=dE0===null?"per-step energies not archived — movie shows geometry only"
+    :Math.abs(dE0)<.01?`${(dE0*1000).toFixed(2)} meV`:`${dE0.toFixed(2)} eV`;
   const fLast=frames[frames.length-1].f, converged=fLast!==null&&fLast!==undefined&&fLast<=EDIFFG;
   document.getElementById("mvm-kind").textContent="Relaxation movie";
   document.getElementById("mvm-body").classList.remove("static");
