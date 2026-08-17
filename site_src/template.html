@@ -971,11 +971,10 @@ async function dOpenDetail(r){
     }
     const ph=Object.entries(cp.phases||{});
     if(ph.length){
-      app+=`<div style="font-size:12.5px;margin:8px 0 4px"><b>Competing phases</b> (${ph.length} archived runs — raw F, atoms, E/atom):</div>
-        <table class="minitbl">`+
-        `<tr><th>Phase</th><th>F (eV)</th><th>atoms</th><th>E/atom</th></tr>`+
-        ph.map(([n,[F,na]])=>`<tr><td>${subHTML(n)}</td><td>${F.toFixed(2)}</td><td>${na}</td><td>${(F/na).toFixed(3)}</td></tr>`).join("")+
-        `</table>`;
+      // the full phase-by-phase energy dump ran to 100+ rows per panel and drowned the
+      // physics; the derivation block above already names the binding phases per vertex
+      app+=`<div style="color:var(--wbg-muted);font-size:12px;margin:6px 0 2px">${ph.length} archived
+        competing-phase runs entered the polytope for this system (energies in chempot.json).</div>`;
     }
     // append after the typewriter finishes so the animation is not restarted
     const wait=setInterval(()=>{
@@ -1239,13 +1238,22 @@ async function mountDefectStructure(r,trajKey){
   const labelCounts=defectPartCounts(r.d), cellCounts=cellPartCounts(st,host);
   const counts=(cellCounts&&(cellCounts.atoms!==labelCounts.atoms||cellCounts.vac!==labelCounts.vac))
     ? cellCounts : labelCounts;
-  const marks=defectSiteIndices(st,host,dark,r.d,counts);
-  let vac=vacancySites(st,host,r.d,counts);
+  /* Precomputed marks (log/gen_marks.py on Eagle) cover every row with archived geometry —
+     computed once, data-side, with the same algorithm plus primitive replication. The client
+     recomputes only when the payload has nothing for this row. */
+  let marks, vac;
+  if(r.mk){
+    marks=r.mk.slice();
+    vac=(r.vc||[]).map(v=>({abc:v.abc.slice(),el:v.el,d:99}));
+  }else{
+    marks=defectSiteIndices(st,host,dark,r.d,counts);
+    vac=vacancySites(st,host,r.d,counts);
   /* A substitution IS "+new element, -old element" in composition, so the cell-derived counts
      put one atom AND one vacancy at the same lattice site and Zn_S rendered as "2 defect
      sites". A hole within 1.2 A of a marked atom is the marked atom's own site — drop it. */
-  vac=vac.filter(v=>!marks.some(mi=>minImageDist(st.lattice.matrix,
-    [st.sites[mi].abc[0]-v.abc[0],st.sites[mi].abc[1]-v.abc[1],st.sites[mi].abc[2]-v.abc[2]])<1.2));
+    vac=vac.filter(v=>!marks.some(mi=>minImageDist(st.lattice.matrix,
+      [st.sites[mi].abc[0]-v.abc[0],st.sites[mi].abc[1]-v.abc[1],st.sites[mi].abc[2]-v.abc[2]])<1.2));
+  }
   DSTRUCT_MARKS=marks; DSTRUCT_VAC=vac;
   const base=pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure";
   const bits=[];
@@ -1259,6 +1267,7 @@ async function mountDefectStructure(r,trajKey){
   // bulk comparison), which also catches the atom beside a vacancy. Passing highlight overrode that
   // and marked fewer sites than the reference - verified against the standalone viewer.
   sgShow(el,{type:"struct",cif:structureCIF(st),bulkCif:bulk,
+    highlight:(!bulk&&r.mk&&r.mk.length)?r.mk:undefined,
     nparts:counts.atoms+counts.vac});
   note.innerHTML="";
 }
@@ -1815,19 +1824,57 @@ async function pickHostForDefect(r,st){
       if(HAVE_STRUCT.has(k)&&!keys.includes(k)) keys.push(k);
     }
   }
-  let best=null,bestScore=1e9;
+  let best=null,bestScore=1e9,smallest=null;
   for(const key of keys){
     if(!HAVE_STRUCT.has(key)) continue;
     let cand=null;
     try{ const resp=await fetch(`structures/${encodeURIComponent(key)}.json`);
       if(resp.ok&&(resp.headers.get("content-type")||"").includes("json")) cand=hydrate(await resp.json());
     }catch(e){}
-    if(!cand||Math.abs(cand.sites.length-st.sites.length)>8) continue;
+    if(!cand) continue;
+    if(!smallest||cand.sites.length<smallest.sites.length) smallest=cand;
+    if(Math.abs(cand.sites.length-st.sites.length)>8) continue;
     const sc=hostMismatchScore(st,cand);
     if(sc<bestScore){best=cand;bestScore=sc;}
     if(bestScore<=2) break;
   }
+  /* Binary hosts often archive only the primitive (CdSe: 2 atoms vs a 65-atom Cd_i cell), so a
+     self-interstitial had NO host to diff against and no site was ever marked. If the defect
+     lattice is an integer multiple of the primitive lattice, build the commensurate supercell
+     by replication and use that. */
+  if(!best&&smallest&&smallest.sites.length<st.sites.length){
+    const rep=replicateToLattice(smallest,st.lattice.matrix,st.sites.length);
+    if(rep&&hostMismatchScore(st,rep)<=8) best=rep;
+  }
   return best;
+}
+function replicateToLattice(prim,L,wantN){
+  const P=prim.lattice.matrix;
+  const inv3=m=>{const d=m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+    if(Math.abs(d)<1e-9)return null;
+    const c=(i,j)=>{const a=[0,1,2].filter(x=>x!==i),b=[0,1,2].filter(x=>x!==j);
+      return ((i+j)%2?-1:1)*(m[a[0]][b[0]]*m[a[1]][b[1]]-m[a[0]][b[1]]*m[a[1]][b[0]]);};
+    return [[c(0,0)/d,c(1,0)/d,c(2,0)/d],[c(0,1)/d,c(1,1)/d,c(2,1)/d],[c(0,2)/d,c(1,2)/d,c(2,2)/d]];};
+  const Pi=inv3(P); if(!Pi) return null;
+  const mul=(A,B)=>A.map((r2,i)=>[0,1,2].map(j=>r2[0]*B[0][j]+r2[1]*B[1][j]+r2[2]*B[2][j]));
+  const M=mul(L,Pi);
+  const Mr=M.map(r2=>r2.map(Math.round));
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++) if(Math.abs(M[i][j]-Mr[i][j])>0.05) return null;
+  const det=Mr[0][0]*(Mr[1][1]*Mr[2][2]-Mr[1][2]*Mr[2][1])-Mr[0][1]*(Mr[1][0]*Mr[2][2]-Mr[1][2]*Mr[2][0])+Mr[0][2]*(Mr[1][0]*Mr[2][1]-Mr[1][1]*Mr[2][0]);
+  if(det<=0||Math.abs(det*prim.sites.length-wantN)>8+1) return null;
+  const Mi=inv3(Mr.map(r2=>r2.slice())); if(!Mi) return null;
+  const lim=Mr.flat().reduce((a,b)=>Math.max(a,Math.abs(b)),0)+1;
+  const sites=[];
+  for(const s2 of prim.sites){
+    for(let i=-lim;i<=lim;i++)for(let j=-lim;j<=lim;j++)for(let k=-lim;k<=lim;k++){
+      const p=[s2.abc[0]+i,s2.abc[1]+j,s2.abc[2]+k];
+      const f=[0,1,2].map(x=>p[0]*Mi[0][x]+p[1]*Mi[1][x]+p[2]*Mi[2][x]);
+      if(f.every(v2=>v2>-1e-6&&v2<1-1e-6))
+        sites.push({species:s2.species,abc:f.map(v2=>Math.min(Math.max(v2,0),1)),label:s2.label,properties:{}});
+    }
+  }
+  if(Math.abs(sites.length-det*prim.sites.length)>0) return null;
+  return {lattice:{matrix:L},sites};
 }
 async function hostSupercell(r,wantN){
   /* wantN = the defect cell's atom count. Candidates are tried until one is size-compatible
@@ -2674,14 +2721,20 @@ function edgesHTML(v){
     band gap = ${v[12].toFixed(2)} − ${v[11].toFixed(2)} = <span class="mono">${(v[12]-v[11]).toFixed(2)}</span> eV.`;
 }
 function opticsHTML(v,key){
-  if(!(v.length>13&&v[13])) return v[3]!==null&&v[3]!==undefined
+  /* The absorption/SLME block used to sit INSIDE the eps-tensor branch, so every row whose
+     LOPTICS run archived alpha(E) but not REAL.in showed no SLME at all. The two are
+     independent measurements of the same run: render each on its own evidence. */
+  let out="";
+  if(!(v.length>13&&v[13])){
+    out = v[3]!==null&&v[3]!==undefined
     ? `<br><b>Dielectric constant</b> — real part of the density–density dielectric function of the LOPTICS run
        at zero frequency: ε<sub>∞</sub> = (ε<sub>xx</sub> + ε<sub>yy</sub> + ε<sub>zz</sub>)/3 = Re ε(E = 0) averaged over the
        three diagonal components = <span class="mono">${v[3].toFixed(2)}</span>. The per-component breakdown
        (REAL.in) was not archived for this run, so only the mean is quoted.`
     : `<br>No LOPTICS in this campaign, so the dielectric constant and SLME are not published.`;
+  } else {
   const e=v[13], mean=(e[0]+e[1]+e[2])/3;
-  let out=`<br><b>Dielectric constant</b> — ε<sub>∞</sub> = ⅓ Tr[ε<sub>1</sub>(E → 0)] = (ε<sub>xx</sub> + ε<sub>yy</sub> + ε<sub>zz</sub>)/3,
+  out=`<br><b>Dielectric constant</b> — ε<sub>∞</sub> = ⅓ Tr[ε<sub>1</sub>(E → 0)] = (ε<sub>xx</sub> + ε<sub>yy</sub> + ε<sub>zz</sub>)/3,
     read off the first row of REAL.in, which IS ε<sub>1</sub> at zero frequency. This is the
     ELECTRONIC (high-frequency, ε<sub>∞</sub>) constant only — LOPTICS holds the ions fixed, so the
     lattice-polarisation term that LEPSILON with IBRION 8 would add is not included;
@@ -2690,6 +2743,7 @@ function opticsHTML(v,key){
     ε<sub>zz</sub> = <span class="mono">${e[2].toFixed(2)}</span> →
     ε<sub>∞</sub> = (${e[0].toFixed(2)} + ${e[1].toFixed(2)} + ${e[2].toFixed(2)})/3
     = <span class="mono">${mean.toFixed(2)}</span>.`;
+  }
   const side=(OPTICS&&key&&OPTICS[key])||null;
   const slmeCurve=side?side.slme:null, absCurve=side?side.abs:null;
   if(v.length>14&&v[14]){
@@ -2712,8 +2766,10 @@ function opticsHTML(v,key){
       const peak=(v[14]||[]).reduce((b,a)=>(Array.isArray(a)&&(!b||a[1]>b[1]))?a:b, null)||[0,0];
       const pk=slmeCurve.filter((a,i)=>i%3===0).slice(0,4);
       out+=`<br><b>SLME</b> — spectroscopic limited maximum efficiency (Yu &amp; Zunger,
-        <i>Phys. Rev. Lett.</i> <b>108</b>, 068701 (2012)), computed by vaspkit task 719 at
-        T = 293.15 K against the ASTM G173-03 AM1.5G spectrum:<br>
+        <i>Phys. Rev. Lett.</i> <b>108</b>, 068701 (2012)), computed by this site's build pipeline
+        from the campaign's α(E) at T = 300 K, film thickness L = 0.5 µm, radiative-recombination
+        limit (Δ = 0 — the direct-allowed gap was not archived, so the indirect penalty is not
+        applied), absorption onset at the band gap, against the ASTM G173-03 AM1.5G spectrum:<br>
         &nbsp;&nbsp;1. absorptivity of a film of thickness L with a perfect back reflector:
              a(E) = 1 − exp(−2α(E)L).<br>
         &nbsp;&nbsp;2. short-circuit current J<sub>sc</sub> = e ∫ a(E)·I<sub>AM1.5G</sub>(E)/E dE.<br>
@@ -2725,8 +2781,7 @@ function opticsHTML(v,key){
              SLME = max<sub>V</sub>(J·V) / ∫I<sub>AM1.5G</sub>(E)dE, the denominator being 1000.37 W m<sup>−2</sup>.<br>
         &nbsp;&nbsp;evaluated at each thickness:
         ${pk.map(a=>`SLME(${a[0].toFixed(1)} µm) = ${a[1].toFixed(1)}%`).join(" · ")} →
-        the published value is the thick-film limit,
-        <span class="mono">${peak[1].toFixed(2)}%</span> at L = ${peak[0].toFixed(1)} µm.`;
+        published: <span class="mono">${peak[1].toFixed(2)}%</span> at L = ${peak[0].toFixed(1)} µm.`;
     }
   }
   return out;
@@ -2784,16 +2839,16 @@ function provenanceBody(r,ord){
   // printed -4.12 eV/f.u. against the table's -0.29 and listed 2 of the 4 phases.
   if(v.length>27&&v[27]&&v[27].terms&&v[27].terms.length){
     const D=v[27];
-    const rows=D.terms.map(t=>`${t.coeff} · E(${subHTML(t.phase)}) = ${t.contribution.toFixed(3)} eV`
-      +`  [E(${subHTML(t.phase)}) = ${t.E_pfu.toFixed(3)} eV/f.u.]`).join("<br>&nbsp;&nbsp;");
+    const rows=D.terms.map(t=>`${t.coeff} · ΔH<sub>f</sub>(${subHTML(t.phase)}) = ${t.contribution.toFixed(3)} eV`
+      +`  [ΔH<sub>f</sub>(${subHTML(t.phase)}) = ${t.E_pfu.toFixed(3)} eV/f.u.]`).join("<br>&nbsp;&nbsp;");
     const pre=(D.pre&&D.pre!==1)?`${D.pre} · `:"";
     return `<b>Level of theory: ${th.split(" (")[0]}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F.toFixed(2)}</span> eV
-    for the ${nat}-atom cell (${nfu.toFixed(0)} formula units), E<sub>f.u.</sub> =
-    <span class="mono">${D.E_pfu.toFixed(3)}</span> eV.<br>
+    for the ${nat}-atom cell (${nfu.toFixed(0)} formula units); ΔH<sub>f</sub> =
+    <span class="mono">${D.E_pfu.toFixed(3)}</span> eV/f.u.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
     = <span class="mono">${efTxt}</span> eV/atom, against same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
-    <b>Decomposition energy</b> (${D.kind}) = E<sub>f.u.</sub> − ${pre}Σ f·E(phase) + k<sub>B</sub>T·Σ f ln f
+    <b>Decomposition energy</b> (${D.kind}) = ΔH<sub>f</sub><sup>f.u.</sup> − ${pre}Σ c·ΔH<sub>f</sub>(phase)
     = ${D.E_pfu.toFixed(3)} − (${(D.sum*(D.pre||1)).toFixed(3)}) + (${(D.S||0).toFixed(3)})
     = <span class="mono">${(D.d0 + (D.S||0)).toFixed(3)}</span> eV/f.u., over <b>all ${D.terms.length}</b>
     competing phases:<br>&nbsp;&nbsp;${rows}<br>
