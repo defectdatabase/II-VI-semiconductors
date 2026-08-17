@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="cc771edc3e3f";
+  var BUILD_ID="9bc9d7304a5c";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -700,10 +700,16 @@ const subHTML = s => dropOnes(String(s).replace(/_(kesterite|stannite)\b/g,(m,o)
 // INCAR and POTCAR strings are quoted verbatim, so they go through here first: a POTCAR TITEL
 // carries a date and a slash, and an INCAR value can carry a '<'.
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-const defHTML = d => d.split("+").map(p=>{
-  const i=p.indexOf("_");
-  return i<0?p:p.slice(0,i)+"<sub>"+p.slice(i+1)+"</sub>";
-}).join("+");
+const defHTML = d => {
+  // "Vac_Zn-1" is a numbered site/configuration variant from the relabel pass; the raw
+  // dash suffix reads like chemistry, so render it as "Vac_Zn (site 1)" instead.
+  const m=d.match(/^(.*?)-(\d+)$/);
+  const core=m?m[1]:d, site=m?m[2]:null;
+  return core.split("+").map(p=>{
+    const i=p.indexOf("_");
+    return i<0?p:p.slice(0,i)+"<sub>"+p.slice(i+1)+"</sub>";
+  }).join("+")+(site?` <span style="color:var(--wbg-muted);font-size:.85em">(site ${site})</span>`:"");
+};
 const fmt=(v,d=2)=>v===null||v===undefined||Number.isNaN(v)?"—":v.toFixed(d);
 const fq=q=>q===null?"—":(q>0?"+"+q:String(q));
 
@@ -854,6 +860,9 @@ async function dOpenDetail(r){
     raw campaign record, not recomputed.<br>
     E<sub>f</sub><sup>q</sup>(E<sub>F</sub>) = (E<sub>defect,q</sub> − E<sub>pristine</sub>) + Σ(n<sub>i</sub>μ<sub>i</sub>) + q(E<sub>VBM</sub> + E<sub>F</sub>) + E<sub>corr</sub><br>
     E<sub>VBM</sub> = ${fmt(r.v)} eV · gap ${fmt(r.g)} eV · ${THEORY[r.f]}</p>`;
+  if(r.aa) sig+=`<div style="color:var(--wbg-muted);font-size:12px;margin:-2px 0 6px">Archived under the
+    name ${defHTML(r.aa)}; relabelled because the relaxed cell's atom exchange is ${defHTML(r.d)}
+    (provenance/defect_relabels.json).</div>`;
   if(!vlist.length){
     const why=dBlockedReason(r);
     sig+=why?`<div class="notebox">Formation energies are withheld for this row: ${why}.
@@ -872,6 +881,32 @@ async function dOpenDetail(r){
     let muTxt="—";
     for(const q in vxv.q){ const c=vxv.q[q];
       if(c.vbm!=null&&c.dE!=null){ muTxt=(c.vbm-c.dE-(+q)*r.v).toFixed(2)+" eV"; break; } }
+    /* ---- term-by-term derivation: elemental references -> host equality -> the facet
+       equalities that pin this vertex -> solved mu. Every number is read from the archived
+       solve (chem_eq + per-vertex dmu/eqs); the equalities close exactly by construction. */
+    if(r.ceq&&vxv.dmu){
+      const els=Object.keys(r.ceq.host_fu);
+      const co=n=>n===1?"":(Math.round(n*1000)/1000+"·");
+      const dmuS=e=>`Δμ<sub>${e}</sub>`;
+      sig+=`<div class="notebox" style="font-size:12.5px;line-height:1.85;margin:10px 0 4px">
+        <b>How the ${subHTML(vname)} chemical potentials are fixed</b><br>
+        1. Elemental references (${THEORY[r.f]}, this library's own runs): `+
+        els.map(e=>`μ⁰<sub>${e}</sub> = ${r.ceq.mu0[e].toFixed(3)}`).join(" · ")+
+        ` eV/atom; μ<sub>i</sub> = μ⁰<sub>i</sub> + Δμ<sub>i</sub>, Δμ<sub>i</sub> ≤ 0.<br>
+        2. Host stability (equality): `+
+        els.map(e=>co(r.ceq.host_fu[e])+dmuS(e)).join(" + ")+
+        ` = ΔH<sub>f</sub>(${subHTML(r.h)}) = ${r.ceq.host_dHf_fu.toFixed(3)} eV/f.u.<br>
+        3. Bounding phases at this vertex (equalities that pin the corner):<br>`+
+        (vxv.eqs||[]).map(q2=>`&nbsp;&nbsp;&nbsp;`+
+          Object.entries(q2.fu).map(([e,n])=>co(n)+dmuS(e)).join(" + ")+
+          ` = ΔH<sub>f</sub>(${subHTML(q2.phase)}) = ${q2.dHf.toFixed(3)} eV`+
+          (Math.abs(q2.dHf)<1e-6?` <span style="color:var(--wbg-muted)">(elemental — the “rich” limit)</span>`:"")
+        ).join("<br>")+`<br>
+        4. Solved at this corner: `+
+        els.map(e=>`μ<sub>${e}</sub> = ${r.ceq.mu0[e].toFixed(3)} + (${vxv.dmu[e].toFixed(3)}) = <b>${(r.ceq.mu0[e]+vxv.dmu[e]).toFixed(3)}</b>`).join(" · ")+` eV<br>
+        5. This defect exchanges ${Object.entries(r.dn||{}).map(([e,n])=>`${n>0?"+":""}${n} ${e}`).join(", ")}
+        → Σn<sub>i</sub>μ<sub>i</sub> in the table below.</div>`;
+    }
     sig+=`<div style="margin:10px 0 4px"><b>${subHTML(vname)} vertex</b>
       <span style="color:var(--wbg-muted)">(bounding phases: ${subHTML(phases)})</span></div>
       <div style="color:var(--wbg-muted);font-size:13px;margin-bottom:4px">Σn<sub>i</sub>μ<sub>i</sub> = <b>${muTxt}</b>
@@ -2493,8 +2528,15 @@ async function drawDefectDOS(r){
   }
   qs.sort((a,b)=>Math.abs(+a)-Math.abs(+b));
   sel.style.display=qs.length>1?"":"none";
-  sel.innerHTML=qs.map((q,i)=>`<option value="${q}"${i===0?" selected":""}>q = ${+q>0?"+"+q:q}</option>`).join("");
-  const q=sel.value&&qs.includes(sel.value)?sel.value:qs[0];
+  /* This function IS the dropdown's onchange handler. Rebuilding the option list with the
+     first entry re-selected and THEN reading sel.value threw the user's pick away every
+     time — the q selector could never actually switch charge state. Keep the pick when we
+     are redrawing the same row; only reset to the first charge on a row change. */
+  const rowKey=r.f+"|"+r.h+"|"+r.d;
+  const prev=sel.dataset.row===rowKey&&qs.includes(sel.value)?sel.value:null;
+  sel.dataset.row=rowKey;
+  const q=prev||qs[0];
+  sel.innerHTML=qs.map(x=>`<option value="${x}"${x===q?" selected":""}>q = ${+x>0?"+"+x:x}</option>`).join("");
   const key=r.dos[q];
   const d=await fetchDOS(key);
   if(dSel!==r) return;
