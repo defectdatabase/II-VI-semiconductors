@@ -337,7 +337,7 @@ body{letter-spacing:-.006em}
 .kv div{padding:3px 0}
 .notebox{padding:6px 8px;font-size:12.3px}
 #cnote{font-size:12px}
-#detail #efdetailplot{height:400px}
+#detail #efdetailplot{height:320px;width:80%;margin:0 auto}
 #detail #dstruct{height:340px!important;border:1px solid var(--wbg-border);border-radius:8px}
 #cstruct{height:340px!important}
 .dos-empty{height:150px;padding:14px}
@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="0c7381647833";
+  var BUILD_ID="f93040959bbc";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -998,7 +998,7 @@ async function dRedrawPlot(){
   // one curve — the selected growth condition (the shape is condition-independent)
   const xs=[],ys=[];
   for(let i=0;i<=80;i++){const x=r.g*i/80;xs.push(x);ys.push(envelope(r,pick,x)[0]);}
-  const traces=[{x:xs,y:ys,mode:"lines",name:"",line:{width:3,color:"#0e7490"},hoverinfo:"x+y"}];
+  const traces=[{x:xs,y:ys,mode:"lines",name:"",line:{width:4.5,color:"#0e7490"},hoverinfo:"x+y"}];
   // envelope kinks = transition levels (open circles, Kosmos style)
   const qsC=QS.filter(q=>q in r.e).map(Number);
   const kinks=[];

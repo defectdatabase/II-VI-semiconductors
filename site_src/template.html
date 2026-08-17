@@ -337,7 +337,7 @@ body{letter-spacing:-.006em}
 .kv div{padding:3px 0}
 .notebox{padding:6px 8px;font-size:12.3px}
 #cnote{font-size:12px}
-#detail #efdetailplot{height:400px}
+#detail #efdetailplot{height:320px;width:80%;margin:0 auto}
 #detail #dstruct{height:340px!important;border:1px solid var(--wbg-border);border-radius:8px}
 #cstruct{height:340px!important}
 .dos-empty{height:150px;padding:14px}
@@ -998,7 +998,7 @@ async function dRedrawPlot(){
   // one curve — the selected growth condition (the shape is condition-independent)
   const xs=[],ys=[];
   for(let i=0;i<=80;i++){const x=r.g*i/80;xs.push(x);ys.push(envelope(r,pick,x)[0]);}
-  const traces=[{x:xs,y:ys,mode:"lines",name:"",line:{width:3,color:"#0e7490"},hoverinfo:"x+y"}];
+  const traces=[{x:xs,y:ys,mode:"lines",name:"",line:{width:4.5,color:"#0e7490"},hoverinfo:"x+y"}];
   // envelope kinks = transition levels (open circles, Kosmos style)
   const qsC=QS.filter(q=>q in r.e).map(Number);
   const kinks=[];
