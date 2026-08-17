@@ -387,7 +387,8 @@ body{letter-spacing:-.006em}
       if(!v||!v.id||v.id===BUILD_ID) return;
       if(sessionStorage.getItem("ddb-reloaded")===v.id) return;   // never loop
       sessionStorage.setItem("ddb-reloaded",v.id);
-      location.replace(location.pathname+"?v="+v.id+location.hash);
+      const curTab=new URLSearchParams(location.search).get("tab");
+      location.replace(location.pathname+"?v="+v.id+(curTab?"&tab="+encodeURIComponent(curTab):"")+location.hash);
     }).catch(function(){});
   }catch(e){}
 })();
@@ -725,16 +726,15 @@ function classify(r){
   const hostEls = new Set(HOSTELS(r.h));
   const parts = r.d.split("_");
   const added = parts[0];
-  // The archive spells a vacancy Vac_X. It used to be V_X, and this test was never updated when
-  // the tree was renamed -- so "Vac" was not the host element, fell through, and EVERY vacancy in
-  // the library was labelled a dopant (Vac_Al in AgAl0.5Ga0.5Se2 among them).
-  if(added==="Vac"||added==="V") return "native";
+  // The archive spells a vacancy Vac_X. The old V_X spelling was renamed tree-wide, so a leading
+  // "V" is now unambiguously vanadium -- an ordinary element (V_i = vanadium interstitial).
+  if(added==="Vac") return "native";
   return hostEls.has(added) ? "native" : "dopant";
 }
 function structClasses(r){
   const set = new Set([classify(r)]);
   for(const p of r.d.split("+")){
-    if(p.startsWith("V_")) set.add("vacancy");
+    if(p.startsWith("Vac_")) set.add("vacancy");
     else if(p.endsWith("_i")) set.add("interstitial");
     else if(p.includes("_")) set.add("substitution");
   }
@@ -749,7 +749,7 @@ document.querySelectorAll("#tabbar .tab").forEach(t=>t.onclick=()=>{
   history.replaceState(null,"","?tab="+t.dataset.v);
 });
 const urltab=new URLSearchParams(location.search).get("tab");
-if(urltab&&document.querySelector(`#tabbar .tab[data-v="${urltab}"]`))
+if(urltab&&/^[A-Za-z0-9]{1,16}$/.test(urltab)&&document.querySelector(`#tabbar .tab[data-v="${urltab}"]`))
   document.querySelector(`#tabbar .tab[data-v="${urltab}"]`).click();
 
 /* ================= DEFECT TABLE ================= */
@@ -773,7 +773,7 @@ function dApplyFilters(){
   const spont=document.getElementById("ck-spont").checked;
   const allq=document.getElementById("ck-allq").checked;
   const fs=new Set(); if(document.getElementById("ck-pbesol").checked)fs.add("pbesol");
-  if(document.getElementById("ck-hsesoc").checked)fs.add("hsesoc");
+  if(document.getElementById("ck-hsesoc").checked)fs.add("hse_soc");
   dFiltered=DEFECTS.filter(r=>{
     if(!fs.has(r.f))return false;
     if(dClass!=="all"&&!r.clset.has(dClass)&&r.cls!==dClass)return false;
@@ -799,7 +799,7 @@ function dRenderHead(){
   document.querySelectorAll("#dthead .hc").forEach(h=>h.onclick=()=>{
     const k=h.dataset.k;dSort=dSort.k===k?{k,asc:!dSort.asc}:{k,asc:true};dApplyFilters();});
 }
-const ROWH=34,VIEWH=560;
+const ROWH=26,VIEWH=560;
 function dRenderRows(){
   const view=document.getElementById("dtview"),spacer=document.getElementById("dtspacer");
   spacer.style.height=dFiltered.length*ROWH+"px";
@@ -831,14 +831,14 @@ function dRenderMeta(){
      values are spontaneous (E<sup>f</sup> &lt; 0). "—" = not available (chemical potential not published
      for that condition, or charge state not simulated). Click any row to see the full formation-energy
      diagram and per-charge-state raw data. <span class="showing">Showing ${dFiltered.length.toLocaleString()} of ${n.toLocaleString()} defect entries.</span>`;
-  const nP=DEFECTS.filter(r=>r.f==="pbesol").length,nH=DEFECTS.filter(r=>r.f==="hsesoc").length;
+  const nP=DEFECTS.filter(r=>r.f==="pbesol").length,nH=DEFECTS.filter(r=>r.f==="hse_soc").length;
   const hosts=new Set(DEFECTS.map(r=>r.h));
   document.getElementById("dcov").innerHTML=
     `Coverage — PBEsol <b>${nP}</b> defect entries · HSE+SOC <b>${nH}</b> · <b>${hosts.size}</b> hosts ·
      charge states −2 … +2 · all values pure DFT (MLFF models live in the nanoHUB tool)`;
 }
 async function dOpenDetail(r){
-  if(dSel===r){dSel=null;document.getElementById("detail").classList.remove("on");dRenderRows();return;}
+  if(dSel===r){closeModals();return;}
   dSel=r;
   const panel=document.getElementById("detail");panel.classList.add("on");document.getElementById("modalback").classList.add("on");
   document.getElementById("dtitle").innerHTML=`${defHTML(r.d)} in ${subHTML(r.h)} — ${THEORY[r.f]}`;
@@ -1134,7 +1134,7 @@ function defectColors(r){
   const hostEls=new Set(HOSTELS(r.h)), dark={};
   r.d.split("+").forEach(part=>{
     const a=part.split("_")[0];
-    if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";
+    if(a!=="Vac"&&!hostEls.has(a)) dark[a]="#000000";
   });
   return dark;
 }
@@ -1148,7 +1148,7 @@ async function unrelaxedDefectModel(r){
     for(const [atom,site] of parts){
       const idx=st.sites.findIndex(s=>s.species.some(x=>x.element===site));
       if(idx<0) return null;
-      if(atom==="V") st.sites.splice(idx,1);
+      if(atom==="Vac") st.sites.splice(idx,1);
       else {
         st.sites[idx].species=[{element:atom,occu:1}];
         st.sites[idx].label=atom;
@@ -1265,7 +1265,7 @@ const CHAS=[["dos","Element-projected DOS",(r,k,v)=>!!k&&HAVE_DOS.has(k)],
             ["movie","Relaxation movie",(r,k,v)=>HAVE_TRAJ.has(cMovieKey(r,r.b))],
             ["optics","Dielectric constant and SLME",(r,k,v)=>v[3]!==null&&v[3]!==undefined]];
 function cMovieKey(r,ord){
-  const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc"}[r.f];
+  const FKEY={"PBE":"pbe","PBEsol":"pbesol","HSE06":"hse","HSE06 (no PS)":"hse_no_ps","HSE+SOC":"hse_soc","PBE+U":"pbe_u"}[r.f];
   return r.rk==="HSE06 (A2BCX4)" ? `host__hse2x2x1__${r.n}_${ord}` : `host__${r.fk||FKEY}__${r.n}`;
 }
 const cSteps=v=>v.length>28?v[28]:null;
@@ -1437,7 +1437,7 @@ function cRenderMeta(){
      (converged runs only; no optics, so dielectric constant and SLME are blank there).`;
 }
 function cOpenDetail(r,ord){
-  if(cSel===r&&!ord){cSel=null;document.getElementById("cdetail").classList.remove("on");cRenderRows();return;}
+  if(cSel===r&&!ord){closeModals();return;}
   cSel=r; cOrd=ord||r.b;
   const v=r.o[cOrd];
   document.getElementById("cdetail").classList.add("on");document.getElementById("modalback").classList.add("on");
@@ -1838,7 +1838,7 @@ function minImageDist(m,d){            // nearest periodic image, Cartesian angs
 // extra atom that does not exist. Same rename this project already tripped over in classify().
 function defectPartCounts(dlabel){
   const parts=String(dlabel||"").split("+").filter(Boolean);
-  const isVac=p=>{const a=p.split("_")[0]; return a==="Vac"||a==="V";};
+  const isVac=p=>{const a=p.split("_")[0]; return a==="Vac";};
   return {atoms:parts.filter(p=>!isVac(p)).length,
           vac:parts.filter(isVac).length};
 }
@@ -2793,8 +2793,9 @@ function provenanceBody(r,ord){
   // decomposition
   const XS=["S","Se","Te"], AK=["Na","K","Rb","Cs","Ag","Cu"], BK=["Mg","Ca","Ba","Sr","Cd","Zn"], CK=["Sn","Ge","Zr"], BC=["Al","Ga","In"];
   const xsum=XS.reduce((a,x)=>a+(comp[x]||0),0);
-  let sc=0, ent=0, bins=[], miss=0, kes=Math.abs(xsum-4)<.01;
+  let sc=0, ent=0, bins=[], miss=0, needed=[], kes=Math.abs(xsum-4)<.01;
   const add=(f,key)=>{ const E=R.bin[key]; if(f<=0) return false;
+    if(!needed.includes(key)) needed.push(key);
     if(E===undefined){ miss++; return false; }
     sc+=f*E; ent+=f*Math.log(f); bins.push(`${f.toFixed(2)} · E(${subHTML(key)}) = ${(f*E).toFixed(2)} eV  [E(${subHTML(key)}) = ${E.toFixed(2)} eV/f.u.]`); return true; };
   if(kes){ for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add((comp[a]/2)*(comp[x]/4),`${a}2${x}`);
@@ -2803,17 +2804,43 @@ function provenanceBody(r,ord){
   else { for(const a of AK) if(comp[a]) for(const x of XS) if(comp[x]) add(comp[a]*(comp[x]/2),`${a}2${x}`);
     for(const b of BC) if(comp[b]) for(const x of XS) if(comp[x]) add(comp[b]*(comp[x]/2),`${b}2${x}3`); }
   const edec = kes? epfu-sc+0.0257*ent : epfu-0.5*sc+0.0257*ent;
-  if(!bins.length||miss) return `<b>Level of theory: ${th}.</b><br>
+  const pub2=(v[1]!==null&&v[1]!==undefined)?v[1]:null;
+  if(!bins.length||miss){
+    // The grid's decomposition column is the PUBLISHED v[1]; this panel must never contradict it.
+    // When the shipped binary table cannot reproduce the sum, present the published number and say
+    // why the per-phase breakdown is absent -- never claim the value itself is blank.
+    const pub=(v[1]!==null&&v[1]!==undefined);
+    // Archive audit (provenance/README.md, 2026-08-15): every unpublished decomposition reduces to
+    // six phase energies -- Cu2Se/Cu2S exist at HSE+SOC but never converged; SnTe2/GeTe2 have no
+    // HSE-family run (neither is a known-stable compound; the rule needs them as hypothetical CX2
+    // end members). Named here so the panel can identify the actual blocker per compound.
+    const KNOWN_MISS={"HSE06":["SnTe2","GeTe2"],"HSE+SOC":["SnTe2","GeTe2","Cu2Se","Cu2S"]};
+    const blocked=needed.filter(k=>(KNOWN_MISS[th]||[]).includes(k));
+    const needTxt=needed.length<=8?needed.map(k=>subHTML(k)).join(", ")
+      :needed.slice(0,8).map(k=>subHTML(k)).join(", ")+` and ${needed.length-8} more`;
+    const decMsg = pub
+      ? `<b>Decomposition energy</b> = <span class="mono">${v[1].toFixed(2)}</span> eV/f.u. — the value
+         published by this campaign against its full competing-phase set. The per-phase binary energies
+         are not shipped in this payload, so the sum is not re-derived line by line here.`
+        +(v[1]<=0?" Stable against this binary decomposition.":" Metastable (positive decomposition energy).")
+      : blocked.length
+        ? `<b>Decomposition energy</b> is not published for this compound at this level of theory: the
+           decomposition would need E(${blocked.map(b=>subHTML(b)).join(", ")}) — not archived at this
+           theory — and the archive will not substitute zero for a phase energy it does not have.`
+        : miss
+          ? `<b>Decomposition energy</b> is not published for this compound at this level of theory: the
+             competing-phase energies it would need (${needTxt}) are not available at this theory, so it
+             is left blank rather than mixed across theories or guessed.`
+          : `No binary decomposition is published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`;
+    return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
     = <span class="mono">${efTxt}</span> eV/atom, with same-theory elemental references:<br>
     &nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
-    ${miss
-      ? `The stoichiometric binary decomposition needs ${miss} binary phase(s) not archived at this level
-         of theory (e.g. GeTe<sub>2</sub>/SnTe<sub>2</sub>), so ΔE<sub>decomp</sub> is left blank rather than mixed across theories.`
-      : `No binary decomposition is published for this host family, so ΔE<sub>decomp</sub> is left blank rather than guessed.`}
+    ${decMsg}
     ${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
+  }
   return `<b>Level of theory: ${th}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F!==null?F.toFixed(2):"—"}</span> eV
     for the ${nat}-atom supercell (${nfu.toFixed(0)} formula units), ${r.rk==="HSE06 (A2BCX4)"
@@ -2823,8 +2850,9 @@ function provenanceBody(r,ord){
     = <span class="mono">${efTxt}</span> eV/atom, with same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> = E<sub>f.u.</sub> − ${kes?"":"½"}Σ f·E(binary) + k<sub>B</sub>T·Σ f ln f
     = ${epfu.toFixed(2)} − ${(kes?sc:0.5*sc).toFixed(2)} + ${(0.0257*ent).toFixed(2)}
-    = <span class="mono">${edec.toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
-    ${v[1]!==null&&v[1]<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
+    = <span class="mono">${(pub2!==null?pub2:edec).toFixed(2)}</span> eV/f.u. versus all ${bins.length} competing binary phases:<br>&nbsp;&nbsp;${bins.join("<br>&nbsp;&nbsp;")}<br>k<sub>B</sub>T = 0.0257 eV; f are stoichiometric fractions.<br>
+    ${pub2!==null&&Math.abs(pub2-edec)>0.02?`The headline is the published value; recomputing from the shipped binary table alone gives ${edec.toFixed(2)} eV/f.u. — the campaign's full competing-phase set governs.<br>`:""}
+    ${(pub2!==null?pub2:edec)<=0?"Stable against this binary decomposition.":"Metastable (positive decomposition energy)."}
     ${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
 }
 

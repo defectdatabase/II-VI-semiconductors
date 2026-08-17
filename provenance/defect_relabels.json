@@ -1,0 +1,6500 @@
+{
+ "renamed": [
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Cd_Se",
+   "old": "Cd_Se",
+   "new": "Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Cd_Se+Te_i",
+   "old": "Cd_Se+Te_i",
+   "new": "Se_Cd+Te_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Te_Cd",
+   "old": "Te_Cd",
+   "new": "Cd_Te",
+   "dn": {
+    "Cd": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Vac_Cd+Cd_Se",
+   "old": "Vac_Cd+Cd_Se",
+   "new": "Vac_Cd+Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -2
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Vac_Cd+Cd_Te",
+   "old": "Vac_Cd+Cd_Te",
+   "new": "Vac_Cd+Te_Cd",
+   "dn": {
+    "Cd": -2,
+    "Te": 1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Vac_Cd+Se_Cd",
+   "old": "Vac_Cd+Se_Cd",
+   "new": "Vac_Se-2",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Vac_Cd+Te_Cd",
+   "old": "Vac_Cd+Te_Cd",
+   "new": "Vac_Te",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Vac_Se",
+   "old": "Vac_Se",
+   "new": "Vac_Se-1",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Vac_Se+Cd_Se",
+   "old": "Vac_Se+Cd_Se",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.06Te0.94|Vac_Te+Cd_Te",
+   "old": "Vac_Te+Cd_Te",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Cd_Se",
+   "old": "Cd_Se",
+   "new": "Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Cd_Se+Te_i",
+   "old": "Cd_Se+Te_i",
+   "new": "Se_Cd+Te_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Cd_Te+Se_i",
+   "old": "Cd_Te+Se_i",
+   "new": "Te_Cd+Se_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Se_Cd+Cd_i",
+   "old": "Se_Cd+Cd_i",
+   "new": "Cd_Se+Cd_i",
+   "dn": {
+    "Se": -1,
+    "Cd": 2
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Se_Te",
+   "old": "Se_Te",
+   "new": "Te_Se",
+   "dn": {
+    "Se": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Te_Cd+Cd_i",
+   "old": "Te_Cd+Cd_i",
+   "new": "Cd_Te+Cd_i",
+   "dn": {
+    "Cd": 2,
+    "Te": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Te_Se",
+   "old": "Te_Se",
+   "new": "Se_Te",
+   "dn": {
+    "Se": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Vac_Cd+Cd_Se",
+   "old": "Vac_Cd+Cd_Se",
+   "new": "Vac_Cd+Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -2
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Vac_Cd+Cd_Te",
+   "old": "Vac_Cd+Cd_Te",
+   "new": "Vac_Cd+Te_Cd",
+   "dn": {
+    "Cd": -2,
+    "Te": 1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Vac_Cd+Se_Cd",
+   "old": "Vac_Cd+Se_Cd",
+   "new": "Vac_Se-2",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Vac_Cd+Te_Cd",
+   "old": "Vac_Cd+Te_Cd",
+   "new": "Vac_Te-2",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Vac_Se",
+   "old": "Vac_Se",
+   "new": "Vac_Se-1",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Vac_Se+Cd_Se",
+   "old": "Vac_Se+Cd_Se",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Vac_Te",
+   "old": "Vac_Te",
+   "new": "Vac_Te-1",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.25Te0.75|Vac_Te+Cd_Te",
+   "old": "Vac_Te+Cd_Te",
+   "new": "Vac_Cd-3",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.2Te0.8|Cd_Se",
+   "old": "Cd_Se",
+   "new": "Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.2Te0.8|Cd_Se+Te_i",
+   "old": "Cd_Se+Te_i",
+   "new": "Se_Cd+Te_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.2Te0.8|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.2Te0.8|Vac_Cd+Cd_Se",
+   "old": "Vac_Cd+Cd_Se",
+   "new": "Vac_Cd+Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -2
+   }
+  },
+  {
+   "key": "hse_soc|CdSe0.2Te0.8|Vac_Se+Cd_Se",
+   "old": "Vac_Se+Cd_Se",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse_soc|ZnTe|2N_i",
+   "old": "2N_i",
+   "new": "N_i+N_i",
+   "dn": {
+    "N": 2
+   }
+  },
+  {
+   "key": "hse|CdSe0.2Te0.8|complex_As+1+Cd-2+Se",
+   "old": "complex_As+1+Cd-2+Se",
+   "new": "As_i+Te_i",
+   "dn": {
+    "Te": 1,
+    "As": 1
+   }
+  },
+  {
+   "key": "hse|CdSe0.2Te0.8|complex_As+2+Cd-2+Se-1+Te",
+   "old": "complex_As+2+Cd-2+Se-1+Te",
+   "new": "As_i+As_i",
+   "dn": {
+    "As": 2
+   }
+  },
+  {
+   "key": "hse|CdSe|Ag_i",
+   "old": "Ag_i",
+   "new": "Ag_Cd",
+   "dn": {
+    "Ag": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Al_i",
+   "old": "Al_i",
+   "new": "Al_Cd",
+   "dn": {
+    "Cd": -1,
+    "Al": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|As_i",
+   "old": "As_i",
+   "new": "As_Cd",
+   "dn": {
+    "Cd": -1,
+    "As": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Au_i",
+   "old": "Au_i",
+   "new": "Au_Cd",
+   "dn": {
+    "Cd": -1,
+    "Au": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|B_i",
+   "old": "B_i",
+   "new": "B_Cd",
+   "dn": {
+    "B": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Ba_i",
+   "old": "Ba_i",
+   "new": "Ba_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ba": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Be_i",
+   "old": "Be_i",
+   "new": "Be_Cd",
+   "dn": {
+    "Cd": -1,
+    "Be": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Bi_i",
+   "old": "Bi_i",
+   "new": "Bi_Cd",
+   "dn": {
+    "Bi": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Br_i",
+   "old": "Br_i",
+   "new": "Br_Se",
+   "dn": {
+    "Se": -1,
+    "Br": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|C_i",
+   "old": "C_i",
+   "new": "C_Cd",
+   "dn": {
+    "Cd": -1,
+    "C": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Ca_i",
+   "old": "Ca_i",
+   "new": "Ca_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ca": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Cl_i",
+   "old": "Cl_i",
+   "new": "Cl_Se",
+   "dn": {
+    "Se": -1,
+    "Cl": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Co_i",
+   "old": "Co_i",
+   "new": "Co_Cd",
+   "dn": {
+    "Co": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Cr_i",
+   "old": "Cr_i",
+   "new": "Cr_Cd",
+   "dn": {
+    "Cr": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Cs_i",
+   "old": "Cs_i",
+   "new": "Cs_Cd",
+   "dn": {
+    "Cs": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Cu_i",
+   "old": "Cu_i",
+   "new": "Cu_Cd",
+   "dn": {
+    "Cd": -1,
+    "Cu": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Fe_i",
+   "old": "Fe_i",
+   "new": "Fe_Cd",
+   "dn": {
+    "Cd": -1,
+    "Fe": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Ga_i",
+   "old": "Ga_i",
+   "new": "Ga_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ga": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Ge_i",
+   "old": "Ge_i",
+   "new": "Ge_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ge": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Hf_i",
+   "old": "Hf_i",
+   "new": "Hf_Cd",
+   "dn": {
+    "Cd": -1,
+    "Hf": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Hg_i",
+   "old": "Hg_i",
+   "new": "Hg_Cd",
+   "dn": {
+    "Cd": -1,
+    "Hg": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|I_i",
+   "old": "I_i",
+   "new": "I_Cd",
+   "dn": {
+    "Cd": -1,
+    "I": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|In_i",
+   "old": "In_i",
+   "new": "In_Cd",
+   "dn": {
+    "Cd": -1,
+    "In": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Ir_i",
+   "old": "Ir_i",
+   "new": "Ir_Cd",
+   "dn": {
+    "Ir": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|K_i",
+   "old": "K_i",
+   "new": "K_Cd",
+   "dn": {
+    "Cd": -1,
+    "K": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|La_i",
+   "old": "La_i",
+   "new": "La_Cd",
+   "dn": {
+    "Cd": -1,
+    "La": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Li_i",
+   "old": "Li_i",
+   "new": "Li_Cd",
+   "dn": {
+    "Cd": -1,
+    "Li": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Mg_i",
+   "old": "Mg_i",
+   "new": "Mg_Cd",
+   "dn": {
+    "Cd": -1,
+    "Mg": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Mn_i",
+   "old": "Mn_i",
+   "new": "Mn_Cd",
+   "dn": {
+    "Cd": -1,
+    "Mn": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Mo_i",
+   "old": "Mo_i",
+   "new": "Mo_Cd",
+   "dn": {
+    "Cd": -1,
+    "Mo": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Na_i",
+   "old": "Na_i",
+   "new": "Na_Cd",
+   "dn": {
+    "Cd": -1,
+    "Na": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Nb_i",
+   "old": "Nb_i",
+   "new": "Nb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Nb": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Ni_i",
+   "old": "Ni_i",
+   "new": "Ni_Cd",
+   "dn": {
+    "Ni": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|O_i",
+   "old": "O_i",
+   "new": "O_Se",
+   "dn": {
+    "Se": -1,
+    "O": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Os_i",
+   "old": "Os_i",
+   "new": "Os_Cd",
+   "dn": {
+    "Cd": -1,
+    "Os": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|P_i",
+   "old": "P_i",
+   "new": "P_Cd",
+   "dn": {
+    "Cd": -1,
+    "P": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Pb_i",
+   "old": "Pb_i",
+   "new": "Pb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Pb": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Pd_i",
+   "old": "Pd_i",
+   "new": "Pd_Cd",
+   "dn": {
+    "Cd": -1,
+    "Pd": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Pt_i",
+   "old": "Pt_i",
+   "new": "Pt_Cd",
+   "dn": {
+    "Cd": -1,
+    "Pt": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Rb_i",
+   "old": "Rb_i",
+   "new": "Rb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Rb": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Re_i",
+   "old": "Re_i",
+   "new": "Re_Cd",
+   "dn": {
+    "Cd": -1,
+    "Re": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Rh_i",
+   "old": "Rh_i",
+   "new": "Rh_Cd",
+   "dn": {
+    "Cd": -1,
+    "Rh": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Ru_i",
+   "old": "Ru_i",
+   "new": "Ru_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ru": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|S_i",
+   "old": "S_i",
+   "new": "S_Se",
+   "dn": {
+    "S": 1,
+    "Se": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Sb_i",
+   "old": "Sb_i",
+   "new": "Sb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Sb": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Sc_i",
+   "old": "Sc_i",
+   "new": "Sc_Cd",
+   "dn": {
+    "Sc": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Si_i",
+   "old": "Si_i",
+   "new": "Si_Cd",
+   "dn": {
+    "Cd": -1,
+    "Si": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Sn_i",
+   "old": "Sn_i",
+   "new": "Sn_Cd",
+   "dn": {
+    "Sn": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Sr_i",
+   "old": "Sr_i",
+   "new": "Sr_Cd",
+   "dn": {
+    "Cd": -1,
+    "Sr": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Ta_i",
+   "old": "Ta_i",
+   "new": "Ta_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ta": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Tc_i",
+   "old": "Tc_i",
+   "new": "Tc_Cd",
+   "dn": {
+    "Cd": -1,
+    "Tc": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Te_i",
+   "old": "Te_i",
+   "new": "Te_Se",
+   "dn": {
+    "Se": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Ti_i",
+   "old": "Ti_i",
+   "new": "Ti_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ti": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Tl_i",
+   "old": "Tl_i",
+   "new": "Tl_Cd",
+   "dn": {
+    "Tl": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Vac_i",
+   "old": "Vac_i",
+   "new": "V_Cd",
+   "dn": {
+    "Cd": -1,
+    "V": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|W_i",
+   "old": "W_i",
+   "new": "W_Cd",
+   "dn": {
+    "Cd": -1,
+    "W": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Y_i",
+   "old": "Y_i",
+   "new": "Y_Cd",
+   "dn": {
+    "Y": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdSe|Zn_i",
+   "old": "Zn_i",
+   "new": "Zn_Cd",
+   "dn": {
+    "Cd": -1,
+    "Zn": 1
+   }
+  },
+  {
+   "key": "hse|CdSe|Zr_i",
+   "old": "Zr_i",
+   "new": "Zr_Cd",
+   "dn": {
+    "Zr": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdS|Ag_i",
+   "old": "Ag_i",
+   "new": "Ag_Cd",
+   "dn": {
+    "Ag": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdS|Al_i",
+   "old": "Al_i",
+   "new": "Al_Cd",
+   "dn": {
+    "Cd": -1,
+    "Al": 1
+   }
+  },
+  {
+   "key": "hse|CdS|As_i",
+   "old": "As_i",
+   "new": "As_Cd",
+   "dn": {
+    "Cd": -1,
+    "As": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Au_i",
+   "old": "Au_i",
+   "new": "Au_Cd",
+   "dn": {
+    "Cd": -1,
+    "Au": 1
+   }
+  },
+  {
+   "key": "hse|CdS|B_i",
+   "old": "B_i",
+   "new": "B_Cd",
+   "dn": {
+    "Cd": -1,
+    "B": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Ba_i",
+   "old": "Ba_i",
+   "new": "Ba_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ba": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Be_i",
+   "old": "Be_i",
+   "new": "Be_Cd",
+   "dn": {
+    "Cd": -1,
+    "Be": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Bi_i",
+   "old": "Bi_i",
+   "new": "Bi_Cd",
+   "dn": {
+    "Bi": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdS|Br_i",
+   "old": "Br_i",
+   "new": "Br_Cd",
+   "dn": {
+    "Cd": -1,
+    "Br": 1
+   }
+  },
+  {
+   "key": "hse|CdS|C_i",
+   "old": "C_i",
+   "new": "C_Cd",
+   "dn": {
+    "Cd": -1,
+    "C": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Ca_i",
+   "old": "Ca_i",
+   "new": "Ca_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ca": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Cl_i",
+   "old": "Cl_i",
+   "new": "Cl_S",
+   "dn": {
+    "S": -1,
+    "Cl": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Co_i",
+   "old": "Co_i",
+   "new": "Co_Cd",
+   "dn": {
+    "Cd": -1,
+    "Co": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Cr_i",
+   "old": "Cr_i",
+   "new": "Cr_Cd",
+   "dn": {
+    "Cd": -1,
+    "Cr": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Cs_i",
+   "old": "Cs_i",
+   "new": "Cs_Cd",
+   "dn": {
+    "Cd": -1,
+    "Cs": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Cu_i",
+   "old": "Cu_i",
+   "new": "Cu_Cd",
+   "dn": {
+    "Cd": -1,
+    "Cu": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Fe_i",
+   "old": "Fe_i",
+   "new": "Fe_Cd",
+   "dn": {
+    "Cd": -1,
+    "Fe": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Ga_i",
+   "old": "Ga_i",
+   "new": "Ga_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ga": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Ge_i",
+   "old": "Ge_i",
+   "new": "Ge_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ge": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Hf_i",
+   "old": "Hf_i",
+   "new": "Hf_Cd",
+   "dn": {
+    "Cd": -1,
+    "Hf": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Hg_i",
+   "old": "Hg_i",
+   "new": "Hg_Cd",
+   "dn": {
+    "Cd": -1,
+    "Hg": 1
+   }
+  },
+  {
+   "key": "hse|CdS|I_i",
+   "old": "I_i",
+   "new": "I_Cd",
+   "dn": {
+    "Cd": -1,
+    "I": 1
+   }
+  },
+  {
+   "key": "hse|CdS|In_i",
+   "old": "In_i",
+   "new": "In_Cd",
+   "dn": {
+    "Cd": -1,
+    "In": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Ir_i",
+   "old": "Ir_i",
+   "new": "Ir_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ir": 1
+   }
+  },
+  {
+   "key": "hse|CdS|K_i",
+   "old": "K_i",
+   "new": "K_Cd",
+   "dn": {
+    "Cd": -1,
+    "K": 1
+   }
+  },
+  {
+   "key": "hse|CdS|La_i",
+   "old": "La_i",
+   "new": "La_Cd",
+   "dn": {
+    "Cd": -1,
+    "La": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Li_i",
+   "old": "Li_i",
+   "new": "Li_Cd",
+   "dn": {
+    "Cd": -1,
+    "Li": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Mg_i",
+   "old": "Mg_i",
+   "new": "Mg_Cd",
+   "dn": {
+    "Cd": -1,
+    "Mg": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Mn_i",
+   "old": "Mn_i",
+   "new": "Mn_Cd",
+   "dn": {
+    "Cd": -1,
+    "Mn": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Mo_i",
+   "old": "Mo_i",
+   "new": "Mo_Cd",
+   "dn": {
+    "Mo": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdS|Na_i",
+   "old": "Na_i",
+   "new": "Na_Cd",
+   "dn": {
+    "Cd": -1,
+    "Na": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Nb_i",
+   "old": "Nb_i",
+   "new": "Nb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Nb": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Ni_i",
+   "old": "Ni_i",
+   "new": "Ni_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ni": 1
+   }
+  },
+  {
+   "key": "hse|CdS|O_i",
+   "old": "O_i",
+   "new": "O_S",
+   "dn": {
+    "S": -1,
+    "O": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Os_i",
+   "old": "Os_i",
+   "new": "Os_Cd",
+   "dn": {
+    "Cd": -1,
+    "Os": 1
+   }
+  },
+  {
+   "key": "hse|CdS|P_i",
+   "old": "P_i",
+   "new": "P_Cd",
+   "dn": {
+    "Cd": -1,
+    "P": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Pb_i",
+   "old": "Pb_i",
+   "new": "Pb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Pb": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Pd_i",
+   "old": "Pd_i",
+   "new": "Pd_Cd",
+   "dn": {
+    "Cd": -1,
+    "Pd": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Pt_i",
+   "old": "Pt_i",
+   "new": "Pt_Cd",
+   "dn": {
+    "Cd": -1,
+    "Pt": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Rb_i",
+   "old": "Rb_i",
+   "new": "Rb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Rb": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Rh_i",
+   "old": "Rh_i",
+   "new": "Rh_Cd",
+   "dn": {
+    "Cd": -1,
+    "Rh": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Ru_i",
+   "old": "Ru_i",
+   "new": "Ru_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ru": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Sb_i",
+   "old": "Sb_i",
+   "new": "Sb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Sb": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Sc_i",
+   "old": "Sc_i",
+   "new": "Sc_Cd",
+   "dn": {
+    "Cd": -1,
+    "Sc": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Se_i",
+   "old": "Se_i",
+   "new": "Se_S",
+   "dn": {
+    "S": -1,
+    "Se": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Si_i",
+   "old": "Si_i",
+   "new": "Si_Cd",
+   "dn": {
+    "Cd": -1,
+    "Si": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Sn_i",
+   "old": "Sn_i",
+   "new": "Sn_Cd",
+   "dn": {
+    "Sn": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdS|Sr_i",
+   "old": "Sr_i",
+   "new": "Sr_Cd",
+   "dn": {
+    "Cd": -1,
+    "Sr": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Ta_i",
+   "old": "Ta_i",
+   "new": "Ta_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ta": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Tc_i",
+   "old": "Tc_i",
+   "new": "Tc_Cd",
+   "dn": {
+    "Cd": -1,
+    "Tc": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Te_i",
+   "old": "Te_i",
+   "new": "Te_Cd",
+   "dn": {
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Ti_i",
+   "old": "Ti_i",
+   "new": "Ti_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ti": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Tl_i",
+   "old": "Tl_i",
+   "new": "Tl_Cd",
+   "dn": {
+    "Cd": -1,
+    "Tl": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Vac_i",
+   "old": "Vac_i",
+   "new": "V_Cd",
+   "dn": {
+    "Cd": -1,
+    "V": 1
+   }
+  },
+  {
+   "key": "hse|CdS|W_i",
+   "old": "W_i",
+   "new": "W_Cd",
+   "dn": {
+    "W": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdS|Y_i",
+   "old": "Y_i",
+   "new": "Y_Cd",
+   "dn": {
+    "Y": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdS|Zn_i",
+   "old": "Zn_i",
+   "new": "Zn_Cd",
+   "dn": {
+    "Cd": -1,
+    "Zn": 1
+   }
+  },
+  {
+   "key": "hse|CdS|Zr_i",
+   "old": "Zr_i",
+   "new": "Zr_Cd",
+   "dn": {
+    "Cd": -1,
+    "Zr": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ag_i",
+   "old": "Ag_i",
+   "new": "Ag_Cd",
+   "dn": {
+    "Ag": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Al_i",
+   "old": "Al_i",
+   "new": "Al_Cd",
+   "dn": {
+    "Cd": -1,
+    "Al": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|As_i",
+   "old": "As_i",
+   "new": "As_Cd",
+   "dn": {
+    "Cd": -1,
+    "As": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Au_i",
+   "old": "Au_i",
+   "new": "Au_Cd",
+   "dn": {
+    "Cd": -1,
+    "Au": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|B_i",
+   "old": "B_i",
+   "new": "B_Cd",
+   "dn": {
+    "B": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ba_i",
+   "old": "Ba_i",
+   "new": "Ba_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ba": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Be_i",
+   "old": "Be_i",
+   "new": "Be_Cd",
+   "dn": {
+    "Cd": -1,
+    "Be": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Bi_i",
+   "old": "Bi_i",
+   "new": "Bi_Cd",
+   "dn": {
+    "Bi": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Br_i",
+   "old": "Br_i",
+   "new": "Br_Cd",
+   "dn": {
+    "Cd": -1,
+    "Br": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|C_i",
+   "old": "C_i",
+   "new": "C_Cd",
+   "dn": {
+    "Cd": -1,
+    "C": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ca_i",
+   "old": "Ca_i",
+   "new": "Ca_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ca": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Co_i",
+   "old": "Co_i",
+   "new": "Co_Cd",
+   "dn": {
+    "Co": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Cr_i",
+   "old": "Cr_i",
+   "new": "Cr_Cd",
+   "dn": {
+    "Cr": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Cs_i",
+   "old": "Cs_i",
+   "new": "Cs_Cd",
+   "dn": {
+    "Cs": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Cu_i",
+   "old": "Cu_i",
+   "new": "Cu_Cd",
+   "dn": {
+    "Cd": -1,
+    "Cu": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Fe_i",
+   "old": "Fe_i",
+   "new": "Fe_Cd",
+   "dn": {
+    "Cd": -1,
+    "Fe": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ga_i",
+   "old": "Ga_i",
+   "new": "Ga_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ga": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ge_i",
+   "old": "Ge_i",
+   "new": "Ge_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ge": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Hf_i",
+   "old": "Hf_i",
+   "new": "Hf_Cd",
+   "dn": {
+    "Cd": -1,
+    "Hf": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Hg_i",
+   "old": "Hg_i",
+   "new": "Hg_Cd",
+   "dn": {
+    "Cd": -1,
+    "Hg": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|I_i",
+   "old": "I_i",
+   "new": "I_Cd",
+   "dn": {
+    "Cd": -1,
+    "I": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|In_i",
+   "old": "In_i",
+   "new": "In_Cd",
+   "dn": {
+    "In": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ir_i",
+   "old": "Ir_i",
+   "new": "Ir_Cd",
+   "dn": {
+    "Ir": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|K_i",
+   "old": "K_i",
+   "new": "K_Cd",
+   "dn": {
+    "Cd": -1,
+    "K": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|La_i",
+   "old": "La_i",
+   "new": "La_Cd",
+   "dn": {
+    "Cd": -1,
+    "La": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Li_i",
+   "old": "Li_i",
+   "new": "Li_Cd",
+   "dn": {
+    "Cd": -1,
+    "Li": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Mg_i",
+   "old": "Mg_i",
+   "new": "Mg_Cd",
+   "dn": {
+    "Mg": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Mn_i",
+   "old": "Mn_i",
+   "new": "Mn_Cd",
+   "dn": {
+    "Cd": -1,
+    "Mn": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Mo_i",
+   "old": "Mo_i",
+   "new": "Mo_Cd",
+   "dn": {
+    "Mo": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|N_i",
+   "old": "N_i",
+   "new": "N_Cd",
+   "dn": {
+    "N": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Na_i",
+   "old": "Na_i",
+   "new": "Na_Cd",
+   "dn": {
+    "Cd": -1,
+    "Na": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Nb_i",
+   "old": "Nb_i",
+   "new": "Nb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Nb": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ni_i",
+   "old": "Ni_i",
+   "new": "Ni_Cd",
+   "dn": {
+    "Ni": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|O_i",
+   "old": "O_i",
+   "new": "O_Cd",
+   "dn": {
+    "Cd": -1,
+    "O": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|O_i+As_Te+O_i",
+   "old": "O_i+As_Te+O_i",
+   "new": "As_Te+O_Cd+O_Te",
+   "dn": {
+    "Cd": -1,
+    "Te": -2,
+    "O": 2,
+    "As": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Os_i",
+   "old": "Os_i",
+   "new": "Os_Cd",
+   "dn": {
+    "Cd": -1,
+    "Os": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|P_i",
+   "old": "P_i",
+   "new": "P_Cd",
+   "dn": {
+    "Cd": -1,
+    "P": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Pb_i",
+   "old": "Pb_i",
+   "new": "Pb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Pb": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Pd_i",
+   "old": "Pd_i",
+   "new": "Pd_Cd",
+   "dn": {
+    "Cd": -1,
+    "Pd": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Pt_i",
+   "old": "Pt_i",
+   "new": "Pt_Cd",
+   "dn": {
+    "Cd": -1,
+    "Pt": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Rb_i",
+   "old": "Rb_i",
+   "new": "Rb_Cd",
+   "dn": {
+    "Cd": -1,
+    "Rb": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Re_i",
+   "old": "Re_i",
+   "new": "Re_Cd",
+   "dn": {
+    "Cd": -1,
+    "Re": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Rh_i",
+   "old": "Rh_i",
+   "new": "Rh_Cd",
+   "dn": {
+    "Cd": -1,
+    "Rh": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ru_i",
+   "old": "Ru_i",
+   "new": "Ru_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ru": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|S_i",
+   "old": "S_i",
+   "new": "S_Te",
+   "dn": {
+    "S": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Sb_i",
+   "old": "Sb_i",
+   "new": "Sb_Cd",
+   "dn": {
+    "Sb": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Sc_i",
+   "old": "Sc_i",
+   "new": "Sc_Cd",
+   "dn": {
+    "Sc": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Se_i",
+   "old": "Se_i",
+   "new": "Se_Te",
+   "dn": {
+    "Se": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Si_i",
+   "old": "Si_i",
+   "new": "Si_Cd",
+   "dn": {
+    "Cd": -1,
+    "Si": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Sn_i",
+   "old": "Sn_i",
+   "new": "Sn_Cd",
+   "dn": {
+    "Sn": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Sr_i",
+   "old": "Sr_i",
+   "new": "Sr_Cd",
+   "dn": {
+    "Cd": -1,
+    "Sr": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ta_i",
+   "old": "Ta_i",
+   "new": "Ta_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ta": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Tc_i",
+   "old": "Tc_i",
+   "new": "Tc_Cd",
+   "dn": {
+    "Cd": -1,
+    "Tc": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Ti_i",
+   "old": "Ti_i",
+   "new": "Ti_Cd",
+   "dn": {
+    "Cd": -1,
+    "Ti": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Tl_i",
+   "old": "Tl_i",
+   "new": "Tl_Cd",
+   "dn": {
+    "Tl": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Vac_i",
+   "old": "Vac_i",
+   "new": "V_Cd",
+   "dn": {
+    "Cd": -1,
+    "V": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|W_i",
+   "old": "W_i",
+   "new": "W_Cd",
+   "dn": {
+    "W": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Y_i",
+   "old": "Y_i",
+   "new": "Y_Cd",
+   "dn": {
+    "Y": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|Zn_i",
+   "old": "Zn_i",
+   "new": "Zn_Cd",
+   "dn": {
+    "Cd": -1,
+    "Zn": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|Zr_i",
+   "old": "Zr_i",
+   "new": "Zr_Cd",
+   "dn": {
+    "Zr": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "hse|CdTe|complex_As+1+Cd+1+Cl+1+Te",
+   "old": "complex_As+1+Cd+1+Cl+1+Te",
+   "new": "As_Te+Cl_Te",
+   "dn": {
+    "Te": -2,
+    "Cl": 1,
+    "As": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|complex_As+1+Cd+1+O+1+Te",
+   "old": "complex_As+1+Cd+1+O+1+Te",
+   "new": "As_Te+O_Te",
+   "dn": {
+    "Te": -2,
+    "O": 1,
+    "As": 1
+   }
+  },
+  {
+   "key": "hse|CdTe|complex_As+2+Cd+1",
+   "old": "complex_As+2+Cd+1",
+   "new": "As_Te+As_i",
+   "dn": {
+    "Te": -1,
+    "As": 2
+   }
+  },
+  {
+   "key": "hse|ZnSe|Al_i",
+   "old": "Al_i",
+   "new": "Al_Zn",
+   "dn": {
+    "Zn": -1,
+    "Al": 1
+   }
+  },
+  {
+   "key": "hse|ZnSe|As_i",
+   "old": "As_i",
+   "new": "As_Zn",
+   "dn": {
+    "As": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnSe|B_i",
+   "old": "B_i",
+   "new": "B_Zn",
+   "dn": {
+    "B": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnSe|Br_i",
+   "old": "Br_i",
+   "new": "Br_Se",
+   "dn": {
+    "Se": -1,
+    "Br": 1
+   }
+  },
+  {
+   "key": "hse|ZnSe|C_i",
+   "old": "C_i",
+   "new": "C_Se",
+   "dn": {
+    "Se": -1,
+    "C": 1
+   }
+  },
+  {
+   "key": "hse|ZnSe|Ni_i",
+   "old": "Ni_i",
+   "new": "Ni_Se",
+   "dn": {
+    "Ni": 1,
+    "Se": -1
+   }
+  },
+  {
+   "key": "hse|ZnSe|Pt_i",
+   "old": "Pt_i",
+   "new": "Pt_Zn",
+   "dn": {
+    "Pt": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnSe|Rh_i",
+   "old": "Rh_i",
+   "new": "Rh_Se",
+   "dn": {
+    "Se": -1,
+    "Rh": 1
+   }
+  },
+  {
+   "key": "hse|ZnSe|Ru_i",
+   "old": "Ru_i",
+   "new": "Ru_Zn",
+   "dn": {
+    "Ru": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnSe|Tl_i",
+   "old": "Tl_i",
+   "new": "Tl_Se",
+   "dn": {
+    "Tl": 1,
+    "Se": -1
+   }
+  },
+  {
+   "key": "hse|ZnS|Bi_i",
+   "old": "Bi_i",
+   "new": "Bi_Zn",
+   "dn": {
+    "Bi": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnS|Ca_i",
+   "old": "Ca_i",
+   "new": "Ca_S",
+   "dn": {
+    "S": -1,
+    "Ca": 1
+   }
+  },
+  {
+   "key": "hse|ZnS|Cd_i",
+   "old": "Cd_i",
+   "new": "Cd_Zn",
+   "dn": {
+    "Cd": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnS|Co_i",
+   "old": "Co_i",
+   "new": "Co_S",
+   "dn": {
+    "S": -1,
+    "Co": 1
+   }
+  },
+  {
+   "key": "hse|ZnS|N_i",
+   "old": "N_i",
+   "new": "N_S",
+   "dn": {
+    "S": -1,
+    "N": 1
+   }
+  },
+  {
+   "key": "hse|ZnS|P_i",
+   "old": "P_i",
+   "new": "P_Zn",
+   "dn": {
+    "Zn": -1,
+    "P": 1
+   }
+  },
+  {
+   "key": "hse|ZnS|Si_i",
+   "old": "Si_i",
+   "new": "Si_S",
+   "dn": {
+    "S": -1,
+    "Si": 1
+   }
+  },
+  {
+   "key": "hse|ZnS|Sn_i",
+   "old": "Sn_i",
+   "new": "Sn_Zn",
+   "dn": {
+    "Sn": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnS|Sr_i",
+   "old": "Sr_i",
+   "new": "Sr_S",
+   "dn": {
+    "S": -1,
+    "Sr": 1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Ag_i",
+   "old": "Ag_i",
+   "new": "Vac_Te+Ag_Zn",
+   "dn": {
+    "Ag": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Al_i",
+   "old": "Al_i",
+   "new": "Vac_Te+Vac_Zn+Al_Zn",
+   "dn": {
+    "Te": -1,
+    "Zn": -2,
+    "Al": 1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Be_i",
+   "old": "Be_i",
+   "new": "Vac_Te+Be_Zn",
+   "dn": {
+    "Te": -1,
+    "Be": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|C_i",
+   "old": "C_i",
+   "new": "Vac_Zn+C_Te",
+   "dn": {
+    "C": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Ca_i",
+   "old": "Ca_i",
+   "new": "Vac_Te+Ca_Zn",
+   "dn": {
+    "Te": -1,
+    "Zn": -1,
+    "Ca": 1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Cr_i",
+   "old": "Cr_i",
+   "new": "Vac_Te+Cr_Zn",
+   "dn": {
+    "Cr": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Cu_i",
+   "old": "Cu_i",
+   "new": "Vac_Te+Vac_Zn+Cu_Zn",
+   "dn": {
+    "Te": -1,
+    "Zn": -2,
+    "Cu": 1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Ga_i",
+   "old": "Ga_i",
+   "new": "Vac_Te+Vac_Zn+Ga_Zn",
+   "dn": {
+    "Te": -1,
+    "Zn": -2,
+    "Ga": 1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Ge_i",
+   "old": "Ge_i",
+   "new": "Vac_Te+Vac_Te+Ge_Zn",
+   "dn": {
+    "Ge": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Hf_i",
+   "old": "Hf_i",
+   "new": "Vac_Te+Vac_Zn+Hf_Zn",
+   "dn": {
+    "Hf": 1,
+    "Te": -1,
+    "Zn": -2
+   }
+  },
+  {
+   "key": "hse|ZnTe|I_i",
+   "old": "I_i",
+   "new": "Vac_Te+Vac_Zn+I_Te",
+   "dn": {
+    "I": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Li_i",
+   "old": "Li_i",
+   "new": "Vac_Te+Vac_Te+Li_Zn",
+   "dn": {
+    "Te": -2,
+    "Zn": -1,
+    "Li": 1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Mn_i",
+   "old": "Mn_i",
+   "new": "Vac_Te+Mn_Zn",
+   "dn": {
+    "Te": -1,
+    "Mn": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Mo_i",
+   "old": "Mo_i",
+   "new": "Vac_Te+Vac_Zn+Mo_Zn",
+   "dn": {
+    "Mo": 1,
+    "Te": -1,
+    "Zn": -2
+   }
+  },
+  {
+   "key": "hse|ZnTe|N_i",
+   "old": "N_i",
+   "new": "Vac_Te+Vac_Zn+N_Te",
+   "dn": {
+    "N": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Na_i",
+   "old": "Na_i",
+   "new": "Vac_Te+Na_Zn",
+   "dn": {
+    "Te": -1,
+    "Na": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Os_i",
+   "old": "Os_i",
+   "new": "Vac_Te+Vac_Zn+Os_Zn",
+   "dn": {
+    "Os": 1,
+    "Te": -1,
+    "Zn": -2
+   }
+  },
+  {
+   "key": "hse|ZnTe|P_i",
+   "old": "P_i",
+   "new": "Vac_Zn+P_Te",
+   "dn": {
+    "Te": -1,
+    "Zn": -1,
+    "P": 1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Pt_i",
+   "old": "Pt_i",
+   "new": "Vac_Te+Pt_Zn",
+   "dn": {
+    "Te": -1,
+    "Pt": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|S_i",
+   "old": "S_i",
+   "new": "Vac_Zn+S_Te",
+   "dn": {
+    "S": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Sb_i",
+   "old": "Sb_i",
+   "new": "Vac_Te+Vac_Zn+Sb_Te",
+   "dn": {
+    "Sb": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Sc_i",
+   "old": "Sc_i",
+   "new": "Vac_Te+Vac_Zn+Sc_Zn",
+   "dn": {
+    "Sc": 1,
+    "Te": -1,
+    "Zn": -2
+   }
+  },
+  {
+   "key": "hse|ZnTe|Se_i",
+   "old": "Se_i",
+   "new": "Vac_Te+Vac_Zn+Se_Te",
+   "dn": {
+    "Se": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Te_Zn",
+   "old": "Te_Zn",
+   "new": "Vac_Zn+Vac_Zn",
+   "dn": {
+    "Zn": -2
+   }
+  },
+  {
+   "key": "hse|ZnTe|Te_i",
+   "old": "Te_i",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Ti_i",
+   "old": "Ti_i",
+   "new": "Vac_Te+Ti_Zn",
+   "dn": {
+    "Te": -1,
+    "Zn": -1,
+    "Ti": 1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Tl_i",
+   "old": "Tl_i",
+   "new": "Vac_Te+Tl_Zn",
+   "dn": {
+    "Tl": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Vac_Te",
+   "old": "Vac_Te",
+   "new": "Te_i+Zn_i+Zn_i",
+   "dn": {
+    "Te": 1,
+    "Zn": 2
+   }
+  },
+  {
+   "key": "hse|ZnTe|Vac_Zn",
+   "old": "Vac_Zn",
+   "new": "Te_i+Te_i+Zn_i",
+   "dn": {
+    "Te": 2,
+    "Zn": 1
+   }
+  },
+  {
+   "key": "hse|ZnTe|W_i",
+   "old": "W_i",
+   "new": "Vac_Te+W_Zn",
+   "dn": {
+    "W": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Zn_Te",
+   "old": "Zn_Te",
+   "new": "Vac_Te+Vac_Te",
+   "dn": {
+    "Te": -2
+   }
+  },
+  {
+   "key": "hse|ZnTe|Zn_i",
+   "old": "Zn_i",
+   "new": "Vac_Te",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "hse|ZnTe|Zr_i",
+   "old": "Zr_i",
+   "new": "Vac_Te+Zr_Zn",
+   "dn": {
+    "Zr": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Ag_i",
+   "old": "Ag_i",
+   "new": "Ag_i+H_i",
+   "dn": {
+    "Ag": 1,
+    "H": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Cd_In",
+   "old": "Cd_In",
+   "new": "Cd_In+H_i",
+   "dn": {
+    "Cd": 1,
+    "H": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Cd_Zn",
+   "old": "Cd_Zn",
+   "new": "Cd_Zn+H_i",
+   "dn": {
+    "Cd": 1,
+    "Zn": -1,
+    "H": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Ce_In",
+   "old": "Ce_In",
+   "new": "Ce_In+H_i",
+   "dn": {
+    "H": 1,
+    "In": -1,
+    "Ce": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Ce_Zn",
+   "old": "Ce_Zn",
+   "new": "Ce_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Ce": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Cu_i",
+   "old": "Cu_i",
+   "new": "Cu_i+H_i",
+   "dn": {
+    "H": 1,
+    "Cu": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Dy_In",
+   "old": "Dy_In",
+   "new": "Dy_In+H_i",
+   "dn": {
+    "H": 1,
+    "In": -1,
+    "Dy": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Dy_Zn",
+   "old": "Dy_Zn",
+   "new": "Dy_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Dy": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Er_In",
+   "old": "Er_In",
+   "new": "Er_In+H_i",
+   "dn": {
+    "H": 1,
+    "Er": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Er_Zn",
+   "old": "Er_Zn",
+   "new": "Er_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Er": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Eu_In",
+   "old": "Eu_In",
+   "new": "Eu_In+H_i",
+   "dn": {
+    "H": 1,
+    "In": -1,
+    "Eu": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Eu_Zn",
+   "old": "Eu_Zn",
+   "new": "Eu_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Eu": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Gd_In",
+   "old": "Gd_In",
+   "new": "Gd_In+H_i",
+   "dn": {
+    "H": 1,
+    "In": -1,
+    "Gd": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Gd_Zn",
+   "old": "Gd_Zn",
+   "new": "Gd_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Gd": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Gd_i",
+   "old": "Gd_i",
+   "new": "Gd_i+H_i",
+   "dn": {
+    "H": 1,
+    "Gd": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Hf_i",
+   "old": "Hf_i",
+   "new": "H_i+Hf_i",
+   "dn": {
+    "H": 1,
+    "Hf": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Hg_In",
+   "old": "Hg_In",
+   "new": "Hg_In+H_i",
+   "dn": {
+    "H": 1,
+    "Hg": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Hg_Zn",
+   "old": "Hg_Zn",
+   "new": "Hg_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Hg": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Hg_i",
+   "old": "Hg_i",
+   "new": "H_i+Hg_i",
+   "dn": {
+    "H": 1,
+    "Hg": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Ho_In",
+   "old": "Ho_In",
+   "new": "Ho_In+H_i",
+   "dn": {
+    "H": 1,
+    "Ho": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Ho_Zn",
+   "old": "Ho_Zn",
+   "new": "Ho_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Ho": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|La_In",
+   "old": "La_In",
+   "new": "La_In+H_i",
+   "dn": {
+    "La": 1,
+    "H": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|La_Zn",
+   "old": "La_Zn",
+   "new": "La_Zn+H_i",
+   "dn": {
+    "La": 1,
+    "Zn": -1,
+    "H": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Lu_In",
+   "old": "Lu_In",
+   "new": "Lu_In+H_i",
+   "dn": {
+    "H": 1,
+    "Lu": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Lu_Zn",
+   "old": "Lu_Zn",
+   "new": "Lu_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Lu": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Mn_Zn",
+   "old": "Mn_Zn",
+   "new": "Mn_Zn+H_i",
+   "dn": {
+    "Mn": 1,
+    "Zn": -1,
+    "H": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Nd_In",
+   "old": "Nd_In",
+   "new": "Nd_In+H_i",
+   "dn": {
+    "H": 1,
+    "Nd": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Nd_Zn",
+   "old": "Nd_Zn",
+   "new": "Nd_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Nd": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Nd_i",
+   "old": "Nd_i",
+   "new": "H_i+Nd_i",
+   "dn": {
+    "H": 1,
+    "Nd": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Pm_In",
+   "old": "Pm_In",
+   "new": "Pm_In+H_i",
+   "dn": {
+    "H": 1,
+    "In": -1,
+    "Pm": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Pm_Zn",
+   "old": "Pm_Zn",
+   "new": "Pm_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Pm": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Pr_In",
+   "old": "Pr_In",
+   "new": "Pr_In+H_i",
+   "dn": {
+    "H": 1,
+    "Pr": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Pr_Zn",
+   "old": "Pr_Zn",
+   "new": "Pr_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Pr": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Sc_In",
+   "old": "Sc_In",
+   "new": "Sc_In+H_i",
+   "dn": {
+    "H": 1,
+    "Sc": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Sc_Zn",
+   "old": "Sc_Zn",
+   "new": "Sc_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Sc": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Sm_In",
+   "old": "Sm_In",
+   "new": "Sm_In+H_i",
+   "dn": {
+    "Sm": 1,
+    "H": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Sm_Zn",
+   "old": "Sm_Zn",
+   "new": "Sm_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "Sm": 1,
+    "H": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Tb_In",
+   "old": "Tb_In",
+   "new": "Tb_In+H_i",
+   "dn": {
+    "Tb": 1,
+    "H": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Tb_Zn",
+   "old": "Tb_Zn",
+   "new": "Tb_Zn+H_i",
+   "dn": {
+    "Tb": 1,
+    "Zn": -1,
+    "H": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Ti_In",
+   "old": "Ti_In",
+   "new": "Ti_In+H_i",
+   "dn": {
+    "H": 1,
+    "In": -1,
+    "Ti": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Tm_In",
+   "old": "Tm_In",
+   "new": "Tm_In+H_i",
+   "dn": {
+    "H": 1,
+    "Tm": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Tm_Zn",
+   "old": "Tm_Zn",
+   "new": "Tm_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Tm": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Tm_i",
+   "old": "Tm_i",
+   "new": "H_i+Tm_i",
+   "dn": {
+    "H": 1,
+    "Tm": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Y_In",
+   "old": "Y_In",
+   "new": "Y_In+H_i",
+   "dn": {
+    "Y": 1,
+    "H": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Y_Zn",
+   "old": "Y_Zn",
+   "new": "Y_Zn+H_i",
+   "dn": {
+    "Y": 1,
+    "Zn": -1,
+    "H": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Y_i",
+   "old": "Y_i",
+   "new": "H_i+Y_i",
+   "dn": {
+    "Y": 1,
+    "H": 1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Yb_In",
+   "old": "Yb_In",
+   "new": "Yb_In+H_i",
+   "dn": {
+    "H": 1,
+    "Yb": 1,
+    "In": -1
+   }
+  },
+  {
+   "key": "pbe_u|ZnIn2S4|Yb_Zn",
+   "old": "Yb_Zn",
+   "new": "Yb_Zn+H_i",
+   "dn": {
+    "Zn": -1,
+    "H": 1,
+    "Yb": 1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5Ga0.5Se2_kesterite|Se_Al",
+   "old": "Se_Al",
+   "new": "Vac_Al-2",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5Ga0.5Se2_kesterite|Vac_Al",
+   "old": "Vac_Al",
+   "new": "Vac_Al-1",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5Ga0.5Se2_stannite|Ag_Ga",
+   "old": "Ag_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5Ga0.5Te2_stannite|Ag_Ga",
+   "old": "Ag_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5Ga0.5Te2_stannite|Ga_Al",
+   "old": "Ga_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5In0.5S1Se1_kesterite|Ag_Al",
+   "old": "Ag_Al",
+   "new": "Vac_Al-2",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5In0.5S1Se1_kesterite|In_Al",
+   "old": "In_Al",
+   "new": "Vac_Al-3",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5In0.5S1Se1_kesterite|Vac_Al",
+   "old": "Vac_Al",
+   "new": "Vac_Al-1",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5In0.5S2_kesterite|In_Al",
+   "old": "In_Al",
+   "new": "Vac_Al-2",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5In0.5S2_kesterite|Vac_Al",
+   "old": "Vac_Al",
+   "new": "Vac_Al-1",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5In0.5Se2_kesterite|In_Al",
+   "old": "In_Al",
+   "new": "Vac_Al-2",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al0.5In0.5Se2_kesterite|Vac_Al",
+   "old": "Vac_Al",
+   "new": "Vac_Al-1",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al1Te2_kesterite|Ag_Al",
+   "old": "Ag_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Al1Te2_kesterite|Te_Ag",
+   "old": "Te_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Ga0.5In0.5S2_kesterite|Ag_In",
+   "old": "Ag_In",
+   "new": "Vac_In-1",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Ga0.5In0.5S2_kesterite|S_In",
+   "old": "S_In",
+   "new": "Vac_In-2",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Ga1S1Te1_kesterite|Te_Ga",
+   "old": "Te_Ga",
+   "new": "Vac_Ga-2",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Ga1S1Te1_kesterite|Vac_Ga",
+   "old": "Vac_Ga",
+   "new": "Vac_Ga-1",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Ga1S1Te1_stannite|Te_Ga",
+   "old": "Te_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Ga1S2_kesterite|Ag_Ga",
+   "old": "Ag_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Ga1Se1Te1_stannite|Ag_Ga",
+   "old": "Ag_Ga",
+   "new": "Vac_Ga-1",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1Ga1Se1Te1_stannite|Te_Ga",
+   "old": "Te_Ga",
+   "new": "Vac_Ga-2",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1In1S1Se1_kesterite|S_In",
+   "old": "S_In",
+   "new": "Vac_In",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag1In1Se2_kesterite|Se_Ag",
+   "old": "Se_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ba1Sn1S4_stannite|Sn_Ba",
+   "old": "Sn_Ba",
+   "new": "Vac_Ba",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca0.5Cd0.5Zr1Se4_kesterite|Zr_Ca",
+   "old": "Zr_Ca",
+   "new": "Vac_Ca",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca0.5Cd0.5Zr1Se4_stannite|Se_Ca",
+   "old": "Se_Ca",
+   "new": "Vac_Ca",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca0.5Cd0.5Zr1Se4_stannite|Se_Zr",
+   "old": "Se_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca0.5Cd0.5Zr1Se4|Vac_Ca",
+   "old": "Vac_Ca",
+   "new": "Vac_Ca-1",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca0.5Cd0.5Zr1Se4|Zr_Ca",
+   "old": "Zr_Ca",
+   "new": "Vac_Ca-2",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca1Ge1S1Se1Te2_kesterite|S_Ca",
+   "old": "S_Ca",
+   "new": "Vac_Ca",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca1Ge1S1Se3_kesterite|Ag_Ca",
+   "old": "Ag_Ca",
+   "new": "Vac_Ca",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca1Sn1S4_kesterite|Ag_Ca",
+   "old": "Ag_Ca",
+   "new": "Vac_Ca-1",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca1Sn1S4_kesterite|Sn_Ca",
+   "old": "Sn_Ca",
+   "new": "Vac_Ca-2",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca1Sn1S4_stannite|S_Sn",
+   "old": "S_Sn",
+   "new": "Vac_Sn-2",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca1Sn1S4_stannite|Sn_Ca",
+   "old": "Sn_Ca",
+   "new": "Vac_Ca-2",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca1Sn1S4_stannite|Vac_Ca",
+   "old": "Vac_Ca",
+   "new": "Vac_Ca-1",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Ca1Sn1S4_stannite|Vac_Sn",
+   "old": "Vac_Sn",
+   "new": "Vac_Sn-1",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Cd1Ge1S4_stannite|Ag_Cd",
+   "old": "Ag_Cd",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Cd1Ge1S4_stannite|S_Ag",
+   "old": "S_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Cd1Ge1S4_stannite|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Cd1Ge1Se4_kesterite|Se_Ag",
+   "old": "Se_Ag",
+   "new": "Vac_Ag-2",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Cd1Ge1Se4_kesterite|Se_Ge",
+   "old": "Se_Ge",
+   "new": "Vac_Ge",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Cd1Ge1Se4_kesterite|Vac_Ag",
+   "old": "Vac_Ag",
+   "new": "Vac_Ag-1",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Cd1Sn1S4_kesterite|S_Ag",
+   "old": "S_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Cd1Sn1Se4_kesterite|Sn_Cd",
+   "old": "Sn_Cd",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Cd1Sn1Se4_kesterite|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg0.5Ba0.5Zr1S4_kesterite|Zr_Ba",
+   "old": "Zr_Ba",
+   "new": "Vac_Ba",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg0.5Ba0.5Zr1S4_stannite|Ag_Ba",
+   "old": "Ag_Ba",
+   "new": "Vac_Ba",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg0.5Ba0.5Zr1S4_stannite|S_Zr",
+   "old": "S_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg0.5Ba0.5Zr1S4|Vac_Ba",
+   "old": "Vac_Ba",
+   "new": "Vac_Ba-1",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg0.5Ba0.5Zr1S4|Zr_Ba",
+   "old": "Zr_Ba",
+   "new": "Vac_Ba-2",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg1Ge1S4_stannite|S_Ag",
+   "old": "S_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg1Ge1Se4_kesterite|Se_Ge",
+   "old": "Se_Ge",
+   "new": "Vac_Ge",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg1Ge1Te4_stannite|Te_Ag",
+   "old": "Te_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg1Ge1Te4_stannite|Te_Ge",
+   "old": "Te_Ge",
+   "new": "Vac_Ge",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg1Sn1Se4_stannite|Se_Mg",
+   "old": "Se_Mg",
+   "new": "Vac_Mg",
+   "dn": {
+    "Mg": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg1Zr1S2Se2_kesterite|Ag_Zr",
+   "old": "Ag_Zr",
+   "new": "Vac_Zr-1",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Mg1Zr1S2Se2_kesterite|S_Zr",
+   "old": "S_Zr",
+   "new": "Vac_Zr-2",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Sr1Ge1S4_stannite|S_Ge",
+   "old": "S_Ge",
+   "new": "Vac_Ge-2",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Sr1Ge1S4_stannite|Vac_Ge",
+   "old": "Vac_Ge",
+   "new": "Vac_Ge-1",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Sr1Zr1S2Se1Te1_stannite|Ag_Sr",
+   "old": "Ag_Sr",
+   "new": "Vac_Sr-1",
+   "dn": {
+    "Sr": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Sr1Zr1S2Se1Te1_stannite|Te_Sr",
+   "old": "Te_Sr",
+   "new": "Vac_Sr-2",
+   "dn": {
+    "Sr": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Zn1Ge1S4_kesterite|Ag_Zn",
+   "old": "Ag_Zn",
+   "new": "Vac_Zn-2",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Zn1Ge1S4_kesterite|Vac_Zn",
+   "old": "Vac_Zn",
+   "new": "Vac_Zn-1",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Zn1Ge1S4_stannite|Ag_Zn",
+   "old": "Ag_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Zn1Ge1Se4_kesterite|Ag_Zn",
+   "old": "Ag_Zn",
+   "new": "Vac_Zn-1",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Ag2Zn1Ge1Se4_kesterite|Se_Zn",
+   "old": "Se_Zn",
+   "new": "Vac_Zn-2",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Cd_Se",
+   "old": "Cd_Se",
+   "new": "Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Cd_Se+Te_i",
+   "old": "Cd_Se+Te_i",
+   "new": "Se_Cd+Te_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Cd_Te",
+   "old": "Cd_Te",
+   "new": "Te_Cd",
+   "dn": {
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Cd_Te+Se_i",
+   "old": "Cd_Te+Se_i",
+   "new": "Te_Cd+Se_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Se_Cd",
+   "old": "Se_Cd",
+   "new": "Cd_Se",
+   "dn": {
+    "Se": -1,
+    "Cd": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Se_Cd+Cd_i",
+   "old": "Se_Cd+Cd_i",
+   "new": "Cd_Se+Cd_i",
+   "dn": {
+    "Se": -1,
+    "Cd": 2
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Se_Te",
+   "old": "Se_Te",
+   "new": "Te_Se",
+   "dn": {
+    "Se": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Te_Cd",
+   "old": "Te_Cd",
+   "new": "Cd_Te",
+   "dn": {
+    "Cd": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Te_Cd+Cd_i",
+   "old": "Te_Cd+Cd_i",
+   "new": "Cd_Te+Cd_i",
+   "dn": {
+    "Cd": 2,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Te_Se",
+   "old": "Te_Se",
+   "new": "Se_Te",
+   "dn": {
+    "Se": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Vac_Cd+Cd_Se",
+   "old": "Vac_Cd+Cd_Se",
+   "new": "Vac_Cd+Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -2
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Vac_Cd+Cd_Te",
+   "old": "Vac_Cd+Cd_Te",
+   "new": "Vac_Cd+Te_Cd",
+   "dn": {
+    "Cd": -2,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Vac_Cd+Se_Cd",
+   "old": "Vac_Cd+Se_Cd",
+   "new": "Vac_Se-2",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Vac_Cd+Te_Cd",
+   "old": "Vac_Cd+Te_Cd",
+   "new": "Vac_Te-2",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Vac_Se",
+   "old": "Vac_Se",
+   "new": "Vac_Se-1",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Vac_Se+Cd_Se",
+   "old": "Vac_Se+Cd_Se",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Vac_Te",
+   "old": "Vac_Te",
+   "new": "Vac_Te-1",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.06Te0.94|Vac_Te+Cd_Te",
+   "old": "Vac_Te+Cd_Te",
+   "new": "Vac_Cd-3",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Cd_Se",
+   "old": "Cd_Se",
+   "new": "Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Cd_Te",
+   "old": "Cd_Te",
+   "new": "Te_Cd",
+   "dn": {
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Se_Cd",
+   "old": "Se_Cd",
+   "new": "Cd_Se",
+   "dn": {
+    "Se": -1,
+    "Cd": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Se_Cd+Cd_i",
+   "old": "Se_Cd+Cd_i",
+   "new": "Cd_Se+Cd_i",
+   "dn": {
+    "Se": -1,
+    "Cd": 2
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Se_Te",
+   "old": "Se_Te",
+   "new": "Te_Se",
+   "dn": {
+    "Se": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Te_Cd",
+   "old": "Te_Cd",
+   "new": "Cd_Te",
+   "dn": {
+    "Cd": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Te_Cd+Cd_i",
+   "old": "Te_Cd+Cd_i",
+   "new": "Cd_Te+Cd_i",
+   "dn": {
+    "Cd": 2,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Te_Se",
+   "old": "Te_Se",
+   "new": "Se_Te",
+   "dn": {
+    "Se": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Vac_Cd+Cd_Se",
+   "old": "Vac_Cd+Cd_Se",
+   "new": "Vac_Cd+Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -2
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Vac_Cd+Cd_Te",
+   "old": "Vac_Cd+Cd_Te",
+   "new": "Vac_Cd+Te_Cd",
+   "dn": {
+    "Cd": -2,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Vac_Cd+Se_Cd",
+   "old": "Vac_Cd+Se_Cd",
+   "new": "Vac_Se-2",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Vac_Cd+Te_Cd",
+   "old": "Vac_Cd+Te_Cd",
+   "new": "Vac_Te-2",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Vac_Se",
+   "old": "Vac_Se",
+   "new": "Vac_Se-1",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Vac_Se+Cd_Se",
+   "old": "Vac_Se+Cd_Se",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Vac_Te",
+   "old": "Vac_Te",
+   "new": "Vac_Te-1",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Vac_Te+Cd_Te",
+   "old": "Vac_Te+Cd_Te",
+   "new": "Vac_Cd-3",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Cd_Se+Te_i",
+   "old": "Cd_Se+Te_i",
+   "new": "Se_Cd+Te_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Cd_Te+Se_i",
+   "old": "Cd_Te+Se_i",
+   "new": "Te_Cd+Se_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Se_Cd+Cd_i",
+   "old": "Se_Cd+Cd_i",
+   "new": "Cd_Se+Cd_i",
+   "dn": {
+    "Se": -1,
+    "Cd": 2
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Te_Cd+Cd_i",
+   "old": "Te_Cd+Cd_i",
+   "new": "Cd_Te+Cd_i",
+   "dn": {
+    "Cd": 2,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Vac_Cd+Cd_Se",
+   "old": "Vac_Cd+Cd_Se",
+   "new": "Vac_Cd+Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -2
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Vac_Cd+Cd_Te",
+   "old": "Vac_Cd+Cd_Te",
+   "new": "Vac_Cd+Te_Cd",
+   "dn": {
+    "Cd": -2,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Vac_Cd+Se_Cd",
+   "old": "Vac_Cd+Se_Cd",
+   "new": "Vac_Se-2",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Vac_Cd+Te_Cd",
+   "old": "Vac_Cd+Te_Cd",
+   "new": "Vac_Te-2",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Vac_Se",
+   "old": "Vac_Se",
+   "new": "Vac_Se-1",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Vac_Se+Cd_Se",
+   "old": "Vac_Se+Cd_Se",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Vac_Te",
+   "old": "Vac_Te",
+   "new": "Vac_Te-1",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.25Te0.75|Vac_Te+Cd_Te",
+   "old": "Vac_Te+Cd_Te",
+   "new": "Vac_Cd-3",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Cd_Se",
+   "old": "Cd_Se",
+   "new": "Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Cd_Se+Te_i",
+   "old": "Cd_Se+Te_i",
+   "new": "Se_Cd+Te_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Cd_Te",
+   "old": "Cd_Te",
+   "new": "Te_Cd",
+   "dn": {
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Cd_Te+Se_i",
+   "old": "Cd_Te+Se_i",
+   "new": "Te_Cd+Se_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Se_Cd",
+   "old": "Se_Cd",
+   "new": "Cd_Se",
+   "dn": {
+    "Se": -1,
+    "Cd": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Se_Cd+Cd_i",
+   "old": "Se_Cd+Cd_i",
+   "new": "Cd_Se+Cd_i",
+   "dn": {
+    "Se": -1,
+    "Cd": 2
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Se_Te",
+   "old": "Se_Te",
+   "new": "Te_Se",
+   "dn": {
+    "Se": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Te_Cd",
+   "old": "Te_Cd",
+   "new": "Cd_Te",
+   "dn": {
+    "Cd": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Te_Cd+Cd_i",
+   "old": "Te_Cd+Cd_i",
+   "new": "Cd_Te+Cd_i",
+   "dn": {
+    "Cd": 2,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Te_Se",
+   "old": "Te_Se",
+   "new": "Se_Te",
+   "dn": {
+    "Se": 1,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Vac_Cd+Cd_Se",
+   "old": "Vac_Cd+Cd_Se",
+   "new": "Vac_Cd+Se_Cd",
+   "dn": {
+    "Se": 1,
+    "Cd": -2
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Vac_Cd+Cd_Te",
+   "old": "Vac_Cd+Cd_Te",
+   "new": "Vac_Cd+Te_Cd",
+   "dn": {
+    "Cd": -2,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Vac_Cd+Se_Cd",
+   "old": "Vac_Cd+Se_Cd",
+   "new": "Vac_Se-2",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Vac_Cd+Te_Cd",
+   "old": "Vac_Cd+Te_Cd",
+   "new": "Vac_Te-2",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Vac_Se",
+   "old": "Vac_Se",
+   "new": "Vac_Se-1",
+   "dn": {
+    "Se": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Vac_Se+Cd_Se",
+   "old": "Vac_Se+Cd_Se",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Vac_Te",
+   "old": "Vac_Te",
+   "new": "Vac_Te-1",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.2Te0.8|Vac_Te+Cd_Te",
+   "old": "Vac_Te+Cd_Te",
+   "new": "Vac_Cd-3",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdTe|Te_Cd+Cd_i",
+   "old": "Te_Cd+Cd_i",
+   "new": "Cd_Te+Cd_i",
+   "dn": {
+    "Cd": 2,
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdTe|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|CdTe|Vac_Cd+Cd_Te",
+   "old": "Vac_Cd+Cd_Te",
+   "new": "Vac_Cd+Te_Cd",
+   "dn": {
+    "Cd": -2,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdTe|Vac_Cd+Te_Cd",
+   "old": "Vac_Cd+Te_Cd",
+   "new": "Vac_Te-2",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdTe|Vac_Te",
+   "old": "Vac_Te",
+   "new": "Vac_Te-1",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbesol|CdTe|Vac_Te+Cd_Te",
+   "old": "Vac_Te+Cd_Te",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs0.5Ag0.5Al0.5In0.5S1Se1_stannite|S_Cs",
+   "old": "S_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs0.5Ag0.5Al0.5In0.5S1Se1|S_Cs",
+   "old": "S_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs0.5Ag0.5Al0.5In0.5S2_kesterite|S_In",
+   "old": "S_In",
+   "new": "Vac_In",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs0.5Ag0.5Al1S1Se1_kesterite|Se_Al",
+   "old": "Se_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs0.5Ag0.5Al1Te2_kesterite|Te_Cs",
+   "old": "Te_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs0.5Ag1.5Mg1Sn1Se4_kesterite|Mg_Cs",
+   "old": "Mg_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs0.5Ag1.5Mg1Sn1Se4_stannite|Sn_Cs",
+   "old": "Sn_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs0.5Cu0.5Al1Te2_stannite|Te_Cu",
+   "old": "Te_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs1Al1Te2_kesterite|Te_Cs",
+   "old": "Te_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|Cs1In1S2_kesterite|S_Cs",
+   "old": "S_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S1Se1_kesterite|Cu_Al",
+   "old": "Cu_Al",
+   "new": "Vac_Al-2",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S1Se1_kesterite|S_Al",
+   "old": "S_Al",
+   "new": "Vac_Al-3",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S1Se1_kesterite|Vac_Al",
+   "old": "Vac_Al",
+   "new": "Vac_Al-1",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S1Se1_stannite|Cu_Al",
+   "old": "Cu_Al",
+   "new": "Vac_Al-2",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S1Se1_stannite|S_In",
+   "old": "S_In",
+   "new": "Vac_In-1",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S1Se1_stannite|Se_In",
+   "old": "Se_In",
+   "new": "Vac_In-2",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S1Se1_stannite|Vac_Al",
+   "old": "Vac_Al",
+   "new": "Vac_Al-1",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S1Te1_kesterite|Cu_Al",
+   "old": "Cu_Al",
+   "new": "Vac_Al-2",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S1Te1_kesterite|Vac_Al",
+   "old": "Vac_Al",
+   "new": "Vac_Al-1",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S2_kesterite|In_Al",
+   "old": "In_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S2_stannite|Cu_Al",
+   "old": "Cu_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S2_stannite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5S2_stannite|S_In",
+   "old": "S_In",
+   "new": "Vac_In",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al0.5In0.5Se2_stannite|Se_Ag",
+   "old": "Se_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al1S1Te1_stannite|S_Al",
+   "old": "S_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al1S2_kesterite|Ag_Al",
+   "old": "Ag_Al",
+   "new": "Vac_Al-2",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al1S2_kesterite|Vac_Al",
+   "old": "Vac_Al",
+   "new": "Vac_Al-1",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al1S2_stannite|S_Ag",
+   "old": "S_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al1Se1Te1_kesterite|Cu_Al",
+   "old": "Cu_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al1Se2_kesterite|Cu_Al",
+   "old": "Cu_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al1Se2_stannite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu-2",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al1Se2_stannite|Vac_Cu",
+   "old": "Vac_Cu",
+   "new": "Vac_Cu-1",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Al1Te2_stannite|Te_Ag",
+   "old": "Te_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Ga0.5In0.5S2_kesterite|S_In",
+   "old": "S_In",
+   "new": "Vac_In",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Ga1S2_kesterite|Ag_Ga",
+   "old": "Ag_Ga",
+   "new": "Vac_Ga-1",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Ga1S2_kesterite|Cu_Ga",
+   "old": "Cu_Ga",
+   "new": "Vac_Ga-2",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Ga1S2_kesterite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag0.5Ga1Se2_kesterite|Se_Ga",
+   "old": "Se_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag1.5Zn0.5Cd0.5Ge1S3Te1_kesterite|Cd_Zn",
+   "old": "Cd_Zn",
+   "new": "Vac_Zn-1",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag1.5Zn0.5Cd0.5Ge1S3Te1_kesterite|Ge_Cd",
+   "old": "Ge_Cd",
+   "new": "Vac_Cd-2",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag1.5Zn0.5Cd0.5Ge1S3Te1_kesterite|Ge_Zn",
+   "old": "Ge_Zn",
+   "new": "Vac_Zn-2",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag1.5Zn0.5Cd0.5Ge1S3Te1_kesterite|S_Cd",
+   "old": "S_Cd",
+   "new": "Vac_Cd-3",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu0.5Ag1.5Zn0.5Cd0.5Ge1S3Te1_kesterite|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "Vac_Cd-1",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1.5Ag0.5Ba1Sn1S4_kesterite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1.5Ag0.5Ba1Sn1S4_stannite|Cu_Ba",
+   "old": "Cu_Ba",
+   "new": "Vac_Ba",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al0.5Ga0.5S2_kesterite|Ga_Al",
+   "old": "Ga_Al",
+   "new": "Vac_Al-2",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al0.5Ga0.5S2_kesterite|Vac_Al",
+   "old": "Vac_Al",
+   "new": "Vac_Al-1",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al0.5In0.5S2_kesterite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al0.5In0.5S2_kesterite|S_In",
+   "old": "S_In",
+   "new": "Vac_In",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al0.5In0.5Se2_kesterite|Se_Al",
+   "old": "Se_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al1S1Te1_stannite|S_Al",
+   "old": "S_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al1Se1Te1_kesterite|Te_Al",
+   "old": "Te_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al1Se2_kesterite|Cu_Al",
+   "old": "Cu_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al1Se2_stannite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al1Te2_kesterite|Cu_Al",
+   "old": "Cu_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al1Te2_stannite|Te_Cu",
+   "old": "Te_Cu",
+   "new": "Vac_Cu-2",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Al1Te2_stannite|Vac_Cu",
+   "old": "Vac_Cu",
+   "new": "Vac_Cu-1",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Ga0.5In0.5S2_kesterite|S_Ga",
+   "old": "S_Ga",
+   "new": "Vac_Ga-2",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Ga0.5In0.5S2_kesterite|Vac_Ga",
+   "old": "Vac_Ga",
+   "new": "Vac_Ga-1",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Ga0.5In0.5Se2_stannite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Ga1S1Se1_stannite|Cu_Ga",
+   "old": "Cu_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Ga1S2_kesterite|Cu_Ga",
+   "old": "Cu_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Ga1Se1Te1_stannite|Te_Ga",
+   "old": "Te_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1Ga1Se2_kesterite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1In1Se2_kesterite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu1In1Se2_stannite|Cu_In",
+   "old": "Cu_In",
+   "new": "Vac_In",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Ba1Sn0.5Zr0.5S4_stannite|S_Sn",
+   "old": "S_Sn",
+   "new": "Vac_Sn-2",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Ba1Sn0.5Zr0.5S4_stannite|Vac_Sn",
+   "old": "Vac_Sn",
+   "new": "Vac_Sn-1",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Ba1Zr1S4_kesterite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Ba1Zr1S4_kesterite|S_Zr",
+   "old": "S_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Ba1Zr1S4_stannite|Vac_Ba",
+   "old": "Vac_Ba",
+   "new": "Vac_Ba-1",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Ba1Zr1S4_stannite|Zr_Ba",
+   "old": "Zr_Ba",
+   "new": "Vac_Ba-2",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Ba1Zr1S4|Vac_Ba",
+   "old": "Vac_Ba",
+   "new": "Vac_Ba-1",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Ba1Zr1S4|Zr_Ba",
+   "old": "Zr_Ba",
+   "new": "Vac_Ba-2",
+   "dn": {
+    "Ba": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Ca1Ge1S4_stannite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Cd1Sn1S2Se2_kesterite|Se_Cd",
+   "old": "Se_Cd",
+   "new": "Vac_Cd",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Cd1Sn1S4_kesterite|Cu_Cd",
+   "old": "Cu_Cd",
+   "new": "Vac_Cd",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Cd1Sn1S4_kesterite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Cd1Sn1S4_kesterite|S_Sn",
+   "old": "S_Sn",
+   "new": "Vac_Sn",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Cd1Sn1Se4_kesterite|Se_Cd",
+   "old": "Se_Cd",
+   "new": "Vac_Cd",
+   "dn": {
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg0.5Ca0.5Sn1S4_stannite|Mg_Ca",
+   "old": "Mg_Ca",
+   "new": "Vac_Ca",
+   "dn": {
+    "Ca": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg0.5Sr0.5Zr1Se4_stannite|Mg_Sr",
+   "old": "Mg_Sr",
+   "new": "Vac_Sr",
+   "dn": {
+    "Sr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Ge1S4_kesterite|Cu_Mg",
+   "old": "Cu_Mg",
+   "new": "Vac_Mg-1",
+   "dn": {
+    "Mg": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Ge1S4_kesterite|S_Mg",
+   "old": "S_Mg",
+   "new": "Vac_Mg-2",
+   "dn": {
+    "Mg": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Ge1Se4_kesterite|Se_Ge",
+   "old": "Se_Ge",
+   "new": "Vac_Ge-2",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Ge1Se4_kesterite|Vac_Ge",
+   "old": "Vac_Ge",
+   "new": "Vac_Ge-1",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Ge1Te4_stannite|Te_Ge",
+   "old": "Te_Ge",
+   "new": "Vac_Ge",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1S1Se3_kesterite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1S1Te3_stannite|Te_Cu",
+   "old": "Te_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1S4_kesterite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu-2",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1S4_kesterite|S_Mg",
+   "old": "S_Mg",
+   "new": "Vac_Mg",
+   "dn": {
+    "Mg": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1S4_kesterite|Vac_Cu",
+   "old": "Vac_Cu",
+   "new": "Vac_Cu-1",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1S4_stannite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu-2",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1S4_stannite|Vac_Cu",
+   "old": "Vac_Cu",
+   "new": "Vac_Cu-1",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1Se4_kesterite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu-2",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1Se4_kesterite|Se_Sn",
+   "old": "Se_Sn",
+   "new": "Vac_Sn",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1Se4_kesterite|Vac_Cu",
+   "old": "Vac_Cu",
+   "new": "Vac_Cu-1",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Sn1Se4_stannite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Zr1Te4_kesterite|Cu_Zr",
+   "old": "Cu_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Mg1Zr1Te4_stannite|Te_Zr",
+   "old": "Te_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Sr1Ge1S4_stannite|Cu_Sr",
+   "old": "Cu_Sr",
+   "new": "Vac_Sr",
+   "dn": {
+    "Sr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Sr1Ge1S4_stannite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Sr1Ge1S4_stannite|S_Ge",
+   "old": "S_Ge",
+   "new": "Vac_Ge",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Sr1Ge1Se4_stannite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Ge1S2Se1Te1_kesterite|Se_Zn",
+   "old": "Se_Zn",
+   "new": "Vac_Zn-2",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Ge1S2Se1Te1_kesterite|Te_Zn",
+   "old": "Te_Zn",
+   "new": "Vac_Zn-3",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Ge1S2Se1Te1_kesterite|Vac_Zn",
+   "old": "Vac_Zn",
+   "new": "Vac_Zn-1",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.25Zr0.75S2Se2_stannite|S_Zn",
+   "old": "S_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.25Zr0.75S2Se2_stannite|Se_Zr",
+   "old": "Se_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.25Zr0.75S4_stannite|S_Zn",
+   "old": "S_Zn",
+   "new": "Vac_Zn-2",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.25Zr0.75S4_stannite|Vac_Zn",
+   "old": "Vac_Zn",
+   "new": "Vac_Zn-1",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.5Zr0.5S2Se2_kesterite|Se_Zr",
+   "old": "Se_Zr",
+   "new": "Vac_Zr-1",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.5Zr0.5S2Se2_kesterite|Sn_Zr",
+   "old": "Sn_Zr",
+   "new": "Vac_Zr-2",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.5Zr0.5S4_kesterite|S_Zr",
+   "old": "S_Zr",
+   "new": "Vac_Zr-2",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.5Zr0.5S4_kesterite|Vac_Zr",
+   "old": "Vac_Zr",
+   "new": "Vac_Zr-1",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.5Zr0.5Se4_kesterite|Cu_Zn",
+   "old": "Cu_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.5Zr0.5Se4_kesterite|Se_Sn",
+   "old": "Se_Sn",
+   "new": "Vac_Sn-2",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.5Zr0.5Se4_kesterite|Vac_Sn",
+   "old": "Vac_Sn",
+   "new": "Vac_Sn-1",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.5Zr0.5Se4_stannite|Se_Zn",
+   "old": "Se_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.75Zr0.25S2Se2_kesterite|S_Zn",
+   "old": "S_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.75Zr0.25S4_stannite|Sn_Zn",
+   "old": "Sn_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.75Zr0.25Se4_kesterite|Cu_Zn",
+   "old": "Cu_Zn",
+   "new": "Vac_Zn-2",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.75Zr0.25Se4_kesterite|Vac_Zn",
+   "old": "Vac_Zn",
+   "new": "Vac_Zn-1",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.75Zr0.25Se4_stannite|Se_Zr",
+   "old": "Se_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn0.75Zr0.25Se4_stannite|Sn_Zn",
+   "old": "Sn_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn1S2Se2_kesterite|Se_Zn",
+   "old": "Se_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn1S4_kesterite|Cu_Zn",
+   "old": "Cu_Zn",
+   "new": "Vac_Zn-1",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Sn1S4_kesterite|S_Zn",
+   "old": "S_Zn",
+   "new": "Vac_Zn-2",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Zr1S4_kesterite|Cu_Zn",
+   "old": "Cu_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Zr1S4_stannite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Zr1S4_stannite|S_Zn",
+   "old": "S_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Zr1S4_stannite|Zn_Zr",
+   "old": "Zn_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Zr1S4|Zn_Zr",
+   "old": "Zn_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Zr1Se4_stannite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|Cu2Zn1Zr1Se4_stannite|Se_Zn",
+   "old": "Se_Zn",
+   "new": "Vac_Zn",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Al0.5Ga0.5S1Te1_kesterite|S_Al",
+   "old": "S_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Al0.5In0.5S2_kesterite|Al_K",
+   "old": "Al_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Al0.5In0.5S2_kesterite|S_Al",
+   "old": "S_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Al1Se1Te1_kesterite|Te_Al",
+   "old": "Te_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Al1Te2_kesterite|Te_K",
+   "old": "Te_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Al1Te2_stannite|Te_K",
+   "old": "Te_K",
+   "new": "Vac_K-2",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Al1Te2_stannite|Vac_K",
+   "old": "Vac_K",
+   "new": "Vac_K-1",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Ga0.5In0.5S1Se1_kesterite|S_In",
+   "old": "S_In",
+   "new": "Vac_In",
+   "dn": {
+    "In": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Ga1S2_kesterite|S_K",
+   "old": "S_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag0.5Ga1S2_stannite|S_Ga",
+   "old": "S_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag1.5Sr1Zr1S4_kesterite|Zr_K",
+   "old": "Zr_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Ag1.5Sr1Zr1S4|Zr_K",
+   "old": "Zr_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cs0.5Al0.5Ga0.5S1Te1_kesterite|S_K",
+   "old": "S_K",
+   "new": "Vac_K-2",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cs0.5Al0.5Ga0.5S1Te1_kesterite|Te_K",
+   "old": "Te_K",
+   "new": "Vac_K-3",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cs0.5Al0.5Ga0.5S1Te1_kesterite|Vac_K",
+   "old": "Vac_K",
+   "new": "Vac_K-1",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cs1Ag0.5Mg1Ge1Se4_kesterite|Ge_Cs",
+   "old": "Ge_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cs1Ag0.5Mg1Ge1Se4_kesterite|Se_Ge",
+   "old": "Se_Ge",
+   "new": "Vac_Ge",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Ag1Cd1Ge1S4_stannite|Cu_K",
+   "old": "Cu_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Ag1Mg0.5Zn0.5Ge1Se4_kesterite|Mg_K",
+   "old": "Mg_K",
+   "new": "Vac_K-2",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Ag1Mg0.5Zn0.5Ge1Se4_kesterite|Se_Ag",
+   "old": "Se_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Ag1Mg0.5Zn0.5Ge1Se4_kesterite|Vac_K",
+   "old": "Vac_K",
+   "new": "Vac_K-1",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Ag1Mg0.5Zn0.5Ge1Se4_stannite|Mg_K",
+   "old": "Mg_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Ag1Mg0.5Zn0.5Ge1Se4_stannite|Se_Ge",
+   "old": "Se_Ge",
+   "new": "Vac_Ge",
+   "dn": {
+    "Ge": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5Ga0.5S1Se1_kesterite|Ga_K",
+   "old": "Ga_K",
+   "new": "Vac_K-2",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5Ga0.5S1Se1_kesterite|Vac_K",
+   "old": "Vac_K",
+   "new": "Vac_K-1",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5Ga0.5S1Se1_stannite|Ga_K",
+   "old": "Ga_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5Ga0.5Se1Te1_kesterite|Te_Al",
+   "old": "Te_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5Ga0.5Se2_stannite|Se_Al",
+   "old": "Se_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5Ga0.5Se2_stannite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu-2",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5Ga0.5Se2_stannite|Se_K",
+   "old": "Se_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5Ga0.5Se2_stannite|Vac_Cu",
+   "old": "Vac_Cu",
+   "new": "Vac_Cu-1",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5In0.5S2_kesterite|In_K",
+   "old": "In_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al0.5In0.5S2_stannite|S_Al",
+   "old": "S_Al",
+   "new": "Vac_Al",
+   "dn": {
+    "Al": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al1S2_kesterite|S_K",
+   "old": "S_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al1Se2_kesterite|Se_Cu",
+   "old": "Se_Cu",
+   "new": "Vac_Cu-2",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al1Se2_kesterite|Vac_Cu",
+   "old": "Vac_Cu",
+   "new": "Vac_Cu-1",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al1Te2_kesterite|Te_K",
+   "old": "Te_K",
+   "new": "Vac_K-2",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al1Te2_kesterite|Vac_K",
+   "old": "Vac_K",
+   "new": "Vac_K-1",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Al1Te2_stannite|Te_K",
+   "old": "Te_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu0.5Ga1S2_stannite|Cu_K",
+   "old": "Cu_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu1.5Zn1Ge1S4_stannite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu1Ag0.5Cd1Zr1S4_kesterite|Cd_K",
+   "old": "Cd_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu1Ag0.5Cd1Zr1S4_kesterite|Cu_Zr",
+   "old": "Cu_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu1Ag0.5Mg0.5Ca0.5Sn1S4_stannite|Cu_K",
+   "old": "Cu_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu1Ag0.5Mg0.5Ca0.5Sn1S4_stannite|S_Cu",
+   "old": "S_Cu",
+   "new": "Vac_Cu-2",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Cu1Ag0.5Mg0.5Ca0.5Sn1S4_stannite|Vac_Cu",
+   "old": "Vac_Cu",
+   "new": "Vac_Cu-1",
+   "dn": {
+    "Cu": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg0.5Zn0.5Ge1S3Te1_kesterite|Ge_K",
+   "old": "Ge_K",
+   "new": "Vac_K-2",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg0.5Zn0.5Ge1S3Te1_kesterite|Ge_Rb",
+   "old": "Ge_Rb",
+   "new": "Vac_Rb",
+   "dn": {
+    "Rb": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg0.5Zn0.5Ge1S3Te1_kesterite|Vac_K",
+   "old": "Vac_K",
+   "new": "Vac_K-1",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg1Ge1S4_kesterite|Ag_K",
+   "old": "Ag_K",
+   "new": "Vac_K-1",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg1Ge1S4_kesterite|Ge_K",
+   "old": "Ge_K",
+   "new": "Vac_K-2",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg1Ge1S4_kesterite|Mg_Rb",
+   "old": "Mg_Rb",
+   "new": "Vac_Rb-2",
+   "dn": {
+    "Rb": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg1Ge1S4_kesterite|S_Ag",
+   "old": "S_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg1Ge1S4_kesterite|S_Mg",
+   "old": "S_Mg",
+   "new": "Vac_Mg",
+   "dn": {
+    "Mg": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg1Ge1S4_kesterite|Vac_Rb",
+   "old": "Vac_Rb",
+   "new": "Vac_Rb-1",
+   "dn": {
+    "Rb": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Mg1Ge1S4_stannite|Mg_K",
+   "old": "Mg_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Ag1Zn1Ge1S4_stannite|S_Rb",
+   "old": "S_Rb",
+   "new": "Vac_Rb",
+   "dn": {
+    "Rb": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Al0.5Ga0.5Se2_stannite|Se_Ga",
+   "old": "Se_Ga",
+   "new": "Vac_Ga",
+   "dn": {
+    "Ga": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Al1Se1Te1_kesterite|Al_K",
+   "old": "Al_K",
+   "new": "Vac_K-1",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Al1Se1Te1_kesterite|Te_K",
+   "old": "Te_K",
+   "new": "Vac_K-2",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Al1Se2_stannite|Al_Rb",
+   "old": "Al_Rb",
+   "new": "Vac_Rb",
+   "dn": {
+    "Rb": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Al1Se2_stannite|Se_K",
+   "old": "Se_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Al1Te2_kesterite|Al_Rb",
+   "old": "Al_Rb",
+   "new": "Vac_Rb-2",
+   "dn": {
+    "Rb": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Al1Te2_kesterite|Vac_Rb",
+   "old": "Vac_Rb",
+   "new": "Vac_Rb-1",
+   "dn": {
+    "Rb": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Sn1Se4_kesterite|Rb_Cs",
+   "old": "Rb_Cs",
+   "new": "Vac_Cs-1",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Sn1Se4_kesterite|Se_Cs",
+   "old": "Se_Cs",
+   "new": "Vac_Cs-2",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Sn1Se4_kesterite|Se_Sn",
+   "old": "Se_Sn",
+   "new": "Vac_Sn-2",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Sn1Se4_kesterite|Sn_K",
+   "old": "Sn_K",
+   "new": "Vac_K",
+   "dn": {
+    "K": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Sn1Se4_kesterite|Vac_Sn",
+   "old": "Vac_Sn",
+   "new": "Vac_Sn-1",
+   "dn": {
+    "Sn": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1S4_kesterite|Rb_Cs",
+   "old": "Rb_Cs",
+   "new": "Vac_Cs-1",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1S4_kesterite|S_Cs",
+   "old": "S_Cs",
+   "new": "Vac_Cs-2",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1S4_stannite|S_Ag",
+   "old": "S_Ag",
+   "new": "Vac_Ag",
+   "dn": {
+    "Ag": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1S4_stannite|S_Mg",
+   "old": "S_Mg",
+   "new": "Vac_Mg-2",
+   "dn": {
+    "Mg": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1S4_stannite|Vac_Mg",
+   "old": "Vac_Mg",
+   "new": "Vac_Mg-1",
+   "dn": {
+    "Mg": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1Se4_kesterite|Zr_Cs",
+   "old": "Zr_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1Se4_stannite|Se_Cs",
+   "old": "Se_Cs",
+   "new": "Vac_Cs",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1Se4_stannite|Se_Zr",
+   "old": "Se_Zr",
+   "new": "Vac_Zr",
+   "dn": {
+    "Zr": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1Se4|Vac_Cs",
+   "old": "Vac_Cs",
+   "new": "Vac_Cs-1",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|K0.5Rb0.5Cs0.5Ag0.5Mg1Zr1Se4|Zr_Cs",
+   "old": "Zr_Cs",
+   "new": "Vac_Cs-2",
+   "dn": {
+    "Cs": -1
+   }
+  },
+  {
+   "key": "pbesol|ZnTe|2N_i",
+   "old": "2N_i",
+   "new": "N_i+N_i",
+   "dn": {
+    "N": 2
+   }
+  },
+  {
+   "key": "pbe|CdSe|As_Cd",
+   "old": "As_Cd",
+   "new": "As_Cd-1",
+   "dn": {
+    "Cd": -1,
+    "As": 1
+   }
+  },
+  {
+   "key": "pbe|CdSe|As_i",
+   "old": "As_i",
+   "new": "As_Cd-2",
+   "dn": {
+    "Cd": -1,
+    "As": 1
+   }
+  },
+  {
+   "key": "pbe|CdSe|Se_Cd",
+   "old": "Se_Cd",
+   "new": "Se_Cd-1",
+   "dn": {
+    "Se": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbe|CdSe|Se_i",
+   "old": "Se_i",
+   "new": "Se_Cd-2",
+   "dn": {
+    "Se": 1,
+    "Cd": -1
+   }
+  },
+  {
+   "key": "pbe|CdSe|V_i",
+   "old": "V_i",
+   "new": "V_Cd-1",
+   "dn": {
+    "Cd": -1,
+    "V": 1
+   }
+  },
+  {
+   "key": "pbe|CdSe|V_i_Se",
+   "old": "V_i_Se",
+   "new": "V_i",
+   "dn": {
+    "V": 1
+   }
+  },
+  {
+   "key": "pbe|CdSe|Vac_Cd",
+   "old": "Vac_Cd",
+   "new": "V_Cd-2",
+   "dn": {
+    "Cd": -1,
+    "V": 1
+   }
+  },
+  {
+   "key": "pbe|CdSe|Vac_Se",
+   "old": "Vac_Se",
+   "new": "V_Se",
+   "dn": {
+    "Se": -1,
+    "V": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|As_Cd",
+   "old": "As_Cd",
+   "new": "As_Cd-1",
+   "dn": {
+    "Cd": -1,
+    "As": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|As_Te",
+   "old": "As_Te",
+   "new": "As_Te-1",
+   "dn": {
+    "Te": -1,
+    "As": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|As_i+As_i",
+   "old": "As_i+As_i",
+   "new": "As_Cd+As_Te",
+   "dn": {
+    "Cd": -1,
+    "Te": -1,
+    "As": 2
+   }
+  },
+  {
+   "key": "pbe|CdTe|As_i+Cd_i",
+   "old": "As_i+Cd_i",
+   "new": "As_Te-2",
+   "dn": {
+    "Te": -1,
+    "As": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|As_i+Te_i",
+   "old": "As_i+Te_i",
+   "new": "As_Cd-2",
+   "dn": {
+    "Cd": -1,
+    "As": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|Te_Cd",
+   "old": "Te_Cd",
+   "new": "Te_Cd-1",
+   "dn": {
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|Te_i",
+   "old": "Te_i",
+   "new": "Te_Cd-2",
+   "dn": {
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|V_i",
+   "old": "V_i",
+   "new": "V_Cd",
+   "dn": {
+    "Cd": -1,
+    "V": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|V_i_Cd",
+   "old": "V_i_Cd",
+   "new": "V_i-1",
+   "dn": {
+    "V": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|V_i_Te",
+   "old": "V_i_Te",
+   "new": "V_i-2",
+   "dn": {
+    "V": 1
+   }
+  },
+  {
+   "key": "pbe|CdTe|Vac_Te",
+   "old": "Vac_Te",
+   "new": "V_Te",
+   "dn": {
+    "Te": -1,
+    "V": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Ag_i",
+   "old": "Ag_i",
+   "new": "Vac_Te+Ag_Zn",
+   "dn": {
+    "Ag": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Al_Zn",
+   "old": "Al_Zn",
+   "new": "Vac_Te+Vac_Zn+Al_Zn",
+   "dn": {
+    "Te": -1,
+    "Zn": -2,
+    "Al": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Be_i",
+   "old": "Be_i",
+   "new": "Vac_Te+Be_Zn",
+   "dn": {
+    "Te": -1,
+    "Be": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|C_i",
+   "old": "C_i",
+   "new": "Vac_Zn+C_Te",
+   "dn": {
+    "C": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Ca_i",
+   "old": "Ca_i",
+   "new": "Vac_Te+Ca_Zn",
+   "dn": {
+    "Te": -1,
+    "Zn": -1,
+    "Ca": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Cr_i",
+   "old": "Cr_i",
+   "new": "Vac_Te+Cr_Zn",
+   "dn": {
+    "Cr": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Cu_Zn",
+   "old": "Cu_Zn",
+   "new": "Vac_Te+Vac_Zn+Cu_Zn-1",
+   "dn": {
+    "Te": -1,
+    "Zn": -2,
+    "Cu": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Cu_i",
+   "old": "Cu_i",
+   "new": "Vac_Te+Vac_Zn+Cu_Zn-2",
+   "dn": {
+    "Te": -1,
+    "Zn": -2,
+    "Cu": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Ga_Zn",
+   "old": "Ga_Zn",
+   "new": "Vac_Te+Vac_Zn+Ga_Zn",
+   "dn": {
+    "Te": -1,
+    "Zn": -2,
+    "Ga": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Ge_Te",
+   "old": "Ge_Te",
+   "new": "Vac_Te+Vac_Zn+Ge_Te",
+   "dn": {
+    "Ge": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Hf_Zn",
+   "old": "Hf_Zn",
+   "new": "Vac_Te+Vac_Zn+Hf_Zn",
+   "dn": {
+    "Hf": 1,
+    "Te": -1,
+    "Zn": -2
+   }
+  },
+  {
+   "key": "pbe|ZnTe|I_Te",
+   "old": "I_Te",
+   "new": "Vac_Te+Vac_Zn+I_Te",
+   "dn": {
+    "I": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Li_Te",
+   "old": "Li_Te",
+   "new": "Vac_Te+Vac_Zn+Li_Te",
+   "dn": {
+    "Te": -2,
+    "Zn": -1,
+    "Li": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Mn_i",
+   "old": "Mn_i",
+   "new": "Vac_Te+Mn_Zn",
+   "dn": {
+    "Te": -1,
+    "Mn": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Mo_Zn",
+   "old": "Mo_Zn",
+   "new": "Vac_Te+Vac_Zn+Mo_Zn",
+   "dn": {
+    "Mo": 1,
+    "Te": -1,
+    "Zn": -2
+   }
+  },
+  {
+   "key": "pbe|ZnTe|N_Te",
+   "old": "N_Te",
+   "new": "Vac_Te+Vac_Zn+N_Te",
+   "dn": {
+    "N": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Na_i",
+   "old": "Na_i",
+   "new": "Vac_Te+Na_Zn",
+   "dn": {
+    "Te": -1,
+    "Na": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Os_Zn",
+   "old": "Os_Zn",
+   "new": "Vac_Te+Vac_Zn+Os_Zn",
+   "dn": {
+    "Os": 1,
+    "Te": -1,
+    "Zn": -2
+   }
+  },
+  {
+   "key": "pbe|ZnTe|P_i",
+   "old": "P_i",
+   "new": "Vac_Zn+P_Te-1",
+   "dn": {
+    "Te": -1,
+    "Zn": -1,
+    "P": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|P_i_Zn",
+   "old": "P_i_Zn",
+   "new": "Vac_Zn+P_Te-2",
+   "dn": {
+    "Te": -1,
+    "Zn": -1,
+    "P": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Pt_i",
+   "old": "Pt_i",
+   "new": "Vac_Te+Pt_Zn",
+   "dn": {
+    "Te": -1,
+    "Pt": 1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|S_i",
+   "old": "S_i",
+   "new": "Vac_Zn+S_Te",
+   "dn": {
+    "S": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Sb_Te",
+   "old": "Sb_Te",
+   "new": "Vac_Te+Vac_Zn+Sb_Te-1",
+   "dn": {
+    "Sb": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Sb_i",
+   "old": "Sb_i",
+   "new": "Vac_Te+Vac_Zn+Sb_Te-2",
+   "dn": {
+    "Sb": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Sc_Zn",
+   "old": "Sc_Zn",
+   "new": "Vac_Te+Vac_Zn+Sc_Zn",
+   "dn": {
+    "Sc": 1,
+    "Te": -1,
+    "Zn": -2
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Se_Te",
+   "old": "Se_Te",
+   "new": "Vac_Te+Vac_Zn+Se_Te",
+   "dn": {
+    "Se": 1,
+    "Te": -2,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Te_Zn",
+   "old": "Te_Zn",
+   "new": "Vac_Zn+Vac_Zn",
+   "dn": {
+    "Zn": -2
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Te_i",
+   "old": "Te_i",
+   "new": "Vac_Zn-1",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Te_i_Te",
+   "old": "Te_i_Te",
+   "new": "Vac_Zn-2",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Te_i_Zn",
+   "old": "Te_i_Zn",
+   "new": "Vac_Zn-3",
+   "dn": {
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Ti_i",
+   "old": "Ti_i",
+   "new": "Vac_Te+Ti_Zn",
+   "dn": {
+    "Te": -1,
+    "Zn": -1,
+    "Ti": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Tl_i",
+   "old": "Tl_i",
+   "new": "Vac_Te+Tl_Zn",
+   "dn": {
+    "Tl": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Vac_Te",
+   "old": "Vac_Te",
+   "new": "Te_i+Zn_i+Zn_i",
+   "dn": {
+    "Te": 1,
+    "Zn": 2
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Vac_Zn",
+   "old": "Vac_Zn",
+   "new": "Te_i+Te_i+Zn_i",
+   "dn": {
+    "Te": 2,
+    "Zn": 1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|W_i",
+   "old": "W_i",
+   "new": "Vac_Te+W_Zn",
+   "dn": {
+    "W": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Zn_Te",
+   "old": "Zn_Te",
+   "new": "Vac_Te+Vac_Te",
+   "dn": {
+    "Te": -2
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Zn_i",
+   "old": "Zn_i",
+   "new": "Vac_Te-1",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Zn_i_Te",
+   "old": "Zn_i_Te",
+   "new": "Vac_Te-2",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Zn_i_Zn",
+   "old": "Zn_i_Zn",
+   "new": "Vac_Te-3",
+   "dn": {
+    "Te": -1
+   }
+  },
+  {
+   "key": "pbe|ZnTe|Zr_i",
+   "old": "Zr_i",
+   "new": "Vac_Te+Zr_Zn",
+   "dn": {
+    "Zr": 1,
+    "Te": -1,
+    "Zn": -1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Cd_Se+Te_i",
+   "old": "Cd_Se+Te_i",
+   "new": "Se_Cd+Te_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  },
+  {
+   "key": "pbesol|CdSe0.12Te0.88|Cd_Te+Se_i",
+   "old": "Cd_Te+Se_i",
+   "new": "Te_Cd+Se_i",
+   "dn": {
+    "Se": 1,
+    "Cd": -1,
+    "Te": 1
+   }
+  }
+ ],
+ "withheld_pristine": [
+  {
+   "key": "hse|CdS|Cd_i",
+   "old": "Cd_i",
+   "new": null,
+   "note": "cell is pristine (dn = {}); not a defect -- withheld"
+  },
+  {
+   "key": "hse|CdS|S_i",
+   "old": "S_i",
+   "new": null,
+   "note": "cell is pristine (dn = {}); not a defect -- withheld"
+  },
+  {
+   "key": "hse|CdSe|Cd_i",
+   "old": "Cd_i",
+   "new": null,
+   "note": "cell is pristine (dn = {}); not a defect -- withheld"
+  },
+  {
+   "key": "hse|CdSe|Se_i",
+   "old": "Se_i",
+   "new": null,
+   "note": "cell is pristine (dn = {}); not a defect -- withheld"
+  },
+  {
+   "key": "hse|CdTe|Cd_i",
+   "old": "Cd_i",
+   "new": null,
+   "note": "cell is pristine (dn = {}); not a defect -- withheld"
+  },
+  {
+   "key": "hse|CdTe|Te_i",
+   "old": "Te_i",
+   "new": null,
+   "note": "cell is pristine (dn = {}); not a defect -- withheld"
+  },
+  {
+   "key": "pbe|CdTe|As_i",
+   "old": "As_i",
+   "new": null,
+   "note": "cell is pristine (dn = {}); not a defect -- withheld"
+  },
+  {
+   "key": "pbe|ZnTe|As_i",
+   "old": "As_i",
+   "new": null,
+   "note": "cell is pristine (dn = {}); not a defect -- withheld"
+  }
+ ],
+ "held": [
+  "pbesol|CdSe0.12Te0.88|Cd_Se+Te_i",
+  "pbesol|CdSe0.12Te0.88|Cd_Te+Se_i",
+  "pbe|CdTe|As_i+Cl_i",
+  "pbe|CdTe|As_i+O_i",
+  "pbe|CdTe|As_i+P_i",
+  "pbe|CdTe|As_i+Sb_i"
+ ],
+ "orphans_parked": [
+  {
+   "file": "trajs/pbesol__Ag1Ga1S1Te1_stannite__Vac_Ga.json.gz",
+   "parked_as": "pbesol__Ag1Ga1S1Te1_stannite__Vac_Ga__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__Ag2Zn1Ge1S4_stannite__Vac_Zn.json.gz",
+   "parked_as": "pbesol__Ag2Zn1Ge1S4_stannite__Vac_Zn__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__CdSe0.25Te0.75__Vac_Se-2.json.gz",
+   "parked_as": "pbesol__CdSe0.25Te0.75__Vac_Se-2__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__CdSe0.25Te0.75__Vac_Te-2.json.gz",
+   "parked_as": "pbesol__CdSe0.25Te0.75__Vac_Te-2__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__CdSe0.25Te0.75__Vac_Se-1.json.gz",
+   "parked_as": "pbesol__CdSe0.25Te0.75__Vac_Se-1__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__CdSe0.25Te0.75__Vac_Cd-2.json.gz",
+   "parked_as": "pbesol__CdSe0.25Te0.75__Vac_Cd-2__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__CdTe__Vac_Te-2.json.gz",
+   "parked_as": "pbesol__CdTe__Vac_Te-2__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__CdTe__Vac_Cd-2.json.gz",
+   "parked_as": "pbesol__CdTe__Vac_Cd-2__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__Cs0.5Ag0.5Al0.5In0.5S1Se1_stannite__Vac_Cs.json.gz",
+   "parked_as": "pbesol__Cs0.5Ag0.5Al0.5In0.5S1Se1_stannite__Vac_Cs__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__Cs0.5Ag0.5Al1S1Se1_kesterite__Vac_Al.json.gz",
+   "parked_as": "pbesol__Cs0.5Ag0.5Al1S1Se1_kesterite__Vac_Al__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__Cu0.5Ag0.5Al0.5In0.5S1Se1_stannite__Vac_Al-2.json.gz",
+   "parked_as": "pbesol__Cu0.5Ag0.5Al0.5In0.5S1Se1_stannite__Vac_Al-2__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__Cu0.5Ag0.5Al0.5In0.5S1Se1_stannite__Vac_Al-1.json.gz",
+   "parked_as": "pbesol__Cu0.5Ag0.5Al0.5In0.5S1Se1_stannite__Vac_Al-1__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__Cu2Mg1Sn1S4_stannite__Vac_Cu-2.json.gz",
+   "parked_as": "pbesol__Cu2Mg1Sn1S4_stannite__Vac_Cu-2__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__Cu2Mg1Sn1S4_stannite__Vac_Cu-1.json.gz",
+   "parked_as": "pbesol__Cu2Mg1Sn1S4_stannite__Vac_Cu-1__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__K0.5Ag0.5Al1Te2_kesterite__Vac_K.json.gz",
+   "parked_as": "pbesol__K0.5Ag0.5Al1Te2_kesterite__Vac_K__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__K0.5Cs1Ag0.5Mg1Ge1Se4_kesterite__Vac_Cs.json.gz",
+   "parked_as": "pbesol__K0.5Cs1Ag0.5Mg1Ge1Se4_kesterite__Vac_Cs__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__K0.5Cu0.5Ag1Mg0.5Zn0.5Ge1Se4_stannite__Vac_K.json.gz",
+   "parked_as": "pbesol__K0.5Cu0.5Ag1Mg0.5Zn0.5Ge1Se4_stannite__Vac_K__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__K0.5Cu0.5Al0.5Ga0.5S1Se1_stannite__Vac_K.json.gz",
+   "parked_as": "pbesol__K0.5Cu0.5Al0.5Ga0.5S1Se1_stannite__Vac_K__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__K0.5Cu0.5Al1Te2_stannite__Vac_K.json.gz",
+   "parked_as": "pbesol__K0.5Cu0.5Al1Te2_stannite__Vac_K__orphan.json.gz"
+  },
+  {
+   "file": "trajs/pbesol__K0.5Rb0.5Ag1Mg0.5Zn0.5Ge1S3Te1_kesterite__Vac_Rb.json.gz",
+   "parked_as": "pbesol__K0.5Rb0.5Ag1Mg0.5Zn0.5Ge1S3Te1_kesterite__Vac_Rb__orphan.json.gz"
+  }
+ ]
+}
