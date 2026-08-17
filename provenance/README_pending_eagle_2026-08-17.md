@@ -101,3 +101,17 @@ Two distinct bugs, both fixed and shipped:
    NEUTRAL only. New per-charge-state gate (|dE_q - dE_0| > 15 eV -> withheld with reason) in the
    payload builder now, and provenance/patch_build_all_qgate.py to apply the same in Eagle's
    build_all on resume. Only 2 rows in the library trip it (ZnTe Vac_Zn, Vac_Te, HSE+SOC).
+
+
+## 2026-08-17 (late night) — DFT campaign status snapshot
+- Completed: 1 / 4,995 defect-DOS statics (Ag1Al0.5Ga0.5Se2/Vac_Ag/Charged+1, PBEsol, converged
+  in 1 ionic step, LORBIT=11 honoured, 2000-point per-ion DOSCAR = harvestable); 0 / 1,897 bulk
+  HSE06 PDOS.
+- Running: 3 more Vac_Ag charge states (cpu-standby, ~30-60 min each for 287-atom PBEsol
+  statics) + the first 2 bulk HSE06 PDOS on highmem (multi-hour SCF each, 2x2x2 mesh).
+- Pending: 9 defect + 3 bulk array slices, hm_feed scron alive; account cap (48 hp CPUs) held
+  by another member's 172 running jobs -- everything advances as standby backfill only.
+- Post-fix failure count: 0. (12 FAILED / 3 CANCELLED in accounting = the pre-login-shell-fix
+  arrays, cancelled by me and resubmitted.)
+- Harvest plan unchanged: dos_vasprun-style extraction of DOSCAR/vasprun -> dos_defect /
+  dos_bulk jsonls in log/ -> site_build.sh on Eagle. Do not harvest until volume is meaningful.
