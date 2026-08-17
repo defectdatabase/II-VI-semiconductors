@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="9f0658630a4f";
+  var BUILD_ID="a7c0a63d1588";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -491,9 +491,23 @@ body{letter-spacing:-.006em}
 </div>
 
 <!-- ================= COMPOUND RANKINGS ================= -->
+<div id="ptpop" style="display:none;position:fixed;z-index:60;top:15%;left:50%;transform:translateX(-50%);
+  background:var(--wbg-surface,#fff);border:1px solid var(--wbg-border,#d5dae1);border-radius:10px;
+  box-shadow:0 12px 40px rgba(20,40,60,.25);padding:14px 16px;max-width:760px;width:calc(100vw - 40px)">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+    <b style="font-size:14.5px">Filter by elements</b>
+    <label style="font-size:12.5px"><input type="radio" name="ptmode" value="has" checked> contains the selected elements</label>
+    <label style="font-size:12.5px"><input type="radio" name="ptmode" value="only"> only these elements (exact system)</label>
+    <button class="cpill" onclick="ptClear()" style="margin-left:auto">clear</button>
+    <button class="cpill" onclick="ptToggle()">✕ close</button>
+  </div>
+  <div id="ptgrid" style="display:grid;grid-template-columns:repeat(18,1fr);gap:2px"></div>
+  <div id="ptsel" style="font-size:12.5px;color:var(--wbg-muted);margin-top:8px">no element selected</div>
+</div>
 <div class="view" id="view-rankings">
   <div class="filterrow">
     <input type="text" id="csearch" placeholder="Search compounds — e.g. Cu2ZnSnS4, AgGaS2…">
+    <button class="cpill" id="ptbtn" onclick="ptToggle()" title="Filter by chemical elements">Periodic table</button>
     <select id="c-theory" title="Level of theory of the run"></select>
     <select id="c-mode" title="What VASP was told to do, read from the run's own INCAR"></select>
     <select id="c-steps" title="Ionic steps the run actually took"></select>
@@ -840,11 +854,16 @@ async function dOpenDetail(r){
     raw campaign record, not recomputed.<br>
     E<sub>f</sub><sup>q</sup>(E<sub>F</sub>) = (E<sub>defect,q</sub> − E<sub>pristine</sub>) + Σ(n<sub>i</sub>μ<sub>i</sub>) + q(E<sub>VBM</sub> + E<sub>F</sub>) + E<sub>corr</sub><br>
     E<sub>VBM</sub> = ${fmt(r.v)} eV · gap ${fmt(r.g)} eV · ${THEORY[r.f]}</p>`;
-  if(!vlist.length)
-    sig+=`<div class="notebox">No chemical-potential vertex has been solved for this host yet —
+  if(!vlist.length){
+    const why=dBlockedReason(r);
+    sig+=why?`<div class="notebox">Formation energies are withheld for this row: ${why}.
+      The raw ΔE = E<sub>defect,q</sub> − E<sub>pristine</sub> term is still shown below where
+      it was archived.</div>`
+      :`<div class="notebox">No chemical-potential vertex has been solved for this host yet —
       Σn<sub>i</sub>μ<sub>i</sub> is unpublished, so E<sub>f</sub>(E<sub>F</sub>) cannot be placed on
       an absolute scale. The raw ΔE = E<sub>defect,q</sub> − E<sub>pristine</sub> term is still shown
       below where it was archived.</div>`;
+  }
   for(const vname of vlist){
     const vxv=r.vx[vname];
     const phases=(vxv.facet||[]).length?vxv.facet.join(" + "):vname;
@@ -857,14 +876,38 @@ async function dOpenDetail(r){
       <span style="color:var(--wbg-muted)">(bounding phases: ${subHTML(phases)})</span></div>
       <div style="color:var(--wbg-muted);font-size:13px;margin-bottom:4px">Σn<sub>i</sub>μ<sub>i</sub> = <b>${muTxt}</b>
       (archived chem_pot vertex for this defect's exchanged atoms)</div>
-      <table class="minitbl"><tr><th>q</th><th>ΔE (raw)</th><th>Correction</th><th>Eᶠ@VBM</th><th>Eᶠ@CBM</th></tr>`+
+      <table class="minitbl"><tr><th>q</th><th>E<sub>defect,q</sub></th><th>E<sub>bulk ref</sub></th><th>ΔE</th>
+        <th>Σn<sub>i</sub>μ<sub>i</sub></th><th>q·E<sub>VBM</sub></th><th>Correction</th><th>Eᶠ@VBM</th><th>Eᶠ@CBM</th></tr>`+
       QS.map(q=>{
         const c=vxv.q[q];
-        if(!c) return `<tr><td>${+q>0?"+"+q:q}</td><td colspan="4" style="color:var(--wbg-muted)">not run</td></tr>`;
+        if(!c) return `<tr><td>${+q>0?"+"+q:q}</td><td colspan="8" style="color:var(--wbg-muted)">not run</td></tr>`;
         const corrTxt = r.corr&&r.corr[q] ? "eFNV" : "uncorrected";
-        return `<tr><td>${+q>0?"+"+q:q}</td><td>${fmt(c.dE)}</td><td${r.corr&&r.corr[q]?'':' style="color:#a5541a"'}>${corrTxt}</td>
+        const qv = (c.vbm!==null&&c.vbm!==undefined&&r.v!==null) ? (+q)*r.v : null;
+        return `<tr><td>${+q>0?"+"+q:q}</td><td>${fmt(c.E,3)}</td><td>${fmt(c.Ebulk,3)}</td><td>${fmt(c.dE)}</td>
+          <td>${fmt(c.musum)}</td><td>${fmt(qv)}</td>
+          <td${r.corr&&r.corr[q]?'':' style="color:#a5541a"'}>${corrTxt}</td>
           <td><b>${fmt(c.vbm)}</b></td><td>${fmt(c.cbm)}</td></tr>`;
       }).join("")+`</table>`;
+    // the chemical-potential term, split per element, so Sum(n_i mu_i) is auditable rather than
+    // a single number the reader has to take on faith
+    const anyq=QS.map(q=>vxv.q[q]).find(c=>c&&c.muterms);
+    if(anyq){
+      sig+=`<div style="color:var(--wbg-muted);font-size:12.5px;margin:4px 0 2px">Chemical-potential term, per element
+        (n<sub>i</sub> = atoms exchanged with the reservoir; −n<sub>i</sub>μ<sub>i</sub> is its contribution):</div>
+        <table class="minitbl"><tr><th>element</th><th>n<sub>i</sub></th><th>μ<sub>i</sub> (eV)</th><th>−n<sub>i</sub>μ<sub>i</sub> (eV)</th></tr>`+
+        Object.keys(anyq.muterms).map(e=>{
+          const mui=(anyq.mu||{})[e];
+          const ni=(mui!==undefined&&mui!==0)?(-anyq.muterms[e]/mui):null;
+          return `<tr><td>${subHTML(e)}</td><td>${ni===null?"—":ni.toFixed(3)}</td>
+            <td>${fmt(mui,3)}</td><td>${fmt(anyq.muterms[e])}</td></tr>`;
+        }).join("")+
+        `<tr><td colspan="3" style="text-align:right"><b>Σn<sub>i</sub>μ<sub>i</sub></b></td><td><b>${fmt(anyq.musum)}</b></td></tr>`+
+        `</table>`;
+    }
+    if(r.hF!==undefined&&r.hF!==null)
+      sig+=`<div style="color:var(--wbg-muted);font-size:12.5px;margin:3px 0 6px">Bulk reference: host total
+        F = <b>${r.hF.toFixed(3)} eV</b> over ${r.hN} atoms = <b>${(r.hpa||0).toFixed(4)} eV/atom</b>;
+        E<sub>bulk ref</sub> above is that per-atom energy times this defect cell's atom count.</div>`;
   }
   sig+=`<p class="footnote" style="margin-top:6px">* charged state without an archived eFNV correction —
     shown uncorrected, excluded from the envelope and the transition levels. Corrections are the
@@ -987,6 +1030,17 @@ function dAlignCols(){   // Σ scroll box ends on the same horizontal line as th
                   sig.style.overflowY="auto"; sig.style.paddingRight="6px"; }
 }
 function typeAim(html){ return html; }   // note kept static; the compound panel carries the animation
+function dBlockedReason(r){
+  /* When vxu is empty the row may still HAVE solved vertices whose Ef was deliberately
+     withheld (settings-mismatch gate, missing extrinsic mu). Show the archived reason
+     instead of the misleading "no vertex has been solved yet". */
+  const notes=new Set();
+  for(const v of Object.values(r.vx||{}))
+    for(const row of Object.values(v.q||{})) if(row.note&&row.note!=="no chem-pot vertex") notes.add(row.note);
+  for(const n of notes) if(n.includes("settings-consistent")) return n;
+  for(const n of notes) if(n.includes("no chemical potential")) return n;
+  return notes.size?[...notes][0]:null;
+}
 async function dRedrawPlot(){
   const r=dSel; if(!r) return;
   await loadPlotly();
@@ -995,8 +1049,11 @@ async function dRedrawPlot(){
   const pick=sel&&sel.value&&r.vx[sel.value]?sel.value:vlist[0];
   const box0=document.getElementById("efdetailplot");
   if(!pick){ if(window.Plotly&&box0.data) Plotly.purge(box0);
-    box0.innerHTML='<div class="notebox">No chemical-potential vertex has been solved for this '+
-      'host yet, so E<sub>f</sub>(E<sub>F</sub>) cannot be placed on an absolute scale.</div>';
+    const why=dBlockedReason(r);
+    box0.innerHTML='<div class="notebox">'+(why
+      ?`Formation energies are withheld for this row: ${why}.`
+      :'No chemical-potential vertex has been solved for this host yet, so '+
+       'E<sub>f</sub>(E<sub>F</sub>) cannot be placed on an absolute scale.')+'</div>';
     return; }
   if(box0.innerHTML && !box0.data) box0.innerHTML="";
   // one curve — the selected growth condition (the shape is condition-independent)
@@ -1056,7 +1113,19 @@ async function dRedrawPlot(){
 function defectTrajectoryKey(r,dkey){
   if(HAVE_TRAJ.has(dkey)) return dkey;
   const pbesol=`pbesol__${r.h}__${r.d}`;
-  return HAVE_TRAJ.has(pbesol)?pbesol:null;
+  if(HAVE_TRAJ.has(pbesol)) return pbesol;
+  /* 124 rows name the host without its _kesterite/_stannite suffix while the trajectory was
+     archived under the suffixed name. Fall back only when exactly one ordering exists --
+     13 rows have BOTH archived and the row names neither, so those stay movie-less rather
+     than silently playing the wrong cation ordering. */
+  if(!/_(kesterite|stannite)$/.test(r.h)){
+    for(const pf of [r.f,"pbesol"]){
+      const vars=["kesterite","stannite"].map(o=>`${pf}__${r.h}_${o}__${r.d}`).filter(k=>HAVE_TRAJ.has(k));
+      if(vars.length===1) return vars[0];
+      if(vars.length>1) return null;
+    }
+  }
+  return null;
 }
 function defectColors(r){
   const hostEls=new Set(HOSTELS(r.h)), dark={};
@@ -1070,12 +1139,9 @@ async function unrelaxedDefectModel(r){
   const parts=r.d.split("+").map(part=>part.split("_"));
   // An interstitial position cannot be inferred from composition alone.
   if(parts.some(([,site])=>site==="i")) return null;
-  const hostKey=hostStructKeys(r).find(k=>HAVE_STRUCT.has(k));
-  if(!HAVE_STRUCT.has(hostKey)) return null;
   try{
-    const resp=await fetch(`structures/${encodeURIComponent(hostKey)}.json`);
-    if(!resp.ok) return null;
-    const st=hydrate(await resp.json());
+    const st=await hostSupercell(r,r.nat||undefined);
+    if(!st) return null;
     for(const [atom,site] of parts){
       const idx=st.sites.findIndex(s=>s.species.some(x=>x.element===site));
       if(idx<0) return null;
@@ -1130,16 +1196,24 @@ async function mountDefectStructure(r,trajKey){
     lattice:Object.assign({matrix:lat,pbc:[true,true,true]},lp),
     sites:fr.p.map((abc,i)=>({species:[{element:t.species[i],occu:1}],abc,label:t.species[i],properties:{}}))});
   const dark=defectColors(r);
-  const host=await hostSupercell(r);
+  // best size-compatible host, scored against the actual defect cell (see pickHostForDefect)
+  const host=await pickHostForDefect(r,st);
   const labelCounts=defectPartCounts(r.d), cellCounts=cellPartCounts(st,host);
   const counts=(cellCounts&&(cellCounts.atoms!==labelCounts.atoms||cellCounts.vac!==labelCounts.vac))
     ? cellCounts : labelCounts;
-  const marks=defectSiteIndices(st,host,dark,r.d,counts), vac=vacancySites(st,host,r.d,counts);
+  const marks=defectSiteIndices(st,host,dark,r.d,counts);
+  let vac=vacancySites(st,host,r.d,counts);
+  /* A substitution IS "+new element, -old element" in composition, so the cell-derived counts
+     put one atom AND one vacancy at the same lattice site and Zn_S rendered as "2 defect
+     sites". A hole within 1.2 A of a marked atom is the marked atom's own site — drop it. */
+  vac=vac.filter(v=>!marks.some(mi=>minImageDist(st.lattice.matrix,
+    [st.sites[mi].abc[0]-v.abc[0],st.sites[mi].abc[1]-v.abc[1],st.sites[mi].abc[2]-v.abc[2]])<1.2));
   DSTRUCT_MARKS=marks; DSTRUCT_VAC=vac;
   const base=pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure";
   const bits=[];
   if(marks.length) bits.push(`defect ${marks.length===1?"site":"sites"} in black`);
-  if(vac.length) bits.push(`${vac.length} ${vac.length===1?"vacancy":"vacancies"} — no atom to mark`);
+  if(vac.length) bits.push(vac.map(v=>`missing ${v.el} at (${v.abc.map(x=>x.toFixed(3)).join(", ")})`).join(" · ")
+    +" — no atom to mark, so hover cannot name it");
   document.getElementById("dstructhead").textContent=bits.length?`${base} · ${bits.join(" · ")}`:base;
   if(marks.length) recentreOnSite(st,marks[0]);
   const bulk=host?structureCIF(host):null;
@@ -1221,6 +1295,67 @@ function cFillSelects(){
     CHAS.filter(([id])=>nHas[id]).map(([id,label])=>opt(id,label,nHas[id])).join("");
 }
 let cSort={k:"eform",asc:true},cSel=null,cFiltered=[],cOrd=null;
+/* ---------- periodic-table element filter (Compounds Explorer) ----------
+   "Cd" as text matches ~1000 formulas CONTAINING Cd; the element filter matches parsed
+   element sets instead: "contains" (superset) or "only" (subset of the selected system —
+   Cd alone in "only" mode = elemental Cd; Cd+Te = Cd, Te, CdTe). Text search unchanged. */
+const PT_LAYOUT=[
+ ["H","","","","","","","","","","","","","","","","","He"],
+ ["Li","Be","","","","","","","","","","","B","C","N","O","F","Ne"],
+ ["Na","Mg","","","","","","","","","","","Al","Si","P","S","Cl","Ar"],
+ ["K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr"],
+ ["Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","I","Xe"],
+ ["Cs","Ba","La","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg","Tl","Pb","Bi","Po","At","Rn"],
+ ["","","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu","",""]];
+const PT_VALID=new Set(PT_LAYOUT.flat().filter(Boolean));
+let PT_SEL=new Set(), PT_ELS_AVAIL=null;
+function compoundElements(r){
+  if(r.__els) return r.__els;
+  const els=new Set((r.n.match(/[A-Z][a-z]?/g)||[]).filter(e=>PT_VALID.has(e)));
+  r.__els=els; return els;
+}
+function ptAvail(){
+  if(PT_ELS_AVAIL) return PT_ELS_AVAIL;
+  PT_ELS_AVAIL=new Set();
+  COMPOUNDS.forEach(r=>compoundElements(r).forEach(e=>PT_ELS_AVAIL.add(e)));
+  return PT_ELS_AVAIL;
+}
+function ptRender(){
+  const g=document.getElementById("ptgrid"), avail=ptAvail();
+  g.innerHTML=PT_LAYOUT.map(row=>row.map(e=>{
+    if(!e) return '<span></span>';
+    const has=avail.has(e), on=PT_SEL.has(e);
+    return `<button data-el="${e}" ${has?'':'disabled'} onclick="ptPick('${e}')"
+      style="padding:4px 0;font-size:11.5px;border-radius:4px;border:1px solid var(--wbg-border,#d5dae1);
+      cursor:${has?'pointer':'default'};opacity:${has?1:.28};
+      background:${on?'var(--wbg-accent,#0e7490)':'var(--wbg-surface,#fff)'};
+      color:${on?'#fff':'inherit'}">${e}</button>`;
+  }).join("")).join("");
+  document.getElementById("ptsel").textContent=PT_SEL.size
+    ?[...PT_SEL].join(" + "):"no element selected";
+  const btn=document.getElementById("ptbtn");
+  btn.textContent=PT_SEL.size?`Periodic table · ${[...PT_SEL].join("+")}`:"Periodic table";
+}
+function ptPick(e){ PT_SEL.has(e)?PT_SEL.delete(e):PT_SEL.add(e); ptRender(); cApplyFilters(); }
+function ptClear(){ PT_SEL.clear(); ptRender(); cApplyFilters(); }
+function ptToggle(){
+  const p=document.getElementById("ptpop");
+  const show=p.style.display==="none";
+  if(show) ptRender();
+  p.style.display=show?"":"none";
+}
+document.addEventListener("change",ev=>{ if(ev.target&&ev.target.name==="ptmode") cApplyFilters(); });
+function ptPass(r){
+  if(!PT_SEL.size) return true;
+  const els=compoundElements(r);
+  const mode=(document.querySelector('input[name="ptmode"]:checked')||{}).value||"has";
+  if(mode==="only"){
+    for(const e of els) if(!PT_SEL.has(e)) return false;
+    return els.size>0;
+  }
+  for(const e of PT_SEL) if(!els.has(e)) return false;
+  return true;
+}
 function cApplyFilters(){
   const q=document.getElementById("csearch").value.trim().toLowerCase();
   const stable=document.getElementById("ck-stable").checked;
@@ -1240,6 +1375,7 @@ function cApplyFilters(){
     if(binf){const n=cSteps(v); if(n===null||n===undefined||!binf(n))return false;}
     if(hasf&&!hasf(r,structKeyOf(r,r.b),v))return false;
     if(q&&!(r.n+" "+r.f+" "+Object.keys(r.o).join(" ")).toLowerCase().includes(q))return false;
+    if(!ptPass(r))return false;
     return true;
   });
   const col=CCOLS.find(c=>c.k===cSort.k);
@@ -1595,17 +1731,82 @@ function hostStructKeys(r){
   if(r.f==="pbesol")  c.push("PBEsol__"+r.h);
   if(r.f==="hse")     c.push("HSE06__"+r.h);
   c.push((FK[r.f]||"pbe")+"__"+r.h);               // pbe / pbe_u / zinc-blende style
+  /* 1,865 defect rows resolved NO host key at all because their host supercell is archived
+     only under the bulk table's "reference" row (e.g. HSE06__Cd0.25Zn0.75Te_reference is the
+     216-site SQS supercell the defects were built from). Try the same-theory reference key,
+     then any theory's (geometry-only use, so a cross-theory cell still marks the right site).
+     Alloy hosts whose defect rows dropped the _kesterite/_stannite suffix get the archived
+     ordering variant ONLY when exactly one exists -- guessing between two orderings would
+     mark the wrong cation arrangement, and no annotation is better than a wrong one. */
+  const PFX={pbesol:"PBEsol__",hse:"HSE06__",hse_soc:"",pbe:"pbe__",pbe_u:"pbe__"};
+  const p=PFX[r.f]!==undefined?PFX[r.f]:"pbe__";
+  [p+r.h+"_reference","HSE06__"+r.h+"_reference","PBEsol__"+r.h+"_reference",
+   r.h+"_reference","pbe__"+r.h+"_reference"].forEach(k=>{if(!c.includes(k))c.push(k);});
+  if(!/_(kesterite|stannite)$/.test(r.h)){
+    const vars=["kesterite","stannite"].map(o=>p+r.h+"_"+o).filter(k=>HAVE_STRUCT.has(k));
+    if(vars.length===1) c.push(vars[0]);
+  }
   return c;
 }
-async function hostSupercell(r){
+function hostMismatchScore(st,host){
+  // how many defect-cell atoms have NO same-element host site within 1.2 A — the true host
+  // ordering scores ~0-2; the wrong cation ordering scores every swapped cation site
+  let n=0;
+  const m=st.lattice.matrix;
+  st.sites.forEach(s2=>{
+    const el=s2.species[0].element; let bd=1e9,bel=null;
+    host.sites.forEach(h=>{
+      const q=minImageDist(m,[s2.abc[0]-h.abc[0],s2.abc[1]-h.abc[1],s2.abc[2]-h.abc[2]]);
+      if(q<bd){bd=q;bel=h.species[0].element}
+    });
+    if(bd>1.2||bel!==el) n++;
+  });
+  return n;
+}
+async function pickHostForDefect(r,st){
+  /* Both cation orderings can be archived while the defect row names neither. Fetch every
+     size-compatible candidate and keep the one whose atoms actually match the defect cell —
+     scoring against the real structure beats refusing to choose (which lost the Vac_Sn ring)
+     and beats guessing (which would mark every swapped cation of the wrong ordering). */
+  const keys=hostStructKeys(r).slice();
+  if(!/_(kesterite|stannite)$/.test(r.h)){
+    const PFX={pbesol:"PBEsol__",hse:"HSE06__",hse_soc:"",pbe:"pbe__",pbe_u:"pbe__"};
+    const p=PFX[r.f]!==undefined?PFX[r.f]:"pbe__";
+    for(const o of ["kesterite","stannite"]){
+      const k=p+r.h+"_"+o;
+      if(HAVE_STRUCT.has(k)&&!keys.includes(k)) keys.push(k);
+    }
+  }
+  let best=null,bestScore=1e9;
+  for(const key of keys){
+    if(!HAVE_STRUCT.has(key)) continue;
+    let cand=null;
+    try{ const resp=await fetch(`structures/${encodeURIComponent(key)}.json`);
+      if(resp.ok&&(resp.headers.get("content-type")||"").includes("json")) cand=hydrate(await resp.json());
+    }catch(e){}
+    if(!cand||Math.abs(cand.sites.length-st.sites.length)>8) continue;
+    const sc=hostMismatchScore(st,cand);
+    if(sc<bestScore){best=cand;bestScore=sc;}
+    if(bestScore<=2) break;
+  }
+  return best;
+}
+async function hostSupercell(r,wantN){
+  /* wantN = the defect cell's atom count. Candidates are tried until one is size-compatible
+     (within ±8 atoms): the first key can resolve a PRIMITIVE cell while the commensurate
+     supercell sits under a later "_reference" key — taking the primitive either exploded the
+     composition diff or (with the size guard alone) lost the vacancy ring entirely. */
   const keys=hostStructKeys(r);
-  const ck=keys.join("|");
+  const ck=keys.join("|")+"|"+(wantN||"");
   if(HOSTCACHE.has(ck)) return HOSTCACHE.get(ck);
   let st=null;
   for(const key of keys){
     if(!HAVE_STRUCT.has(key)) continue;
     try{ const resp=await fetch(`structures/${encodeURIComponent(key)}.json`);
-      if(resp.ok&&(resp.headers.get("content-type")||"").includes("json")){ st=hydrate(await resp.json()); break; } }catch(e){}
+      if(resp.ok&&(resp.headers.get("content-type")||"").includes("json")){
+        const cand=hydrate(await resp.json());
+        if(wantN&&Math.abs(cand.sites.length-wantN)>8) continue;
+        st=cand; break; } }catch(e){}
   }
   HOSTCACHE.set(ck,st); return st;
 }
@@ -1853,6 +2054,11 @@ async function mountTraj(key,sub,label,boxId){
      <div class="notebox">${label} — ${t.nframes} ionic steps from XDATCAR; energies from OSZICAR (F),
        forces are max |F| per step from OUTCAR. ${t.frames.length<t.nframes?`Showing ${t.frames.length} evenly sampled frames. `:""}${dispNote(t)}</div>`;
   const xs=t.frames.map(f=>f.i), es=t.frames.map(f=>f.e), fs=t.frames.map(f=>f.f);
+  if(!es.some(e=>e!==null&&e!==undefined)&&!fs.some(x=>x!==null&&x!==undefined)){
+    document.getElementById(P+"plot").innerHTML='<div class="notebox">Per-step energies and '+
+      'forces were not archived for this run — the movie shows the geometry only.</div>';
+    TPFX=P; showFrame(0); return;
+  }
   await loadPlotly();
   Plotly.newPlot(P+"plot",[
     {x:xs,y:es,name:"energy",mode:"lines+markers",line:{width:2,color:"#0e7490"},marker:{size:4}},

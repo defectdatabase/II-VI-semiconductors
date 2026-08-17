@@ -22,9 +22,31 @@ VERSION = REPO / "docs" / "version.json"
 DATA = REPO / "docs" / "data.json"
 
 
+def trim_dangling_keys() -> None:
+    """Drop payload keys that have no backing file, so the UI says "not archived" instead of
+    fetching a 404. The cluster-side builder derives its key lists from run records and cannot
+    see this repo's asset directories (13 structure keys and 1 DOS key were dangling)."""
+    d = json.loads(DATA.read_text())
+    changed = False
+    for field, sub, ext in (("structKeys", "structures", ".json"), ("trajKeys", "trajs", ".json.gz"),
+                            ("dosKeys", "dos", ".json.gz"), ("runKeys", "runs", ".json.gz")):
+        folder = DATA.parent / sub
+        if not folder.is_dir() or field not in d:
+            continue
+        have = {f.name[: -len(ext)] for f in folder.iterdir() if f.name.endswith(ext)}
+        kept = [k for k in d[field] if k in have]
+        if len(kept) != len(d[field]):
+            print(f"trimmed {len(d[field]) - len(kept)} dangling {field}")
+            d[field] = kept
+            changed = True
+    if changed:
+        DATA.write_text(json.dumps(d, separators=(",", ":")))
+
+
 def main() -> None:
     if not DATA.is_file():
         raise FileNotFoundError(f"Required site payload is missing: {DATA}")
+    trim_dangling_keys()
 
     html = TEMPLATE.read_text(encoding="utf-8")
     if 'fetch("data.json")' not in html:
