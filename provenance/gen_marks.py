@@ -121,7 +121,9 @@ for key, r in rows.items():
     th, fk = r["theory"], TH_FK[r["theory"]]
     host, defect = r["host"], r["defect"]
     dirname = r.get("archived_as") or defect
-    st = load_final_frame(fk, host, dirname) or load_final_frame("pbesol", host, dirname)
+    st = load_final_frame(fk, host, dirname); src_fk = fk
+    if st is None:
+        st = load_final_frame("pbesol", host, dirname); src_fk = "pbesol"
     if st is None:
         res[key] = {"why": "no relaxed geometry archived"}
         stats["no geometry"] += 1
@@ -146,12 +148,16 @@ for key, r in rows.items():
     dn = r.get("dn") or {}
     want_atoms = sum(int(v) for v in dn.values() if v > 0)
     want_vac = -sum(int(v) for v in dn.values() if v < 0)
+    # a substitution A_B is +1 A / -1 B in dn but ONE site on screen: the vacated B site is
+    # where the marked A now sits. Vacancy rings are only for the NET missing atoms.
+    n_sub = min(want_atoms, want_vac)
+    want_vac_ring = want_vac - n_sub
     if best is None:
         # composition-only fallback: mark foreign elements
         hostels = set(re.findall(r"[A-Z][a-z]?", host))
         mk = [i for i, e in enumerate(st["els"]) if e not in hostels][:max(want_atoms, 1)]
         if mk:
-            res[key] = {"mk": mk, "m": "foreign-element (no commensurate host cell)"}
+            res[key] = {"mk": mk, "tk": f"{src_fk}__{host}__{dirname}", "m": "foreign-element (no commensurate host cell)"}
             stats["foreign-element"] += 1
         else:
             res[key] = {"why": "no commensurate host cell and no foreign element to mark"}
@@ -166,16 +172,18 @@ for key, r in rows.items():
     hb = dist.min(axis=0)
     vidx = [int(i) for i in np.where(hb > 1.2)[0]]
     vidx.sort(key=lambda i: -hb[i])
-    vc = [{"el": best["els"][i], "abc": [round(float(x), 5) for x in best["abc"][i]]}
-          for i in vidx[:want_vac if want_vac else min(len(vidx), 6)]]
-    # a hole within 1.2 A of a marked atom is the substitution's own site
-    if mk and vc:
-        keepv = []
-        for v in vc:
+    # drop host sites that a marked atom now occupies -- a relaxed substituent can sit up to
+    # ~2 A off the ideal site, so use half a bond length (2.2 A), not 1.2 A
+    cand_v = []
+    for i in vidx:
+        v = {"el": best["els"][i], "abc": [round(float(x), 5) for x in best["abc"][i]]}
+        if mk:
             dv = min_image_d(st["lat"], st["abc"][mk] - np.array(v["abc"]))
-            if dv.min() > 1.2: keepv.append(v)
-        vc = keepv
-    res[key] = {"mk": mk, "vc": vc, "m": "host-diff" + (" (replicated primitive)" if best is not None and smallest is not None and best is not smallest and len(best["els"]) != len(smallest["els"]) and False else "")}
+            if dv.min() < 2.2: continue
+        cand_v.append(v)
+    vc = cand_v[:want_vac_ring] if dn else cand_v[:min(len(cand_v), 6)]
+    if dn and len(mk) > want_atoms: mk = mk[:want_atoms]
+    res[key] = {"mk": mk, "vc": vc, "tk": f"{src_fk}__{host}__{dirname}", "m": "host-diff" + (" (replicated primitive)" if best is not None and smallest is not None and best is not smallest and len(best["els"]) != len(smallest["els"]) and False else "")}
     stats["marked" if (mk or vc) else "clean-cell (nothing to mark)"] += 1
 json.dump(res, open(f"{L}/dmarks.json", "w"))
 print(dict(stats), "total", len(res))

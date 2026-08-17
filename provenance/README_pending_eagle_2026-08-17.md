@@ -81,3 +81,23 @@ fallbacks. NOTE the subset-enumeration first attempt ran >54 min and was replace
   original) -> THE GUARD: after any slurm-script fix, grep the submitted arrays' scripts
   (scontrol show job | Command) and cancel/resubmit any that predate the fix -> GUARD LIVES IN
   this README section + the resubmission pattern above.
+
+
+## 2026-08-17 (night) — over-marked defect sites + rogue charge states (ZnTe HSE+SOC Vac_Te)
+User: "Vac_Te in ZnTe HSE+SOC is a mess; a lot of cases show 3 defect sites even though it has 2".
+Two distinct bugs, both fixed and shipped:
+1. OVER-MARKING (504 rows): (a) the phantom-ring filter used 1.2 A but a relaxed substituent sits
+   up to ~2 A off the vacated site -> ring AND marked atom drawn for one site; (b) vacancy rings
+   were not capped by dn. gen_marks now uses 2.2 A (half a bond) and rings = NET missing atoms
+   (rem - min(add,rem)); marks capped at dn's added atoms; the client filter was aligned the same
+   way. Whole-library audit (marks+rings vs label parts): 2,527 exact, 59 "over" = rows whose CELL
+   genuinely holds more sites than the label (mislabel family; marks show the truth), 39 under
+   (partial geometry). Precompute rerun on Gautschi (numpy) from relayed trajs/structures.
+   Marks now carry tk = the trajectory they index; the client uses them only when that exact
+   file is displayed (an HSE row rendered from a PBEsol fallback or the unrelaxed model must not
+   reuse indices computed on another structure).
+2. ROGUE CHARGE STATES: ZnTe HSE+SOC Vac_Te published Ef@VBM 159.5 eV for q=-1/-2 -- those runs
+   are +160/+165 eV off the neutral (different settings/reference); the settings gate checked the
+   NEUTRAL only. New per-charge-state gate (|dE_q - dE_0| > 15 eV -> withheld with reason) in the
+   payload builder now, and provenance/patch_build_all_qgate.py to apply the same in Eagle's
+   build_all on resume. Only 2 rows in the library trip it (ZnTe Vac_Zn, Vac_Te, HSE+SOC).

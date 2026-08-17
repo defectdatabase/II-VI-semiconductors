@@ -1242,7 +1242,9 @@ async function mountDefectStructure(r,trajKey){
      computed once, data-side, with the same algorithm plus primitive replication. The client
      recomputes only when the payload has nothing for this row. */
   let marks, vac;
-  if(r.mk){
+  // payload marks index a specific archived trajectory (r.tk); a row whose displayed geometry
+  // came from a different file (or the unrelaxed model) must not reuse those indices
+  if(r.mk&&(!r.tk||r.tk===trajKey)){
     marks=r.mk.slice();
     vac=(r.vc||[]).map(v=>({abc:v.abc.slice(),el:v.el,d:99}));
   }else{
@@ -1251,8 +1253,17 @@ async function mountDefectStructure(r,trajKey){
   /* A substitution IS "+new element, -old element" in composition, so the cell-derived counts
      put one atom AND one vacancy at the same lattice site and Zn_S rendered as "2 defect
      sites". A hole within 1.2 A of a marked atom is the marked atom's own site — drop it. */
+    // relaxed substituents sit up to ~2 A off the vacated site: half a bond length, not 1.2 A
     vac=vac.filter(v=>!marks.some(mi=>minImageDist(st.lattice.matrix,
-      [st.sites[mi].abc[0]-v.abc[0],st.sites[mi].abc[1]-v.abc[1],st.sites[mi].abc[2]-v.abc[2]])<1.2));
+      [st.sites[mi].abc[0]-v.abc[0],st.sites[mi].abc[1]-v.abc[1],st.sites[mi].abc[2]-v.abc[2]])<2.2));
+    // rings only for the NET missing atoms (a substitution's vacated site is the marked atom's)
+    if(r.dn){
+      const add=Object.values(r.dn).filter(x=>x>0).reduce((a,b)=>a+b,0);
+      const rem=-Object.values(r.dn).filter(x=>x<0).reduce((a,b)=>a+b,0);
+      const ring=Math.max(0,rem-Math.min(add,rem));
+      vac=vac.slice(0,ring);
+      if(marks.length>add) marks=marks.slice(0,add);
+    }
   }
   DSTRUCT_MARKS=marks; DSTRUCT_VAC=vac;
   const base=pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure";
