@@ -237,7 +237,7 @@ body{letter-spacing:-.006em}
 #detail,#cdetail{padding:15px 18px}.dhead{font-size:15px;font-weight:700;margin:0 92px 10px 0}
 #cdetail .dgrid{grid-template-columns:minmax(300px,.92fr) minmax(420px,1.08fr)!important;gap:18px!important}
 .dcol h4{font-size:14px;font-weight:700;text-transform:none;letter-spacing:0}
-#detail{width:min(930px,calc(100vw - 32px));max-height:min(780px,calc(100vh - 32px))}
+/* defect thermodynamics window matches the compound window -- both inherit the 1080px/full-viewport rule above; no separate smaller cap here */
 /* Both columns scale with the modal. A fixed or content-sized left track either strands empty
    space beside the tables or pushes the plot and viewer over; a proportional split cannot. */
 #detail .dgrid{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)!important;gap:14px}
@@ -378,7 +378,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="35a111debb1a";
+  var BUILD_ID="38b35f046c8e";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -458,6 +458,10 @@ body{letter-spacing:-.006em}
         <div class="dcol">
           <h4>Breakdown of calculation outputs</h4>
           <div id="dsigma" style="max-height:560px;overflow-y:auto;padding-right:6px"></div>
+          <h4 style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap" id="ddoshead">
+            Element-projected DOS <select id="ddossel" onchange="drawDefectDOS(dSel)"></select></h4>
+          <div id="ddos" style="width:100%;height:250px"></div>
+          <div class="notebox" id="ddosnote"></div>
         </div>
         <div class="dcol">
           <h4 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Formation energy vs Fermi level
@@ -666,7 +670,7 @@ function loadPlotly(){
   return plotlyP;
 }
 const QS = ["-2","-1","0","1","2"];
-const THEORY = {pbesol:"PBEsol", hsesoc:"HSE+SOC"};
+const THEORY = {pbe:"PBE", pbesol:"PBEsol", hse:"HSE06", hse_soc:"HSE+SOC", pbe_u:"PBE+U"};
 
 /* ---------- formatting ---------- */
 const dropOnes = s => s.replace(/([A-Z][a-z]?)1(?![\d.])/g,"$1");
@@ -946,13 +950,21 @@ async function dOpenDetail(r){
     ? `<button class="cpill dmovie-plain" id="dmovie-open">▶ Relaxation movie</button>`
     : "";
   const dbtn=document.getElementById("dmovie-open");
-  if(dbtn) dbtn.onclick=()=>{
+  // mountDefectStructure computes DSTRUCT_MARKS/DSTRUCT_VAC asynchronously (it fetches the host
+  // supercell to diff against). Reading those globals synchronously here raced it: click before
+  // the fetch resolved and the movie opened with the PREVIOUS defect's site (or none) marked --
+  // no annotation, exactly like Kosmos's own viewer never got told where to look. Awaiting the
+  // same structure promise the click handler uses guarantees the marks belong to THIS defect.
+  if(dbtn) dbtn.onclick=async()=>{
     const hostEls=new Set(HOSTELS(r.h)); const dark={};
     r.d.split("+").forEach(part=>{const a=part.split("_")[0]; if(a!=="V"&&!hostEls.has(a)) dark[a]="#000000";});
+    await dStructReady;
+    if(dSel!==r) return;
     openMovie(geomKey,qopts,`${defHTML(r.d)} in ${subHTML(r.h)}`,dark,DSTRUCT_MARKS,DSTRUCT_VAC);
   };
   dRedrawPlot();
-  mountDefectStructure(r,geomKey).then(()=>{dAlignCols();setTimeout(dAlignCols,1600);});
+  drawDefectDOS(r);
+  const dStructReady=mountDefectStructure(r,geomKey).then(()=>{dAlignCols();setTimeout(dAlignCols,1600);});
   dRenderRows();
 }
 function dAlignCols(){   // Σ scroll box ends on the same horizontal line as the middle column
@@ -1953,7 +1965,7 @@ function postKosmosTrajectory(){
 async function mvmLoad(sub){
   const t=MVM.data[sub]; MVM.cur=t; MVM.frame=0;
   const frames=t.frames, eLast=frames[frames.length-1].e;
-  const dE0=frames[0].e!==null&&eLast!==null?frames[0].e-eLast:null;
+  const dE0=Number.isFinite(frames[0].e)&&Number.isFinite(eLast)?frames[0].e-eLast:null;
   const decreaseText=dE0===null?"Unavailable":Math.abs(dE0)<.01?`${(dE0*1000).toFixed(2)} meV`:`${dE0.toFixed(2)} eV`;
   const fLast=frames[frames.length-1].f, converged=fLast!==null&&fLast!==undefined&&fLast<=EDIFFG;
   document.getElementById("mvm-kind").textContent="Relaxation movie";
@@ -2203,6 +2215,77 @@ function drawDOSUnavailable(status){
       : "No density-of-states payload was archived for this calculation, so an element-resolved curve cannot be shown."}
     <div class="dos-empty-meta"><span>${totalOnly?"Archived: total DOS only":"Archived: no DOS payload"}</span><span>Required: per-ion projections (LORBIT)</span></div>
   </div></div>`;
+}
+// Defect DOS does not depend on the chemical potential -- one curve per charge state, archived
+// by build_payload.py as {"dos":{"<q>":"<key>"}} on the defect row. Same fetch/plot machinery as
+// the compound panel (fetchDOS, DOS_COLORS, projectedDosRange), different target elements so the
+// two panels never fight over one DOM node.
+async function drawDefectDOS(r){
+  const el=document.getElementById("ddos"), note=document.getElementById("ddosnote"),
+        head=document.getElementById("ddoshead"), sel=document.getElementById("ddossel");
+  const qs=Object.keys(r.dos||{});
+  if(!qs.length){
+    if(window.Plotly&&el.data) Plotly.purge(el);
+    sel.style.display="none"; sel.innerHTML="";
+    el.style.height="140px";
+    el.innerHTML='<div class="dos-empty"><div class="dos-empty-inner">'+
+      '<strong>Element-projected DOS is unavailable for this defect.</strong> '+
+      'No per-ion projected DOSCAR was archived for any of its charge states.</div></div>';
+    note.innerHTML="";
+    return;
+  }
+  qs.sort((a,b)=>Math.abs(+a)-Math.abs(+b));
+  sel.style.display=qs.length>1?"":"none";
+  sel.innerHTML=qs.map((q,i)=>`<option value="${q}"${i===0?" selected":""}>q = ${+q>0?"+"+q:q}</option>`).join("");
+  const q=sel.value&&qs.includes(sel.value)?sel.value:qs[0];
+  const key=r.dos[q];
+  const d=await fetchDOS(key);
+  if(dSel!==r) return;
+  if(!d||!d.e||!d.e.length){
+    if(window.Plotly&&el.data) Plotly.purge(el);
+    el.style.height="140px";
+    el.innerHTML='<div class="dos-empty"><div class="dos-empty-inner">'+
+      '<strong>Element-projected DOS is unavailable.</strong> The archived key did not resolve to a payload.</div></div>';
+    note.innerHTML="";
+    return;
+  }
+  const elementNames=Object.keys(d.el||{});
+  await loadPlotly();
+  if(dSel!==r) return;
+  if(window.Plotly&&el.data) Plotly.purge(el);
+  el.replaceChildren();
+  el.style.height="250px";
+  if(!elementNames.length&&d.total&&d.total.length){
+    head.childNodes[0].textContent="Total DOS ";
+    Plotly.react(el,[{x:d.e,y:d.total,name:"total",mode:"lines",fill:"tozeroy",
+      line:{color:"#0e7490",width:1.6},fillcolor:"#0e749033",
+      hovertemplate:"total: %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"}],{
+      margin:{l:60,r:10,t:8,b:44},font:{family:"Arial Narrow, Arial, sans-serif",size:12},
+      xaxis:{title:{text:"Energy relative to Fermi level (eV)",font:{size:12}},range:[-4,4],zeroline:false,showgrid:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
+      yaxis:{title:{text:"Density of states (states/eV)",font:{size:12}},showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
+      shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1.2,dash:"dash"}}],
+      plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+    note.innerHTML=`Total density of states only — this run wrote no per-ion projection.`;
+    return;
+  }
+  head.childNodes[0].textContent="Element-projected DOS ";
+  const traces=elementNames.map((elname,i)=>{
+    const c=DOS_COLORS[i%DOS_COLORS.length];
+    return {x:d.e,y:d.el[elname],name:elname,mode:"lines",fill:"tozeroy",
+      line:{color:c,width:1.6},fillcolor:c+"33",
+      hovertemplate:elname+": %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"};
+  });
+  const yRange=projectedDosRange(d.e,elementNames.map(name=>d.el[name]));
+  Plotly.react(el,traces,{
+    margin:{l:60,r:10,t:8,b:44},font:{family:"Arial Narrow, Arial, sans-serif",size:12},
+    xaxis:{title:{text:"Energy relative to Fermi level (eV)",font:{size:12}},range:[-4,4],zeroline:false,showgrid:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
+    yaxis:{title:{text:"Density of states (states/eV)",font:{size:12}},range:yRange,showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
+    shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1.2,dash:"dash"}}],
+    legend:{orientation:"h",y:1.14,font:{size:12}},
+    plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
+  const efTxt=(typeof d.ef==="number")?`the Fermi level at ${d.ef.toFixed(2)} eV, marked by the dashed red line`
+                                       :`the Fermi level, which this run's DOS file does not record`;
+  note.innerHTML=`Element-projected density of states from this charge state's own DOSCAR. Per-atom orbital projections are summed by element. Energies are relative to ${efTxt}. The displayed energy window is -4 to +4 eV; drag to zoom and double-click to reset.`;
 }
 async function drawStabilityMap(r,ord){
   document.getElementById("cmaphead").innerHTML="Stability — ΔG<sub>decomp</sub>(T)";
