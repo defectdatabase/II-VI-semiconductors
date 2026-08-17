@@ -174,7 +174,7 @@ button,select,input,textarea{font:inherit}
 .mvm-chip.warn{color:#a5541a;border-color:#f0d9bf;background:#fdf5ec}
 #mvm-body{display:grid;grid-template-columns:minmax(420px,1.75fr) minmax(360px,1fr);gap:14px;align-items:stretch}
 #mvm-body.static{grid-template-columns:1.85fr .8fr}
-#mvm-grid{height:470px}
+#mvm-grid{height:494px}
 #mvm-conv:empty{display:none}
 #mvm-controls{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
 #mvm-controls input[type=range]{flex:1 1 120px;accent-color:var(--wbg-accent)}
@@ -253,11 +253,11 @@ body{letter-spacing:-.006em}
 #detail .dgrid>.dcol:nth-child(2)>h4:first-child{justify-content:center!important;text-align:center;margin:0 auto 8px}
 #detail #dmoviebtn:empty{display:none}
 #detail #efdetailplot{height:320px}
-#detail #dstruct{height:240px!important;border:0;border-radius:0;overflow:hidden}
+#detail #dstruct{height:252px!important;border:0;border-radius:0;overflow:hidden}
 .kv{margin:0}.kv div{padding:5px 0;gap:20px}.kv span:last-child{text-align:right;font-weight:600}
 .notebox{background:#f7fafb;border-color:#e1e7eb;border-radius:6px;padding:8px 10px}
 #cnote{font-size:12.5px;line-height:1.5}
-#cstruct{height:300px!important;overflow:hidden!important;border-radius:8px!important}
+#cstruct{height:315px!important;overflow:hidden!important;border-radius:8px!important}
 .structure-shell{position:relative;width:100%;height:100%;background:linear-gradient(180deg,#fff,#f8fbfc)}
 .structure-stage{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
 .structure-viewbar{position:absolute;z-index:12;top:8px;left:50%;transform:translateX(-50%);display:flex;gap:2px;padding:3px;background:rgba(255,255,255,.92);border:1px solid var(--wbg-border);border-radius:7px;box-shadow:0 3px 14px rgba(35,54,63,.09)}
@@ -471,7 +471,7 @@ body{letter-spacing:-.006em}
             <select id="dcondsel" onchange="dRedrawPlot()"></select></h4>
           <div id="efdetailplot"></div>
           <h4 id="dstructhead" style="margin-top:10px">Defect structure</h4>
-          <div id="dstruct" style="height:380px"></div>
+          <div id="dstruct" style="height:399px"></div>
           <div class="notebox" id="dstructnote"></div>
         </div>
         <div class="dcol">
@@ -974,13 +974,17 @@ function dAlignCols(){   // Σ scroll box ends on the same horizontal line as th
   const grid=document.querySelector("#detail .dgrid"); if(!grid) return;
   const c2=grid.children[1], sig=document.getElementById("dsigma");
   if(!c2||!sig) return;
-  if(matchMedia("(max-width: 820px)").matches){sig.style.height="";sig.style.maxHeight="45vh";return;}
+  if(matchMedia("(max-width: 820px)").matches){sig.style.height="";sig.style.maxHeight="45vh";sig.style.overflowY="auto";return;}
   const kids=[...c2.children].filter(e=>e.offsetParent!==null&&e.getBoundingClientRect().height>0);
   if(!kids.length) return;
   const bot=Math.max(...kids.map(e=>e.getBoundingClientRect().bottom));
   const Z=parseFloat(getComputedStyle(document.documentElement).zoom)||1;   // rects are page-zoom scaled; style px are not
   const target=Math.round((bot-sig.getBoundingClientRect().top)/Z);
-  if(target>240){ sig.style.maxHeight="none"; sig.style.height=target+"px"; }
+  // A pinned height with no overflow rule lets the LATE-appended chem-pot appendix ("How the
+  // chemical potentials were solved", the vertex and competing-phase tables) spill straight out
+  // of the box and paint over the DOS panel underneath. Pin the height and the scroll together.
+  if(target>240){ sig.style.maxHeight="none"; sig.style.height=target+"px";
+                  sig.style.overflowY="auto"; sig.style.paddingRight="6px"; }
 }
 function typeAim(html){ return html; }   // note kept static; the compound panel carries the animation
 async function dRedrawPlot(){
@@ -1066,7 +1070,7 @@ async function unrelaxedDefectModel(r){
   const parts=r.d.split("+").map(part=>part.split("_"));
   // An interstitial position cannot be inferred from composition alone.
   if(parts.some(([,site])=>site==="i")) return null;
-  const hostKey=(r.f==="pbesol"?"pbesol__":"hse_soc__")+r.h;
+  const hostKey=hostStructKeys(r).find(k=>HAVE_STRUCT.has(k));
   if(!HAVE_STRUCT.has(hostKey)) return null;
   try{
     const resp=await fetch(`structures/${encodeURIComponent(hostKey)}.json`);
@@ -1127,7 +1131,10 @@ async function mountDefectStructure(r,trajKey){
     sites:fr.p.map((abc,i)=>({species:[{element:t.species[i],occu:1}],abc,label:t.species[i],properties:{}}))});
   const dark=defectColors(r);
   const host=await hostSupercell(r);
-  const marks=defectSiteIndices(st,host,dark,r.d), vac=vacancySites(st,host,r.d);
+  const labelCounts=defectPartCounts(r.d), cellCounts=cellPartCounts(st,host);
+  const counts=(cellCounts&&(cellCounts.atoms!==labelCounts.atoms||cellCounts.vac!==labelCounts.vac))
+    ? cellCounts : labelCounts;
+  const marks=defectSiteIndices(st,host,dark,r.d,counts), vac=vacancySites(st,host,r.d,counts);
   DSTRUCT_MARKS=marks; DSTRUCT_VAC=vac;
   const base=pbesolFallback?"Defect structure · PBEsol-relaxed geometry":"Defect structure";
   const bits=[];
@@ -1140,7 +1147,7 @@ async function mountDefectStructure(r,trajKey){
   // bulk comparison), which also catches the atom beside a vacancy. Passing highlight overrode that
   // and marked fewer sites than the reference - verified against the standalone viewer.
   sgShow(el,{type:"struct",cif:structureCIF(st),bulkCif:bulk,
-    nparts:defectPartCounts(r.d).atoms+defectPartCounts(r.d).vac});
+    nparts:counts.atoms+counts.vac});
   note.innerHTML="";
 }
 document.getElementById("dsearch").addEventListener("input",dApplyFilters);
@@ -1575,15 +1582,32 @@ const MV_VIEWS=[["Perspective",null],["Front",[0,0,1]],["Top",[0,1,0]],["Right",
    drawn oversized and every atom keeps its element colour. */
 const DEFECT_SITE_SCALE=2.6;
 const HOSTCACHE=new Map();
+/* structKeyOf's branch table, mirrored for the DEFECT side. r.h is already "<name>_<ordering>".
+   The old code asked for "pbesol__<host>" (lowercase) but the PBEsol structure payload is keyed
+   "PBEsol__<host>", and HSE+SOC carries no prefix at all -- so the lookup missed for ALL 4,372
+   defect rows. With no host supercell there is nothing to diff the defect cell against, so
+   defectSiteIndices fell back to marking only FOREIGN elements: an antisite between two host
+   species (S_Ge in Ag2SrGeS4) marked nothing at all, and every vacancy ring vanished too. */
+function hostStructKeys(r){
+  const FK={pbe:"pbe",pbesol:"pbesol",hse:"hse",hse_soc:"hse_soc",pbe_u:"pbe_u"};
+  const c=[];
+  if(r.f==="hse_soc") c.push(r.h);                 // HSE+SOC: bare "<name>_<ord>"
+  if(r.f==="pbesol")  c.push("PBEsol__"+r.h);
+  if(r.f==="hse")     c.push("HSE06__"+r.h);
+  c.push((FK[r.f]||"pbe")+"__"+r.h);               // pbe / pbe_u / zinc-blende style
+  return c;
+}
 async function hostSupercell(r){
-  const key=(r.f==="pbesol"?"pbesol__":"hse_soc__")+r.h;
-  if(HOSTCACHE.has(key)) return HOSTCACHE.get(key);
+  const keys=hostStructKeys(r);
+  const ck=keys.join("|");
+  if(HOSTCACHE.has(ck)) return HOSTCACHE.get(ck);
   let st=null;
-  if(HAVE_STRUCT.has(key)){
+  for(const key of keys){
+    if(!HAVE_STRUCT.has(key)) continue;
     try{ const resp=await fetch(`structures/${encodeURIComponent(key)}.json`);
-      if(resp.ok&&(resp.headers.get("content-type")||"").includes("json")) st=hydrate(await resp.json()); }catch(e){}
+      if(resp.ok&&(resp.headers.get("content-type")||"").includes("json")){ st=hydrate(await resp.json()); break; } }catch(e){}
   }
-  HOSTCACHE.set(key,st); return st;
+  HOSTCACHE.set(ck,st); return st;
 }
 function minImageDist(m,d){            // nearest periodic image, Cartesian angstroms
   let best=1e9;
@@ -1605,13 +1629,33 @@ function minImageDist(m,d){            // nearest periodic image, Cartesian angs
    vacancy and zero marked atoms, V_Cd+Cd_Se is one of each, Cd_Se+Te_i is two atoms and no vacancy.
    Candidates are ranked (element mismatch first, then distance from the nearest host atom) and cut
    to that count, so a neighbour that merely relaxed inwards can never masquerade as the defect. */
+// The archive spells a vacancy "Vac_X"; this only tested for "V_X", so EVERY vacancy counted as
+// an added atom and as zero vacancies -- the ring was never drawn and the code hunted for an
+// extra atom that does not exist. Same rename this project already tripped over in classify().
 function defectPartCounts(dlabel){
   const parts=String(dlabel||"").split("+").filter(Boolean);
-  return {atoms:parts.filter(p=>p.split("_")[0]!=="V").length,
-          vac:parts.filter(p=>p.split("_")[0]==="V").length};
+  const isVac=p=>{const a=p.split("_")[0]; return a==="Vac"||a==="V";};
+  return {atoms:parts.filter(p=>!isVac(p)).length,
+          vac:parts.filter(isVac).length};
 }
-function defectSiteIndices(st,host,dark,dlabel){
-  const want=defectPartCounts(dlabel).atoms;
+/* What the CELL actually contains, not what the directory name claims. Ag2SrGeS4/S_Ge holds a
+   Ge-vacancy cell (Ag72 Ge35 Sr36 S144, 287 atoms) byte-identical to its own Vac_Ge sibling --
+   the generator dropped the Ge and never added the substituting S. Trusting the label there
+   asks for one added atom and zero vacancies, so nothing gets marked at all. Counting from the
+   composition difference against the host supercell is right whenever the two disagree. */
+function cellPartCounts(st,host){
+  if(!host||!host.sites||!host.sites.length||!st||!st.sites) return null;
+  const tally=x=>{const m={};x.sites.forEach(t=>{const e=t.species[0].element;m[e]=(m[e]||0)+1;});return m;};
+  const a=tally(st), b=tally(host);
+  let atoms=0, vac=0;
+  for(const e of new Set([...Object.keys(a),...Object.keys(b)])){
+    const d=(a[e]||0)-(b[e]||0);
+    if(d>0) atoms+=d; else vac+=-d;
+  }
+  return {atoms,vac};
+}
+function defectSiteIndices(st,host,dark,dlabel,counts){
+  const want=(counts||defectPartCounts(dlabel)).atoms;
   if(dlabel!==undefined&&want===0) return [];
   if(host&&host.sites&&host.sites.length){
     const m=st.lattice.matrix, cand=[];
@@ -1635,8 +1679,8 @@ function defectSiteIndices(st,host,dark,dlabel){
    vacancy), so marking atoms alone can only ever show half of it. A host site with no defect atom
    within 1.2 A is a vacancy: its fractional position is passed to the movie, which draws a dashed
    ring there. The MatterViz panes can only scale atoms that exist, so they say so in the heading. */
-function vacancySites(st,host,dlabel){
-  const want=defectPartCounts(dlabel).vac;
+function vacancySites(st,host,dlabel,counts){
+  const want=(counts||defectPartCounts(dlabel)).vac;
   if(dlabel!==undefined&&want===0) return [];
   if(!host||!host.sites||!host.sites.length) return [];
   const m=st.lattice.matrix, cand=[];
