@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="00913f6b8f69";
+  var BUILD_ID="8b3728ed0f64";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -2841,6 +2841,13 @@ function provenanceBody(r,ord){
     const D=v[27];
     const rows=D.terms.map(t=>`${t.coeff} · ΔH<sub>f</sub>(${subHTML(t.phase)}) = ${t.contribution.toFixed(3)} eV`
       +`  [ΔH<sub>f</sub>(${subHTML(t.phase)}) = ${t.E_pfu.toFixed(3)} eV/f.u.]`).join("<br>&nbsp;&nbsp;");
+    const sTermsHTML=(D.S_terms&&D.S_terms.length)
+      ? `<br><b>Configurational entropy</b> −T·ΔS<sub>mix</sub> = k<sub>B</sub>T · Σ<sub>sublattice</sub> n<sub>sites</sub> · Σ f ln f = <span class="mono">${(D.S||0).toFixed(4)}</span> eV/f.u., from:<br>&nbsp;&nbsp;`
+        + D.S_terms.map(t=>`${t.sublattice} site (${t.sites_per_fu} per f.u.): `
+          + Object.entries(t.fractions).map(([e,f])=>`f<sub>${e}</sub> = ${f}`).join(", ")
+          + ` → Σ f ln f = ${t.sum_f_ln_f.toFixed(4)} → ${t.sites_per_fu} × k<sub>B</sub>T(298 K) × ${t.sum_f_ln_f.toFixed(4)} = ${t.contribution_eV.toFixed(4)} eV`).join("<br>&nbsp;&nbsp;")
+        + `<br>Fully occupied sublattices contribute zero and are omitted.`
+      : "";
     const pre=(D.pre&&D.pre!==1)?`${D.pre} · `:"";
     return `<b>Level of theory: ${th.split(" (")[0]}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F.toFixed(2)}</span> eV
@@ -2848,10 +2855,10 @@ function provenanceBody(r,ord){
     <span class="mono">${D.E_pfu.toFixed(3)}</span> eV/f.u.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
     = <span class="mono">${efTxt}</span> eV/atom, against same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
-    <b>Decomposition energy</b> (${D.kind}) = ΔH<sub>f</sub><sup>f.u.</sup> − ${pre}Σ c·ΔH<sub>f</sub>(phase)
+    <b>Decomposition energy</b> (${D.kind}) = ΔH<sub>f</sub><sup>f.u.</sup> − ${pre}Σ c·ΔH<sub>f</sub>(binary) + k<sub>B</sub>T·Σ<sub>sublattice</sub> n·Σ f ln f
     = ${D.E_pfu.toFixed(3)} − (${(D.sum*(D.pre||1)).toFixed(3)}) + (${(D.S||0).toFixed(3)})
     = <span class="mono">${(D.d0 + (D.S||0)).toFixed(3)}</span> eV/f.u., over <b>all ${D.terms.length}</b>
-    competing phases:<br>&nbsp;&nbsp;${rows}<br>
+    competing phases:<br>&nbsp;&nbsp;${rows}${sTermsHTML}<br>
     <b>Configurational entropy</b> −T·ΔS<sub>mix</sub> = k<sub>B</sub>T · Σ<sub>sublattice</sub> n<sub>sites</sub> · Σ f ln f
     = <span class="mono">${(D.S||0).toFixed(4)}</span> eV/f.u.${
       (D.S_terms&&D.S_terms.length)

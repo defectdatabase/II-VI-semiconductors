@@ -44,3 +44,17 @@ msehabibur, token in ~/.git-credentials (mode 600, user home). ONE command build
 extraction + mark merge + listing-derived key lists → build_site → commit+push as msehabibur).
 Big dos_defect jsonls are split to ≤150 MB parts before parsing (login-node OOM guard).
 Gautschi mhub_build is deleted once the first Eagle-built push is verified live.
+
+
+## 2026-08-17 (later) — decomposition switched to the stoichiometric BINARY channel
+User: "I only want binary phases the way we defined in the nanoHUB tool" (ChalcoDB), plus the
+configurational-entropy term-by-term. The old client recomputed from an incomplete binary table
+(the acknowledged ChalcoDB-era mistake, -4.12 vs the true -0.29); the builder now solves the
+exact stoichiometric binary combination per compound with a dense two-phase simplex over the
+FULL same-theory binary set (+ elements at dH=0), and adds ideal-mixing entropy
+kBT(298.15 K)*sum_sublattice n*sum f ln f from the formula's fractional sublattices.
+Published v[1] IS this number; v[27] carries the terms incl. per-sublattice S breakdown;
+v[19] lists the binaries; v[9] = S. Validated: Cu2ZnSnS4 -> Cu2S+ZnS+SnS2 (d=-0.483);
+CdSe0.25Te0.75 -> 0.75 CdTe + 0.25 CdSe, S=-0.0144; K0.5Rb0.5AlS2 -> 0.25 K2S+0.25 Rb2S+
+0.5 Al2S3, S=-0.0178. 19,880/19,880 decomposable row-orderings on the binary channel, zero
+fallbacks. NOTE the subset-enumeration first attempt ran >54 min and was replaced by the LP.
