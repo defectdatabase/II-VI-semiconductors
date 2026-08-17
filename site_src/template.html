@@ -240,7 +240,10 @@ body{letter-spacing:-.006em}
 /* defect thermodynamics window matches the compound window -- both inherit the 1080px/full-viewport rule above; no separate smaller cap here */
 /* Both columns scale with the modal. A fixed or content-sized left track either strands empty
    space beside the tables or pushes the plot and viewer over; a proportional split cannot. */
-#detail .dgrid{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)!important;gap:14px}
+#detail .dgrid{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)!important;gap:14px;align-items:start}
+/* the two panels stay the same height: the right column (plot + structure) sets it, and the left
+   column scrolls internally when the vertex tables + DOS run longer (user request 2026-08-16) */
+#detail .dgrid>.dcol:first-child{max-height:calc(100vh - 150px);overflow-y:auto;padding-right:8px;overscroll-behavior:contain}
 #detail .dgrid>.dcol:nth-child(2){width:100%;max-width:none;justify-self:stretch}
 #detail .dhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #detail #dmoviebtn{display:inline-flex;margin-left:auto;white-space:nowrap}
@@ -249,7 +252,7 @@ body{letter-spacing:-.006em}
 #detail .dcol>h4{min-height:0;margin-bottom:6px}
 #detail .dgrid>.dcol:nth-child(2)>h4:first-child{justify-content:center!important;text-align:center;margin:0 auto 8px}
 #detail #dmoviebtn:empty{display:none}
-#detail #efdetailplot{height:235px}
+#detail #efdetailplot{height:320px}
 #detail #dstruct{height:240px!important;border:0;border-radius:0;overflow:hidden}
 .kv{margin:0}.kv div{padding:5px 0;gap:20px}.kv span:last-child{text-align:right;font-weight:600}
 .notebox{background:#f7fafb;border-color:#e1e7eb;border-radius:6px;padding:8px 10px}
@@ -334,7 +337,7 @@ body{letter-spacing:-.006em}
 .kv div{padding:3px 0}
 .notebox{padding:6px 8px;font-size:12.3px}
 #cnote{font-size:12px}
-#detail #efdetailplot{height:252px}
+#detail #efdetailplot{height:400px}
 #detail #dstruct{height:340px!important;border:1px solid var(--wbg-border);border-radius:8px}
 #cstruct{height:340px!important}
 .dos-empty{height:150px;padding:14px}
@@ -457,7 +460,7 @@ body{letter-spacing:-.006em}
       <div class="dgrid">
         <div class="dcol">
           <h4>Breakdown of calculation outputs</h4>
-          <div id="dsigma" style="max-height:560px;overflow-y:auto;padding-right:6px"></div>
+          <div id="dsigma"></div>
           <h4 style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap" id="ddoshead">
             Element-projected DOS <select id="ddossel" onchange="drawDefectDOS(dSel)"></select></h4>
           <div id="ddos" style="width:100%;height:250px"></div>
