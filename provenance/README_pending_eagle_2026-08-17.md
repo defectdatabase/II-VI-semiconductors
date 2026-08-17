@@ -58,3 +58,26 @@ v[19] lists the binaries; v[9] = S. Validated: Cu2ZnSnS4 -> Cu2S+ZnS+SnS2 (d=-0.
 CdSe0.25Te0.75 -> 0.75 CdTe + 0.25 CdSe, S=-0.0144; K0.5Rb0.5AlS2 -> 0.25 K2S+0.25 Rb2S+
 0.5 Al2S3, S=-0.0178. 19,880/19,880 decomposable row-orderings on the binary channel, zero
 fallbacks. NOTE the subset-enumeration first attempt ran >54 min and was replaced by the LP.
+
+
+## 2026-08-17 (final, shipped 1b351d791, live 8b3728ed0f64, verified 10/10)
+- Binary-decomposition build is LIVE and verified 10/10 reloads: CZTS shows Cu2S+ZnS+SnS2 with
+  d=-0.4832 on screen, K0.5Rb0.5AlS2 shows the -0.0178 eV cation-site entropy breakdown, zero
+  console errors, published column == derived breakdown on every row.
+- DFT status (Gautschi, sole remaining role = running DFT): ZERO runs completed yet -- everything
+  pends on the account's 48-CPU high-priority cap (other amannodi members, bsamanta alone 171
+  running jobs). The three original bulk-PDOS arrays carried the pre-fix batch script (module:
+  command not found -- Gautschi batch shells need '#!/bin/bash -l') and would have failed on
+  start: cancelled, resubmitted as 15319753 (highmem 0-7), 15319754 (cpu 8-999%10), 15319755
+  (cpu 1000-1896%10). Defect-DOS: 4,995 runs, POTCARs 4995/4995, arrays 15316536-40
+  (cpu-standby %10, fixed script). Highmem QOS caps 8 submitted jobs/user: slots split 4 bulk +
+  4 defect, and an scrontab feeder (hm_feed.sh, */20 min; needed explicit -A/-p/-q to be
+  accepted) tops the quota up with the next unfinished defect runs; marker files + in-job DOSCAR
+  guard make it double-submission- and rerun-safe. Truncated ddos_pkg.tgz from an interrupted
+  scp was recopied and checksum-verified (d11246281c617194).
+- Mistakes log (append, four parts): submitted arrays before fixing the batch-shell bug ->
+  the module-not-found failure was ALREADY in the first 12 failed tasks when the later arrays
+  were queued with the same script (his standing rule: a repeated mistake is worse than the
+  original) -> THE GUARD: after any slurm-script fix, grep the submitted arrays' scripts
+  (scontrol show job | Command) and cancel/resubmit any that predate the fix -> GUARD LIVES IN
+  this README section + the resubmission pattern above.
