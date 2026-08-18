@@ -249,3 +249,15 @@ Live build 366cbc3c40e0, 10/10 browser-verified (Vac_Ba withheld+reason, In_Ag n
 "defect site in black" singular, Vac_In control 1); commits 824551510 + 53e2dc14f (a stray probe
 script briefly entered the repo in 824551510 and was removed in the next commit — guard: never
 create scratch files inside the repo checkout; scratch lives in the session scratchpad).
+
+## 2026-08-18 — "Cd-Se-Te has no data": the search was substring-only
+
+The data was always there (45 bulk ordering-rows across PBE/PBEsol/HSE06/HSE+SOC and 1,235 defect
+rows for the Cd-Se-Te system), but the alloys are named `CdSe0.25Te0.75` / `Cd108Se27Te81`, so the
+substring search could never match "CdSeTe" or "Cd-Se-Te" and both explorers looked empty. Fix
+(build dd10e7499915, commit fc80b306d): a query that parses entirely as element symbols (capital
+split first, greedy two-letter fallback for lowercase) also matches rows whose ELEMENT SET equals
+the queried set — "CdSeTe", "Cd-Se-Te", "cd se te", "cdsete" all return the full system in the
+Compounds and Defect Explorers, while "CdTe" stays at its 22 substring rows (exact-set rule, no
+alloy flooding). Live 10/10: compounds 45/45, defects 1,136/1,136 (pbesol+hse_soc default
+checkboxes; 1,235 with all theories).
