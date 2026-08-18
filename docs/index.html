@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="dd10e7499915";
+  var BUILD_ID="3fbdb7ce2cc5";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -770,6 +770,17 @@ const DCOLS=[
   {k:"efMt",label:"Eᶠ@mid (limit 2)",w:124,num:1,val:r=>r.efMt},
   {k:"efCc",label:"Eᶠ@CBM (limit 1)",w:124,num:1,val:r=>r.efCc},
   {k:"efCt",label:"Eᶠ@CBM (limit 2)",w:124,num:1,val:r=>r.efCt},
+  /* Rows whose six Ef columns are all dashes looked like "no data" (the CdSeTe report), while
+     the raw physics -- the dE ladder, DOS, structures -- sits behind the click. Say what IS here. */
+  {k:"avail",label:"Available data",w:170,cell:r=>{
+    const bits=[];
+    const nq=Object.keys(r.e||{}).length;
+    if(nq) bits.push(`ΔE ×${nq}`);
+    const nd=Object.keys(r.dos||{}).length;
+    if(nd) bits.push(`DOS ×${nd}`);
+    if(HAVE_TRAJ.has(defectTrajectoryKey(r,`${r.f}__${r.h}__${r.d}`))) bits.push("movie");
+    return `<span class="c" style="width:170px;color:#64748b">${bits.join(" · ")||"—"}</span>`;
+  },val:r=>Object.keys(r.e||{}).length*10+Object.keys(r.dos||{}).length},
 ];
 let dSort={k:"efMt",asc:true},dSel=null,dFiltered=[];
 let dClass="all";
