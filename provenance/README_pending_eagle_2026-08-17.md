@@ -500,3 +500,21 @@ systematic audit is owed).
   (config.yml / middleware / notebooks / CI), not just the one product I am working on; a repo
   serving a deployment is never "clutter" → GUARD LIVES IN this log + the deletion checklist
   above.
+
+## 2026-08-18 (later) — TACE pipeline assembled end-to-end on Gilbreth; smoke fine-tune queued
+- ckpt/ complete: all 13 released TACE/TECE checkpoints (4.3 GB) incl. TECE-OAM-RRA-1.0.pt (890 MB).
+- Config keys pinned from example/train/tece.yaml: training data = extxyz with per-frame info keys
+  `fidelity_idx` + `total_charge` (key names remappable under dataset.keys); model fidelity list =
+  named entries with optional per-element atomic_energy; charge conditioning =
+  model.universal_embedding.total_charge.enable: true; invocation `tace-train -cn <cfg>.yaml`
+  (hydra, config_path = cwd); deps are plain pip (torch>=2.4, torch_geometric, lightning, e3nn —
+  no cuEquivariance).
+- tace_convert.py maps our collector corpus -> data/train.xyz + valid.xyz (split 90/10 by RUN not
+  frame): currently 150 train / 3 valid; fidelity_idx {PBEsol:115, HSE_PBEsol:20, PBE:14,
+  HSEsoc_PBEsol:1}; total_charge {0:96, +1:14, +2:15, -1:13, -2:12}.
+- finetune_telluride.yaml = tece.yaml with finetune_from_model=TECE-OAM-RRA-1.0.pt, our dataset,
+  4-entry fidelity list, total_charge enabled, lr 1e-4, max_epochs 80 (smoke scale).
+- env/ building in background (torch cu126 + pip -e tace-repo; env_build.log ends "tace-env-ok"
+  on success). Smoke job 11539819 submitted (a100-40gb, standby QoS + partition BOTH required on
+  Gilbreth sbatch, 1 GPU, --requeue, waits for the env marker before training). Purpose: validate
+  the full pipeline so the real fine-tune starts the moment Eagle's trajectories land.
