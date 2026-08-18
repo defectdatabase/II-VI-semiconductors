@@ -481,3 +481,22 @@ systematic audit is owed).
   the Eagle resume checklist completes (Eagle clone pulled, Eagle-built push verified live), the
   Desktop clone is redundant — delete it then; the repo on GitHub + the Eagle clone
   (site/repo, 4.1 GB) are the only two copies needed. Added as the final resume step.
+
+## 2026-08-18 — repo "clutter" audit (user question) + a self-caught near-miss
+- The extra top-level files are NOT unused: this repo triple-serves as (1) the website (docs/,
+  1.0 GB, all live), (2) the nanoHUB DefectDB tool runtime — config.yml declares
+  Cd_Zn_X_v3.ipynb as the tool entrypoint, middleware/invoke launches it, and the notebook
+  references PES/ (26x, the M3GNet charge-state models), matterviz/mv-app.js (viewer),
+  cdsete_defect_library CSV and the three PNG icons — and (3) provenance/ (outage handoff).
+  Only ~1.4 MB (chalcodb_slim.csv, pbesol_compounds_raw_recompute.csv, cdte_hse_soc.csv,
+  marquee.png) has zero site+notebook references; left in place — marquee.png may be the nanoHUB
+  banner, and the risk/benefit is upside-down. The 4.2 GB is dominated by .git history (3.2 GB of
+  versioned payload revisions), which only a history rewrite would shrink — not worth it on a
+  live repo that gets deleted from the Mac after the Eagle move-back anyway.
+- Mistakes log (self-caught, recorded so it is never repeated): I deleted "unused" files after
+  checking only SITE references (commit 0d471f48e, pushed) — including the nanoHUB tool's
+  entrypoint notebook — and restored them ~2 min later (b4f026c32) after reading config.yml →
+  THE GUARD: before deleting anything from a repo, enumerate EVERY consumer of the repo
+  (config.yml / middleware / notebooks / CI), not just the one product I am working on; a repo
+  serving a deployment is never "clutter" → GUARD LIVES IN this log + the deletion checklist
+  above.
