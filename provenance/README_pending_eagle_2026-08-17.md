@@ -410,3 +410,31 @@ systematic audit is owed).
   convergence plot. Tab render + preview mount asserted 10/10 with 0 console errors; other tabs
   unaffected. Commit 024265494 (site build 0aa1d335ac44). The MP key used for the test was the
   user's own (from Anvil ~/.pmgrc.yaml), entered transiently in the form; not stored anywhere.
+
+## 2026-08-18 (later) — ML screening layer v1 live: "ML" in the Compounds Explorer theory dropdown
+- User directives (evolving, recorded in order): add the ~half-million A2BCX4/ABX2 space with
+  RF-predicted dielectric/SLME; ChalcoDB has the compounds but "train newly"; also train
+  graph models (ALIGNN, M3GNet); energetics/lattice must come from a top-tier MLFF (EquFlash),
+  fine-tuned on our PBEsol bulk+defect data — ideally multifidelity + charge-aware; latest:
+  train github.com/xvzemin/tace (TeCE-OAM-RRA, matbench-discovery #1 CPS, open code+ckpt) on all
+  our DFT data with level-of-theory + supercell-charge conditioning, plus an SLME head.
+- SHIPPED v1 (commit 530763c9c, build c8e5f041cea2): theory dropdown gained
+  "ML — RF-screened A2BCX4/ABX2 space (644,112)". Selecting it lazy-loads
+  data/mlscreen.json.gz (9.3 MB) — 644,112 enumerated compositions (A2BCX4: A pure/50-50 of
+  {Li,Na,K,Rb,Cs,Cu,Ag}, B pure/50-50 of 13 divalents, C pure/50-50 of {Si,Ge,Sn,Ti,Zr,Hf},
+  X4 pure/{1,2,3}/4 mixes of S/Se/Te; + ABX2 with {Al,Ga,In}) with RF-predicted band gap,
+  dielectric constant and SLME. RF trained FRESH on this library's 6,709 HSE+SOC
+  kesterite/stannite rows (124 composition features; 5-fold CV: gap MAE 0.249 eV R2 0.778,
+  eps MAE 0.700 R2 0.648, SLME MAE 2.47 R2 0.825). Detail panel = provenance note with these
+  metrics. Ef/decomp/lattice deliberately blank (RF lattice was dropped — the training cells mix
+  supercell conventions; energetics wait for the MLFF campaign). Verified live 10/10 via CDP:
+  644,112 rows load, CZTS spot-check gap 1.425 / eps 4.82 / SLME 27.31, note renders, 0 console
+  errors. Training/predict scripts + models: gautschi:mhub_build/log/mlscreen/.
+- Next stages agreed with the user (compute-gated, not yet run): (1) ALIGNN + matgl property
+  models on the same HSE+SOC training set (pip installs on Gautschi in progress); (2) TACE
+  fine-tune on our full DFT corpus with fidelity + charge tokens — needs per-frame
+  energies/forces = OUTCARs: Gautschi's growing ddos/pdos/bin runs now, the Eagle archive after
+  the outage; from-scratch training is not sensible (foundation models need ~1e8 structures,
+  we have ~5e4 frames) — fine-tune the released 222M checkpoint instead; (3) SLME/eps head on
+  relaxed configurations; (4) EquFlash/TACE relaxation campaign over the 644k space
+  (Gilbreth env verified alive: ckpt + GGNN + cap_results present).
