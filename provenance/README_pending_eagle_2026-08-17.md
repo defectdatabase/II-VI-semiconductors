@@ -226,3 +226,26 @@ exactly one Ag1Al1Se2_kesterite row with q = −2…+2; control CdTe HSE+SOC Vac
 **For Eagle build_all:** the real fixes are upstream — run/keep pristine supercells per host and
 use them as E_bulk (never hpa × N across k-meshes), build mu0 per footing class, and emit the
 three gates' inputs. Until then these payload gates stand.
+
+## 2026-08-18 (later still) — Vac_Ba q=−2, the transition-level gate, and antisites drawing two sites
+
+**"Vac_Ba in Cu1.5Ag0.5BaSnS4 ord 2 is negative why":** the arithmetic was consistent but the q=−2
+run itself is broken — dE(−1→−2) = 2.18 eV where each added electron must cost ≥ E_VBM = 4.95 eV,
+so the implied (−1/−2) acceptor level sits 2.77 eV BELOW the VBM (impossible); it passed the crude
+15 eV gate and published Ef@VBM = −1.24/−1.69. New vertex-independent gate on every charged state:
+s = −(dE_q − dE_0)/q − E_VBM must not sit below −0.7 eV (acceptors) / −1.5 eV (donors; shallow
+levels legitimately dip below VBM). Library-wide, s over 12,342 charged states flagged 14 entries
+(the rest of the 213 raw hits were already withheld by earlier gates); the two Ef@VBM < −0.5
+survivors are q=+2 donors negative only near VBM — genuine Fermi-level pinning. Vac_Ba now shows
+q=−2 withheld with the reason, −1/0/+1/+2 intact (1.08/1.09/1.23/1.41 at S-rich).
+
+**"In_Ag shows 2 defect sites in the main window":** for an antisite, `cellPartCounts` counts the
+vacated host site as a vacancy ({atoms:1, vac:1}), disagrees with the label ({1,0}), wins, and
+`nparts = atoms+vac = 2` went to the viewer, which highlights that many sites. The main window now
+derives nparts from the cell-truth `dn` (sites = atoms added + rings for NET-missing only):
+In_Ag → 1, vacancies → 1, the S_Ge mislabeled-cell case → 1 ring, unchanged.
+
+Live build 366cbc3c40e0, 10/10 browser-verified (Vac_Ba withheld+reason, In_Ag nparts 1 with
+"defect site in black" singular, Vac_In control 1); commits 824551510 + 53e2dc14f (a stray probe
+script briefly entered the repo in 824551510 and was removed in the next commit — guard: never
+create scratch files inside the repo checkout; scratch lives in the session scratchpad).
