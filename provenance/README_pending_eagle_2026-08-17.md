@@ -190,3 +190,39 @@ trace every published F to a record, and print the |Ef − Ef_PBEsol| distributi
 only if the audit's mislabelled/diverged/unmatched counts equal the withheld counts in the payload
 log. WHERE THE GUARD NOW LIVES: `build_payload_eagle.py` (classify_row, EREF, cross-check gate,
 "row footing modes" line) and this section.
+
+## 2026-08-18 (later) — defect ladder gates: the crazy-negative formation energies and the neutral-only twin rows
+
+**Reports:** the ZnTe HSE+SOC Vac_Zn table (Ef@VBM −2.27/−2.25/−2.11, +1/+2 already withheld);
+"some defect formation energy is crazy negative"; "Al_i … ord 1 shows neutral it is wrong."
+
+**Audit:** 63 vertex/charge entries published Ef@VBM < −0.5 (worst −3.64, Ag_i/Ge_i in
+Ag2Ca1Ge1S4_stannite with dE −10.7/−16.2 eV; Al_i in K0.5Ag0.5Al1S1Te1 at +129 eV for every
+charge). Three mechanisms: (1) the host reference is hpa × N with hpa from a small k-converged
+cell while the supercell ran Γ-only — for ZnTe HSE+SOC the 215-atom Vac_Zn cell comes out MORE
+bound per atom (−3.6862) than the perfect crystal (−3.6718), which is impossible, and 14 meV/atom
+of k-mesh error is 3.1 eV in dE; (2) whole ladders consistently off (the +129 eV family passes a
+per-charge gate); (3) μ0 from the mixed-footing chempot build (no true HSE+SOC Zn elemental run
+exists). No pristine supercells exist in the archive (build_all skipped them), so the correct
+E_bulk is not derivable on Gautschi.
+
+**Fix (payload builder, live build e13c38ab1a17, commits db0ce7c17):** three whole-ladder gates —
+neutral |dE|/atom > 0.05; pure-removal defect cell more bound per atom than the host (impossible);
+neutral Ef@VBM < −0.2 at any solved vertex (host would decay spontaneously → broken chain). A
+gated ladder keeps dE/DOS/structures and shows the exact reason on every charge row. Neutral
+Ef@VBM < −0.2 now 0 (the 4 remaining < −0.5 entries are charged-state-only — legitimate E_F
+pinning physics). Resolved rows 163 → 150.
+
+**Twin rows:** 732 bare-host rows (e.g. `Ag1Al1Se2` + `Al_i`) carried only the neutral per-site
+scan of a defect whose full charge ladder lives on the `_kesterite`/`_stannite` row — that is the
+"shows only Neutral" complaint. Dropped when the suffixed twin exists and the bare row has no
+charge state the twin lacks; verified 0 resolved bare rows had unresolved twins. Defects
+4,363 → 3,631 rows; site-mark fields (mk/vc/mkwhy) grafted onto the new rows (1,749 carried).
+
+**Live 10/10:** ZnTe Vac_Zn withheld with the more-bound-than-bulk reason on the panel; Al_i =
+exactly one Ag1Al1Se2_kesterite row with q = −2…+2; control CdTe HSE+SOC Vac_Cd unchanged at
+4.285476 eV; 0 negative neutral rows; defects 3,631.
+
+**For Eagle build_all:** the real fixes are upstream — run/keep pristine supercells per host and
+use them as E_bulk (never hpa × N across k-meshes), build mu0 per footing class, and emit the
+three gates' inputs. Until then these payload gates stand.
