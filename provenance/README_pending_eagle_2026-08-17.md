@@ -390,3 +390,23 @@ systematic audit is owed).
   extraction bug; every derived quantity (SLME, decomposition, epsilon) must come from our own
   pipeline on our own spectra/energies → GUARD LIVES IN build_payload's release block (recomputes
   SLME, prints the validation) and this log.
+
+## 2026-08-18 (later) — Defect Calculator tab = the Kosmos calculator, live and E2E-verified
+- Replaced the static nanoHUB link under the Defect Calculator tab with the full Kosmos in-site
+  calculator. The module was extracted VERBATIM from the kosmos bundle (the repo is now
+  defect-informatics/kosmos — the old wbg name and defect-informatics.github.io/wbg URL are dead;
+  the calc code sits unminified inside assets/index-*-r487.js, delimited by the
+  "/* WBG Defect Calculator" comment and its closing IIFE). Same headless HF Gradio backend
+  (Habibur1003266/wbg-defect-calculator), same form/progress/results/movie/phase-diagram UX.
+- Port details: telluride already shipped identical pages/structgrid + pages/traj viewer builds;
+  only pages/cvxhull (12 files, ~4.9 MB) was copied from kosmos. Two adaptations: the XANES button
+  hides when window.__wbgXanes is absent, and CALC_CSS gained `#wbg-calc-root .view{display:block}`
+  because telluride's tab CSS (`.view{display:none}`) collapsed the calculator's viewer panels —
+  the only integration bug found.
+- End-to-end verified on the LIVE site with a real compute (browser-driven): CdTe CIF upload →
+  4-panel structgrid preview → V_Te with CHGNet through the HF API → Ef −0.217 eV (Cd-rich) /
+  +1.023 eV (Te-rich), per-vertex mu-term breakdown with check lines, Cd-Te cvxhull phase diagram,
+  relaxed-structure viewer with defect-site highlight, 7-frame relaxation movie with dE/Fmax
+  convergence plot. Tab render + preview mount asserted 10/10 with 0 console errors; other tabs
+  unaffected. Commit 024265494 (site build 0aa1d335ac44). The MP key used for the test was the
+  user's own (from Anvil ~/.pmgrc.yaml), entered transiently in the form; not stored anywhere.
