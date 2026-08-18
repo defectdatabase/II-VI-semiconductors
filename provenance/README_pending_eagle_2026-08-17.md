@@ -261,3 +261,8 @@ the queried set — "CdSeTe", "Cd-Se-Te", "cd se te", "cdsete" all return the fu
 Compounds and Defect Explorers, while "CdTe" stays at its 22 substring rows (exact-set rule, no
 alloy flooding). Live 10/10: compounds 45/45, defects 1,136/1,136 (pbesol+hse_soc default
 checkboxes; 1,235 with all theories).
+
+### DFT status 2026-08-18 03:00
+- Defect statics 12/4,995 done (Vac_Ag full ladder + Vac_Ga +2/Neutral + Vac_Al ladder in flight), bulk HSE06 PDOS 5/1,897; 4 highmem jobs running, feeder loop alive on login02.
+- pdos_b slice 4 (Ag2Ba0.5Zn0.5Ge1Te4_stannite) hit the 4 h TIMEOUT → resubmitted with -t 12:00:00 (job 15335804); feeder now submits all pdos jobs with 12 h (ddos keeps 4 h — they finish in 15–45 min).
+- Website today: footing-aware bulk energetics (e13c38ab1a17), defect ladder gates + twin dedup (366cbc3c40e0 side), transition-level gate + antisite nparts, chemical-system search (dd10e7499915) — all live, each 10/10 browser-verified.
