@@ -965,6 +965,22 @@ for r in dd:
         ch = {}
         for cname, c in (v.get("charges") or {}).items():
             q = str(c["q"])
+            # Band-edge transition-level gate ("Vac_Ba in Cu1.5Ag0.5BaSnS4 is negative"): each added
+            # electron must cost at least ~E_VBM, so the average (0/q) level implied by the run,
+            # s = -(dE_q - dE_0)/q - E_VBM, must sit near or inside the gap. Vac_Ba's q=-2 run gives
+            # s = -1.39 eV (its (-1/-2) level 2.77 eV BELOW the VBM -- impossible), which published
+            # Ef@VBM = -1.24/-1.69 while passing the crude 15 eV gate. Allow -0.7 eV of band-edge/
+            # negative-U slack for acceptors, -1.5 for donors (shallow-donor levels sit below VBM
+            # legitimately); anything deeper is a charge-state run inconsistent with its own neutral.
+            if dE_neu is not None and c.get("dE") is not None and c.get("q") not in (0, None) \
+               and r.get("host_vbm") is not None and c.get("Ef_VBM") is not None:
+                _s = -(c["dE"] - dE_neu) / c["q"] - r["host_vbm"]
+                if (c["q"] < 0 and _s < -0.7) or (c["q"] > 0 and _s < -1.5):
+                    c = dict(c)
+                    c["Ef_VBM"] = None; c["Ef_CBM"] = None
+                    c["note"] = (f"the average (0/{q}) transition level implied by this run sits "
+                                 f"{-_s:.2f} eV below the VBM, which is impossible -- this charge state's "
+                                 f"run is not consistent with its own neutral; withheld")
             if dE_neu is not None and c.get("dE") is not None and c.get("q") != 0 \
                and abs(c["dE"] - dE_neu) > 15.0 and c.get("Ef_VBM") is not None:
                 c = dict(c)

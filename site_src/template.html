@@ -1277,9 +1277,19 @@ async function mountDefectStructure(r,trajKey){
   // No `highlight`: Kosmos derives the marked sites from bulkCif + nparts itself (anomaly-ranked
   // bulk comparison), which also catches the atom beside a vacancy. Passing highlight overrode that
   // and marked fewer sites than the reference - verified against the standalone viewer.
+  /* nparts is how many sites the viewer will highlight. counts.atoms+counts.vac double-counts a
+     substitution whenever the cell-vs-label check switched to cellCounts (+In and -Ag at the SAME
+     site -> 2), which is why In_Ag showed two black sites in the main window. r.dn is the
+     cell-derived truth: sites to show = atoms added + rings for the NET-missing atoms only. */
+  let npr=counts.atoms+counts.vac;
+  if(r.dn){
+    const addN=Object.values(r.dn).filter(x=>x>0).reduce((a,b)=>a+b,0);
+    const remN=-Object.values(r.dn).filter(x=>x<0).reduce((a,b)=>a+b,0);
+    npr=addN+Math.max(0,remN-Math.min(addN,remN));
+  }
   sgShow(el,{type:"struct",cif:structureCIF(st),bulkCif:bulk,
     highlight:(!bulk&&r.mk&&r.mk.length)?r.mk:undefined,
-    nparts:counts.atoms+counts.vac});
+    nparts:npr});
   note.innerHTML="";
 }
 document.getElementById("dsearch").addEventListener("input",dApplyFilters);
