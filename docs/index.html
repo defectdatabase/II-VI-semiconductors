@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="0b68c3031694";
+  var BUILD_ID="0aa1d335ac44";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -549,13 +549,12 @@ body{letter-spacing:-.006em}
 
 <!-- ================= TOOL ================= -->
 <div class="view" id="view-tool">
+  <div id="wbg-calc-root" style="padding:8px 4px 28px"></div>
   <p class="footnote" style="text-align:left;margin-left:0">
-    The <b>DefectDB simulation tool</b> runs live on nanoHUB: build any defect in any II–VI supercell,
-    relax it with our fine-tuned M3GNet force fields (ten models — one per charge state q = −2 … +2 at
-    PBE and HSE fidelity), compute formation energies, CI-NEB migration barriers, and finite-temperature MD.
-    MLFF results live in the tool; every number on this website is pure DFT.</p>
-  <p><a class="tab" style="display:inline-block;background:var(--wbg-accent);border-color:var(--wbg-accent);color:#fff"
-     href="https://nanohub.org/tools/defectdatabase">Launch the tool on nanoHUB →</a></p>
+    Prefer the nanoHUB route? The <b>DefectDB simulation tool</b> also runs live on nanoHUB
+    (fine-tuned M3GNet force fields, CI-NEB barriers, finite-temperature MD):
+    <a href="https://nanohub.org/tools/defectdatabase">launch it there</a>.
+    MLFF results live in the calculator and the tool; every number in this library is pure DFT.</p>
 </div>
 
 <!-- ================= METHODS ================= -->
@@ -3109,6 +3108,645 @@ async function boot(){
   cApplyFilters();
 }
 boot();
+</script>
+<script>
+/* Defect Calculator — same in-site UI as Kosmos (ported 2026-08-18).
+   Website-styled form in #wbg-calc-root; compute runs on the headless Hugging
+   Face Gradio API; the uploaded structure and each relaxed defect (+ relaxation
+   movie) are shown with the in-bundle matterviz Structure viewer (window.__MV). */
+(function () {
+  var HF = "https://habibur1003266-wbg-defect-calculator.hf.space";
+
+  // persist across re-injects (React can wipe & recreate #wbg-calc-root)
+  var LAST=null, UPCIF=null, SELROW=null, INFLIGHT=null, FORM=null;
+
+  var _plotlyP = null;
+  function ensurePlotly(){
+    if(window.Plotly) return Promise.resolve(window.Plotly);
+    if(_plotlyP) return _plotlyP;
+    _plotlyP = new Promise(function(resolve, reject){
+      var s=document.createElement("script");
+      s.src="https://cdn.plot.ly/plotly-2.35.2.min.js";
+      s.onload=function(){ resolve(window.Plotly); };
+      s.onerror=reject; document.head.appendChild(s);
+    });
+    return _plotlyP;
+  }
+
+  var CALC_CSS = [
+    "#wbg-calc-root{--g:#15803d;--gd:#146c2e;--gb:#eefaf0;--gr:#c3e6c9;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;font-size:15px;color:var(--ink);line-height:1.5}",
+    "#wbg-calc-root *{box-sizing:border-box}",
+    "#wbg-calc-root .cc{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:24px;align-items:start}",
+    "@media(max-width:860px){#wbg-calc-root .cc{grid-template-columns:1fr}}",
+    "#wbg-calc-root .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(16,24,40,.05),0 1px 2px rgba(16,24,40,.04)}",
+    "#wbg-calc-root h3{margin:0 0 4px;font-size:17px;font-weight:700;letter-spacing:-.01em}",
+    "#wbg-calc-root h3 .sm{font-weight:500;font-size:14.0px;color:var(--muted);display:block;margin-top:2px}",
+    "#wbg-calc-root label{display:block;font-size:14.0px;color:var(--muted);margin:14px 0 5px;font-weight:600;text-transform:none}",
+    "#wbg-calc-root input[type=text],#wbg-calc-root input[type=password],#wbg-calc-root select,#wbg-calc-root textarea,#wbg-calc-root input[type=file]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:14px;background:#fcfcfd;color:var(--ink);transition:border-color .15s,box-shadow .15s}",
+    "#wbg-calc-root input:focus,#wbg-calc-root select:focus,#wbg-calc-root textarea:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px var(--gb)}",
+    "#wbg-calc-root textarea{resize:vertical;min-height:54px}",
+    "#wbg-calc-root .hint{font-size:14.0px;color:var(--muted);margin-top:4px;line-height:1.45}",
+    "#wbg-calc-root .hint a{color:var(--gd);font-weight:600}",
+    "#wbg-calc-root .r2{display:grid;grid-template-columns:1fr 1fr;gap:12px}",
+    "#wbg-calc-root .checks{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:8px}",
+    "#wbg-calc-root .checks label{display:flex;align-items:center;gap:8px;margin:0;color:var(--ink);font-weight:500;font-size:14.0px;text-transform:none}",
+    "#wbg-calc-root .checks input,#wbg-calc-root .cbx{width:auto;accent-color:var(--g)}",
+    "#wbg-calc-root details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}",
+    "#wbg-calc-root summary{cursor:pointer;font-size:14.0px;color:var(--gd);font-weight:700}",
+    "#wbg-calc-root button.go{margin-top:18px;width:100%;background:linear-gradient(180deg,#1a9048,var(--g));color:#fff;border:0;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 1px 2px rgba(16,24,40,.15)}",
+    "#wbg-calc-root button.go:hover{background:var(--gd)}",
+    "#wbg-calc-root button.go:disabled{opacity:.55;cursor:not-allowed}",
+    "#wbg-calc-root button.reset{margin-top:8px;width:100%;background:#fff;color:var(--gd);border:1px solid #d0d5dd;border-radius:10px;padding:9px;font-size:14.0px;font-weight:600;cursor:pointer}",
+    "#wbg-calc-root button.reset:hover{background:#f3f6f4;border-color:var(--g)}",
+    "#wbg-calc-root .btn{background:#fff;border:1px solid var(--gr);color:var(--gd);border-radius:8px;padding:7px 13px;font-size:14.0px;font-weight:600;cursor:pointer}",
+    "#wbg-calc-root .btn:hover{background:var(--gb)}",
+    "#wbg-calc-root .eq{background:var(--gb);border:1px solid var(--gr);border-radius:10px;padding:10px 14px;font-size:14.0px;color:var(--gd);margin:0 0 18px;line-height:1.5}",
+    "#wbg-calc-root .desc{font-size:14.0px;color:var(--gd);min-height:16px;margin-bottom:8px}",
+    "#wbg-calc-root .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--gr);border-top-color:var(--g);border-radius:50%;animation:wbgspin .8s linear infinite;vertical-align:-2px;margin-right:6px}",
+    "@keyframes wbgspin{to{transform:rotate(360deg)}}",
+    "#wbg-calc-root .bar{height:9px;background:var(--gb);border:1px solid var(--gr);border-radius:6px;overflow:hidden;margin:2px 0 10px;display:none}",
+    "#wbg-calc-root .bar>span{display:block;height:100%;width:0;background:linear-gradient(90deg,#1a9048,var(--g));transition:width .3s ease}",
+    "#wbg-calc-root .sub{font-size:14.0px;font-weight:700;color:var(--ink);margin:18px 0 6px}",
+    "#wbg-calc-root .view{display:block;width:100%;height:420px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}",
+    "#wbg-calc-root :fullscreen{background:#ffffff !important}",
+    "#wbg-calc-root :-webkit-full-screen{background:#ffffff !important}",
+    "#wbg-calc-root :fullscreen canvas{background:#ffffff}",
+    "#wbg-calc-root .view pre{margin:0;padding:12px;font-size:14.0px;max-height:420px;overflow:auto}",
+    "#wbg-calc-root table{border-collapse:collapse;width:100%;font-size:14.0px;margin-top:6px}",
+    "#wbg-calc-root th,#wbg-calc-root td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums}",
+    "#wbg-calc-root th:first-child,#wbg-calc-root td:first-child{text-align:left}",
+    "#wbg-calc-root thead th{color:var(--muted);font-weight:700;border-bottom:2px solid var(--gr);font-size:14.0px}",
+    "#wbg-calc-root tbody tr{cursor:pointer;transition:background .1s}",
+    "#wbg-calc-root tbody tr:hover{background:#f6fbf7}",
+    "#wbg-calc-root tbody tr.sel{background:var(--gb);box-shadow:inset 3px 0 0 var(--g)}",
+    "#wbg-calc-root .tw{overflow-x:auto;margin-top:6px;border:1px solid var(--line);border-radius:10px}",
+    "#wbg-calc-root .pd img{max-width:100%;border:1px solid var(--line);border-radius:12px;background:#fff}",
+    "#wbg-calc-root .log{white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:14.0px;background:#f8faf9;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:220px;overflow:auto;color:#374151;margin-top:12px}",
+    "#wbg-calc-root .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}",
+    "#wbg-calc-root .muted{color:var(--muted)}"
+  ].join("\n");
+
+  var HTML =
+    '<div class="eq">E<sup>f</sup> = (E<sub>def</sub> &minus; E<sub>bulk</sub>) &minus; &Sigma;<sub>i</sub> &Delta;n<sub>i</sub> &mu;<sub>i</sub> &nbsp;— upload a CIF; only the stable competing phases are pulled from the Materials Project and <b>re-optimized with your chosen MLFF</b>, defects are generated and relaxed (best of unperturbed / 0.1 &Aring; perturbed). Runs on a Hugging Face backend.</div>' +
+    '<div class="cc">' +
+      '<div class="card">' +
+        '<h3>Input<span class="sm">Upload a crystal and compute defect formation energies</span></h3>' +
+        '<label>Crystal structure (CIF file)</label>' +
+        '<input type="file" id="c_file" accept=".cif">' +
+        '<div class="view" id="c_upview" style="height:300px;margin-top:8px"><pre class="muted">Upload a CIF to preview the structure here.</pre></div>' +
+        '<label>Your Materials Project API key <span class="muted">(required)</span></label>' +
+        '<input type="password" id="c_key" placeholder="paste your free MP API key">' +
+        '<div class="hint">Free at <a href="https://materialsproject.org/api" target="_blank" rel="noopener">materialsproject.org/api</a>. Used only to download competing phases; not stored.</div>' +
+        '<label>MLFF model</label><select id="c_model"><option value="CHGNet">CHGNet</option><option value="MACE-MPA-0">MACE-MPA-0</option></select>' +
+        '<label>Specific defects <span class="muted">(optional)</span></label>' +
+        '<textarea id="c_custom" placeholder="V_Na, Cl_i, Cl_i+O_i"></textarea>' +
+        '<div class="hint">V<sub>X</sub> (vacancy), X<sub>i</sub> (interstitial), A<sub>B</sub> (A on a B site). Join a complex with +.</div>' +
+        '<details><summary>Advanced settings &amp; auto-generation</summary>' +
+          '<div class="checks" style="margin-top:10px">' +
+            '<label><input type="checkbox" id="c_vac" checked> Vacancies</label>' +
+            '<label><input type="checkbox" id="c_anti" checked> Substitutions</label>' +
+            '<label><input type="checkbox" id="c_int" checked> Interstitials</label>' +
+            '<label><input type="checkbox" id="c_dop"> Dopants</label>' +
+          '</div>' +
+          '<label>Substitutional dopants (comma-sep)</label><input type="text" id="c_dopants" placeholder="Al, Mg">' +
+          '<label style="margin-top:12px"><input type="checkbox" id="c_env" class="cbx"> Sample all inequivalent sites (alloys)</label>' +
+          '<div class="r2" style="margin-top:10px">' +
+            '<div><label>Min lattice length (&Aring;)</label><input type="text" id="c_sc" value="12"></div>' +
+            '<div><label>Max sites / element</label><input type="text" id="c_mpe" value="8"></div>' +
+          '</div>' +
+          '<div class="hint">A larger min length builds a bigger, more accurate supercell. Very large cells (many hundreds of atoms) can be slow on the free CPU backend, but are allowed.</div>' +
+          '<div class="r2"><div><label>fmax (eV/&Aring;)</label><input type="text" id="c_fmax" value="0.1"></div>' +
+            '<div><label>Max relax steps</label><input type="text" id="c_steps" value="60"></div></div>' +
+          '<label>Competing-phase E<sub>hull</sub> cutoff (eV) — 0 = only stable</label><input type="text" id="c_eah" value="0.02">' +
+        '</details>' +
+        '<button type="button" class="go" id="c_go">Compute defect formation energies</button>' +
+        '<button type="button" class="reset" id="c_reset">&#8635; Reset &mdash; start a new calculation</button>' +
+        '<div id="c_pdwrap" style="display:none">' +
+          '<div class="sub">Phase diagram (MLFF)</div>' +
+          '<div class="pd" id="c_pd"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<h3>Results<span class="sm">Formation energy at each element-rich growth condition</span></h3>' +
+        '<div class="bar" id="c_bar"><span id="c_barfill"></span></div>' +
+        '<div class="desc" id="c_desc"><span class="muted">Fill in the form and run. First run downloads the MLFF model, so allow a few minutes.</span></div>' +
+        '<div id="c_table"></div>' +
+        '<div id="c_defwrap" style="display:none">' +
+          '<div class="sub" id="c_defname" style="display:none">Optimized structure</div>' +
+          '<div class="view" id="c_defview" style="display:none"></div>' +
+          '<div class="row" id="c_movrow" style="display:none">' +
+            '<button type="button" class="btn" id="c_play">▶ Play</button>' +
+            '<input type="range" id="c_frame" min="0" max="0" value="0" step="1" style="flex:0 0 240px;height:6px;cursor:pointer;accent-color:var(--wbg-accent,#0e7490)">' +
+            '<span id="c_fcount" class="muted" style="font-variant-numeric:tabular-nums;min-width:92px;text-align:right"></span>' +
+          '</div>' +
+          '<div class="sub" id="c_convtitle" style="display:none;margin-top:10px">Relaxation trajectory &amp; convergence — structure, energy and max force vs step</div>' +
+          '<iframe id="c_trajframe" src="./pages/traj/" title="Relaxation trajectory" style="display:none;width:100%;height:540px;border:1px solid #e5e7eb;border-radius:12px;background:#fff"></iframe>' +
+          '<div class="row">' +
+            '<button type="button" class="btn" id="c_xan">📈 XANES</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="log" id="c_log" style="display:none"></div>' +
+      '</div>' +
+    '</div>';
+
+  function esc(s){ return String(s||"").replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+  function sub(s){ return esc(s||"").replace(/([A-Za-z])_([A-Za-z0-9]+)/g,'$1<sub>$2</sub>'); }
+  function fsub(s){ return String(s||"").replace(/([A-Za-z\)])(\d+)/g, "$1<sub>$2</sub>"); }
+
+  function f4(v){ if(v===null||v===undefined||isNaN(v)) return "&mdash;"; var n=parseFloat(v); return (Math.abs(n)<1e-4&&n!==0)?n.toExponential(3):n.toFixed(3); }
+
+    function typeWrite(pane){
+      return;
+      if (!pane) return;
+      var it = document.createNodeIterator(pane, NodeFilter.SHOW_TEXT), nodes = [], nd;
+      while ((nd = it.nextNode())) if (nd.textContent.trim()) nodes.push([nd, nd.textContent]);
+      var total = nodes.reduce(function(a, p){ return a + p[1].length; }, 0);
+      if (!total) return;
+      var chunk = Math.max(2, Math.ceil(total / 240));           // match the Sigma calc pane: ~2 s, one cycle
+      nodes.forEach(function(p){ p[0].textContent = ""; });
+      var i = 0, j = 0;
+      var tick = setInterval(function(){
+        var left = chunk;
+        while (left > 0 && i < nodes.length){
+          var full = nodes[i][1], take = Math.min(left, full.length - j);
+          j += take; left -= take; nodes[i][0].textContent = full.slice(0, j);
+          if (j >= full.length){ i++; j = 0; }
+        }
+        if (i >= nodes.length) clearInterval(tick);
+      }, 8);
+    }
+  function num(v,d){ var n=parseFloat(v); return isNaN(n)?d:n; }
+  // format a log / progress line with real subscripts (defect names, E_f, formulas)
+  function fmtLog(s){
+    return esc(s)
+      .replace(/([A-Za-z])_([A-Za-z0-9]+)/g,'$1<sub>$2</sub>')   // Sn_Cu, Zn_i, E_bulk, mu_Ga
+      .replace(/\bEf\b/g,'E<sup>f</sup>')                          // Ef -> E^f (formation)
+      .replace(/([A-Za-z])(\d+)/g,'$1<sub>$2</sub>');             // formula digits ZnCu2SnS4
+  }
+  function fmtLogAll(arr){ return (arr||[]).map(fmtLog).join("\n"); }
+
+  function mvMount(el, cif, bulkCif, nparts, height){
+    if(!cif){ el.innerHTML='<pre class="muted">(no structure)</pre>'; return null; }
+    var h = height || 400;
+    var hi = [];
+    try{ if(bulkCif && window.__MV && window.__MV.defectSites){ hi = window.__MV.defectSites(cif, bulkCif, nparts||1)||[]; } }catch(e){}
+    var fr = el.querySelector('iframe[data-sg]');
+    var send = function(){ try{ fr.contentWindow.postMessage({type:"struct", cif:cif, bulkCif:bulkCif||undefined, nparts:nparts||1, highlight: hi.length?hi:undefined}, "*"); }catch(e){} };
+    if(fr && fr.__sgReady){ fr.style.height = h + "px"; send(); return fr.__sgInst; }
+    try{ mvClear(el); }catch(e){}
+    el.innerHTML = "";
+    fr = document.createElement("iframe");
+    fr.setAttribute("data-sg","1");
+    fr.src = window.__WBG_STRUCTGRID_URL || (window.__WBG_STRUCTGRID_URL = "pages/structgrid/?fresh=" + Date.now());
+    fr.style.cssText = "width:100%;height:"+h+"px;border:none;border-radius:10px;background:#fff";
+    fr.onload = function(){ fr.__sgReady = true; send(); };
+    el.appendChild(fr);
+    setTimeout(send, 900);
+    fr.__sgInst = { __sg: fr, $destroy: function(){ try{ fr.remove(); }catch(e){} } };
+    return fr.__sgInst;
+  }
+  function mvUnmount(inst){ try{ if(inst && window.__MV && window.__MV.unmount) window.__MV.unmount(inst); }catch(e){} }
+  // Eagerly free every WebGL context inside `el` before we reuse/clear it. matterviz's
+  // unmount leaves the <canvas> and its live GL context around; without this, the movie's
+  // remount-per-frame churn stacks contexts past the browser's ~16 ceiling and the browser
+  // evicts the OLDEST one (the uploaded-CIF viewer) — which then renders black + a sad face.
+  function mvClear(el){
+    if(!el) return;
+    try{ el.querySelectorAll("canvas").forEach(function(c){
+      var gl=c.getContext("webgl2")||c.getContext("webgl");
+      if(gl){ var ext=gl.getExtension("WEBGL_lose_context"); if(ext) ext.loseContext(); }
+    }); }catch(e){}
+    el.innerHTML="";
+  }
+
+  function renderTable(root, cols, rows, onPick){
+    var el = root.querySelector("#c_table");
+    if(!rows || !rows.length){ el.innerHTML='<p class="muted">No defects were produced.</p>'; return; }
+    cols = cols.filter(function(c){ return c!=="dn"; });
+    var nice={defect:"Defect",vertex:"Vertex",Ef_min:"E<sup>f</sup> min (eV)",Ef_max:"E<sup>f</sup> max (eV)"};
+    var h='<div class="hint" style="margin-top:4px">Click a defect to view its relaxed structure and relaxation movie.</div><div class="tw"><table><thead><tr>';
+    cols.forEach(function(c){ h+='<th>'+(nice[c]||(/-rich$/.test(c)?sub(c)+" (eV)":sub(c)))+'</th>'; });
+    h+='</tr></thead><tbody>';
+    rows.forEach(function(r,ri){ h+='<tr data-ri="'+ri+'">'; cols.forEach(function(c){ var v=r[c];
+      if(c==="defect") v=sub(v); else if(c==="vertex") v=fsub(String(v).split(/\s*[+\u2013\u2014-]\s*/).filter(Boolean).join(" + ")); else v=(v===null||v===undefined)?'&mdash;':v; h+='<td>'+v+'</td>'; }); h+='</tr>'; });
+    h+='</tbody></table></div>'; el.innerHTML=h;
+    el.querySelectorAll("tbody tr").forEach(function(tr){
+      tr.addEventListener("click", function(){
+        el.querySelectorAll("tbody tr").forEach(function(x){ x.classList.remove("sel"); });
+        tr.classList.add("sel"); onPick(rows[parseInt(tr.getAttribute("data-ri"),10)]);
+      });
+    });
+  }
+
+  async function readSSE(url, onEvt){
+    // Reconnect on transient drops (tab backgrounding, proxy/idle timeouts): the
+    // Gradio job keeps running server-side under its event_id, so we re-open the
+    // stream and keep waiting for the final "complete" event rather than failing.
+    var attempts=0, MAXTRIES=40;
+    while(attempts<MAXTRIES){
+      attempts++;
+      try{
+        var resp = await fetch(url);
+        if(!resp.ok || !resp.body){ throw new Error("http "+(resp&&resp.status)); }
+        var reader = resp.body.getReader(), dec = new TextDecoder(), buf="", ev="";
+        while(true){
+          var ch = await reader.read(); if(ch.done) break;
+          buf += dec.decode(ch.value,{stream:true});
+          var lines = buf.split("\n"); buf = lines.pop();
+          for(var i=0;i<lines.length;i++){ var ln=lines[i];
+            if(ln.indexOf("event:")===0) ev=ln.slice(6).trim();
+            else if(ln.indexOf("data:")===0){ var p=ln.slice(5).trim();
+              if(ev==="complete"){ return JSON.parse(JSON.parse(p)[0]); }
+              if(ev==="error"){ throw new Error("backend error"); }
+              if(onEvt) onEvt(ev,p);
+            }
+          }
+        }
+        // stream ended without "complete" -> job may still be running; reconnect
+      }catch(e){
+        if(e && e.message==="backend error") throw e;   // genuine backend failure: don't retry
+        // network drop / timeout -> pause, then reconnect to the same event_id
+      }
+      await new Promise(function(r){ setTimeout(r, 3000); });
+    }
+    throw new Error("lost connection to the compute job after repeated reconnect attempts");
+  }
+
+  function wire(root){
+    var q=function(id){ return root.querySelector("#"+id); };
+    var FORM_TXT=["c_key","c_model","c_sc","c_fmax","c_steps","c_eah","c_dopants","c_custom","c_mpe"];
+    var FORM_CHK=["c_vac","c_anti","c_int","c_dop","c_env"];
+    function saveForm(){
+      var f={}; FORM_TXT.forEach(function(id){ var el=q(id); if(el) f[id]=el.value; });
+      FORM_CHK.forEach(function(id){ var el=q(id); if(el) f[id]=el.checked; });
+      FORM=f;
+    }
+    function restoreForm(){
+      if(!FORM) return;
+      FORM_TXT.forEach(function(id){ var el=q(id); if(el && FORM[id]!=null) el.value=FORM[id]; });
+      FORM_CHK.forEach(function(id){ var el=q(id); if(el && FORM[id]!=null) el.checked=FORM[id]; });
+    }
+    FORM_TXT.concat(FORM_CHK).forEach(function(id){ var el=q(id); if(el) el.addEventListener("input", saveForm); });
+    var uploadedCif=null, upInst=null, defInst=null, playTimer=null;
+    var lastResult=null, currentRow=null, frames=[], fi=0;
+
+    // the embedded convex-hull viewer posts "cvxhull_ready" when loaded -> send data
+    window.addEventListener("message", function(e){
+      if(e.data && e.data.type==="cvxhull_ready" && lastResult && lastResult.pd_entries){
+        var f=q("c_pdframe");
+        if(f){ try{ f.contentWindow.postMessage({type:"pd_entries", entries:lastResult.pd_entries}, "*"); }catch(_){} }
+      }
+      if(e.data && e.data.type==="traj_ready"){ sendTraj(); }   // trajectory iframe loaded -> (re)send frames
+    });
+
+    function busy(on){ q("c_go").disabled=on; q("c_go").textContent=on?"Computing…":"Compute defect formation energies"; }
+    function desc(html){ q("c_desc").innerHTML=html; }
+
+    function renderPD(res){
+      var el=q("c_pd");
+      // primary: interactive matterviz ConvexHull viewer (hosted at ./cvxhull/),
+      // fed the phase entries via postMessage
+      if(res.pd_entries && res.pd_entries.length){
+        el.style.height="auto";
+        el.innerHTML='<iframe id="c_pdframe" src="./pages/cvxhull/" title="Convex hull" style="width:100%;height:560px;border:1px solid #e5e7eb;border-radius:12px;background:#fff"></iframe>';
+        var f=q("c_pdframe");
+        var send=function(){ try{ f.contentWindow.postMessage({type:"pd_entries", entries:res.pd_entries}, "*"); }catch(e){} };
+        f.addEventListener("load", function(){ setTimeout(send, 250); });
+        return;
+      }
+      // fallback: pymatgen Plotly figure, then the PNG
+      if(res.pd_plotly_json){
+        el.innerHTML='<div class="muted" style="font-size:14.0px;padding:8px">Loading phase diagram…</div>';
+        ensurePlotly().then(function(P){
+          var fig=JSON.parse(res.pd_plotly_json);
+          var lay=fig.layout||{}; delete lay.width; delete lay.height; lay.autosize=true;
+          lay.margin={l:36,r:16,t:36,b:36}; lay.paper_bgcolor="#fff"; lay.plot_bgcolor="#fff";
+          el.innerHTML=""; el.style.height="480px";
+          P.newPlot(el, fig.data||[], lay, {responsive:true, displaylogo:false});
+        }).catch(function(){ el.innerHTML = res.plot_b64 ? '<img alt="phase diagram" src="'+res.plot_b64+'">' : '<div class="muted">Phase diagram unavailable.</div>'; });
+      } else if(res.plot_b64){ el.innerHTML='<img alt="phase diagram" src="'+res.plot_b64+'">'; }
+    }
+
+    q("c_file").addEventListener("change", function(){
+      var f=q("c_file").files[0]; if(!f) return;
+      var fr=new FileReader();
+      fr.onload=function(){ uploadedCif=fr.result; UPCIF=fr.result; mvUnmount(upInst); upInst=mvMount(q("c_upview"), uploadedCif, null, 1, 300); };
+      fr.readAsText(f);
+    });
+
+    function stopMovie(){ if(playTimer){ clearInterval(playTimer); playTimer=null; } q("c_play").textContent="▶ Play"; }
+
+    function fcount(tag){ q("c_fcount").textContent = "frame "+(fi+1)+" / "+frames.length+(tag||""); }
+
+    // ---- per-defect matterviz Trajectory viewer (structure evolution + energy/max-force
+    //      convergence plots, synced) hosted standalone at ./traj/ and fed via postMessage ----
+    var pendingTraj=null, pendingMeta=null;
+    function sendTraj(){
+      var f=q("c_trajframe");
+      if(!f || !pendingTraj) return;
+      try{ f.contentWindow.postMessage({type:"traj_frames", frames:pendingTraj, dsite:(pendingMeta&&pendingMeta.dsite)||null, name:(pendingMeta&&pendingMeta.name)||null}, "*"); }catch(e){}
+    }
+    function renderTraj(r){
+      var title=q("c_convtitle"), fr=q("c_trajframe");
+      pendingMeta = r ? {dsite: r.dsite||null, name: r.defect||null} : null;
+      pendingTraj = (r && r.traj && r.traj.length)
+        ? r.traj.map(function(cif,i){ var m=(r.fmeta||[])[i];
+            return {cif:cif, energy:(m?m[0]:null), fmax:(m?m[1]:null)}; })
+        : null;
+      if(!pendingTraj){ if(title) title.style.display="none"; if(fr) fr.style.display="none"; return; }
+      if(title) title.style.display="block"; if(fr) fr.style.display="block";
+      sendTraj();   // send now; also re-sent when the iframe posts traj_ready
+    }
+
+    function showFrame(i){
+      if(!frames.length) return;
+      fi = ((i % frames.length) + frames.length) % frames.length;
+      mvUnmount(defInst);
+      var bulk = lastResult && lastResult.bulk_cif;   // always highlight defect site
+      var np = currentRow ? String(currentRow.defect).split("+").length : 1;
+      defInst = mvMount(q("c_defview"), frames[fi], bulk, np, 420);
+      q("c_frame").value = fi;
+      fcount(fi===frames.length-1 ? " (relaxed)" : "");
+    }
+
+    function selectDefect(r){
+      stopMovie(); currentRow=r; SELROW=r;
+      try{ if(q("c_bar")) q("c_bar").style.display="none"; }catch(_){}
+      try{ if(q("c_desc")) q("c_desc").style.display="none"; }catch(_){}
+      q("c_defwrap").style.display="block";
+
+      frames = (r.traj && r.traj.length>1) ? r.traj.slice() : [r.cif].filter(Boolean);
+      var hasMovie = frames.length > 0;
+
+      // Single 3D Viewer: If trajectory iframe has movie, use it; otherwise use top 3D viewer
+      if (hasMovie) {
+        q("c_defname").style.display = "none";
+        q("c_defview").style.display = "none";
+        q("c_movrow").style.display = "none";
+      } else {
+        q("c_defname").style.display = "block";
+        q("c_defview").style.display = "block";
+        q("c_movrow").style.display = "none";
+        q("c_defname").innerHTML = "Optimized structure — " + sub(r.defect);
+        mvUnmount(defInst);
+        try{ defInst = mvMount(q("c_defview"), r.cif || frames[fi], lastResult&&lastResult.bulk_cif, String(r.defect).split("+").length, 420); }catch(e){ defInst=null; }
+      }
+
+      // BUILD DEFECT EXPLORER STYLE TYPEWRITER BREAKDOWN CARD (c_definfo)
+      var infoEl = q("c_definfo");
+      if(!infoEl){
+        infoEl = document.createElement("div");
+        infoEl.id = "c_definfo";
+        infoEl.style.cssText = "font-family:var(--wbg-font,sans-serif);font-size:13.5px;padding:14px 18px;margin:12px 0;background:var(--wbg-surface,#f7f8fa);border:1px solid var(--wbg-border,#d4d8e0);border-radius:10px;line-height:1.55;color:var(--wbg-ink,#1a1e2e)";
+        q("c_defwrap").insertBefore(infoEl, q("c_defname"));
+      }
+      infoEl.style.display = "block";
+      var modelName = (q("c_model") && q("c_model").value) || "MACE_MPA0";
+      var defTitle = sub(r.defect || "Defect");
+      
+      function renderBreakdownHTML(eDefVal, eBulkVal, customD){
+        var html = '<div style="font-weight:700;font-size:14px;color:var(--wbg-accent,#0e7490);margin-bottom:4px">Σ calculation breakdown &mdash; ' + defTitle + ' (' + esc(modelName) + ')</div>';
+        html += '<div style="font-size:13px;font-weight:600;color:var(--wbg-ink,#1a1e2e);margin-bottom:2px">' + defTitle + ' &mdash; every number below is read from the calculation record, not recomputed</div>';
+        html += '<div style="font-size:12px;color:var(--wbg-muted,#6b7280);margin-bottom:8px">E<sub>f</sub> = E<sub>defect</sub> &minus; E<sub>bulk</sub> + &Sigma;(&minus;n<sub>i</sub>&mu;<sub>i</sub>) &nbsp;(neutral supercells, this model&rsquo;s OWN energies and chemical potentials)</div>';
+
+        if (customD) {
+          Object.keys(customD).forEach(function(k){
+            var C = customD[k];
+            html += '<div style="margin:10px 0 2px;padding-top:8px;border-top:1px solid var(--wbg-border,#d4d8e0)">'
+                 + '<b style="color:var(--wbg-ink,#1a1e2e)">' + sub(k) + ' vertex</b>'
+                 + (C.vertex ? ' <span style="color:var(--wbg-muted,#6b7280)">(bounding phases: ' + fsub(C.vertex.split(/\s*[+\u2013\u2014-]\s*/).filter(Boolean).join(" + ")) + ')</span>' : '')
+                 + '</div>';
+            html += '<div style="margin:4px 0"><table style="display:table;width:auto;border-collapse:collapse;white-space:nowrap;font-size:13px">';
+            [["E<sub>defect</sub> (eV)", f4(C.E_def_eV)], ["E<sub>bulk</sub> (eV)", f4(C.E_bulk_eV)], ["&Sigma;(&minus;n&mu;) (eV)", f4(C.mu_term_eV)], ["E<sub>f</sub> (eV)", "<b>" + f4(C.Ef_eV) + "</b>"]].forEach(function(rw){
+              html += '<tr><td style="padding:2px 20px 2px 0;color:var(--wbg-muted,#6b7280)">' + rw[0] + '</td><td style="padding:2px 0;text-align:right;font-family:monospace;font-weight:600">' + rw[1] + '</td></tr>';
+            });
+            html += '</table></div>';
+            var mus = String(C.mu_terms||"").split("|").filter(Boolean).map(function(t){ var p=t.split(":"); var nx=(p[1]||"").split("x"); return sub(p[0])+": n = "+nx[0]+", &mu; = "+nx[1]+" eV"; });
+            if (mus.length) html += '<div style="margin:2px 0;font-size:12.5px">&mu; terms: ' + mus.join(" &nbsp;&middot;&nbsp; ") + '</div>';
+            if (C.limiting) html += '<div style="color:var(--wbg-muted,#6b7280);font-size:12.5px">limiting phase: ' + fsub(C.limiting) + '</div>';
+            html += '<div style="color:var(--wbg-muted,#6b7280);font-size:12px;margin-top:2px">check: ' + f4(C.E_def_eV) + ' &minus; (' + f4(C.E_bulk_eV) + ') + ' + f4(C.mu_term_eV) + ' = ' + f4(C.E_def_eV - C.E_bulk_eV + C.mu_term_eV) + ' eV</div>';
+          });
+        } else {
+          var renderedBlocks = 0;
+          if (lastResult && lastResult.columns) {
+            lastResult.columns.forEach(function(col){
+              if (col !== "defect" && col !== "vertex" && col !== "Ef_min" && col !== "Ef_max" && col !== "dn" && r[col] !== undefined && r[col] !== null) {
+                var efVal = parseFloat(r[col]);
+                var vtx = (lastResult.vertex_of && lastResult.vertex_of[col]) ? String(lastResult.vertex_of[col]) : (r.vertex ? String(r.vertex) : "");
+                
+                html += '<div style="margin:10px 0 4px;padding-top:8px;border-top:1px solid var(--wbg-border,#d4d8e0)">'
+                     + '<b style="color:var(--wbg-ink,#1a1e2e)">' + sub(col) + ' vertex</b>'
+                     + (vtx ? ' <span style="color:var(--wbg-muted,#6b7280)">(bounding phases: ' + fsub(vtx.split(/\s*[+\u2013\u2014-]\s*/).filter(Boolean).join(" + ")) + ')</span>' : '')
+                     + '</div>';
+                
+                html += '<div style="margin:4px 0"><table style="display:table;width:auto;border-collapse:collapse;white-space:nowrap;font-size:13px">';
+                
+                if (eDefVal !== null && eDefVal !== undefined) {
+                  html += '<tr><td style="padding:2px 20px 2px 0;color:var(--wbg-muted,#6b7280)">E<sub>defect</sub> (eV)</td><td style="padding:2px 0;text-align:right;font-family:monospace;font-weight:600">' + f4(eDefVal) + '</td></tr>';
+                }
+                if (eBulkVal !== null && eBulkVal !== undefined) {
+                  html += '<tr><td style="padding:2px 20px 2px 0;color:var(--wbg-muted,#6b7280)">E<sub>bulk</sub> (eV)</td><td style="padding:2px 0;text-align:right;font-family:monospace;font-weight:600">' + f4(eBulkVal) + '</td></tr>';
+                }
+                
+                if (eDefVal !== null && eDefVal !== undefined && eBulkVal !== null && eBulkVal !== undefined && !isNaN(efVal)) {
+                  var muTerm = efVal - (parseFloat(eDefVal) - parseFloat(eBulkVal));
+                  html += '<tr><td style="padding:2px 20px 2px 0;color:var(--wbg-muted,#6b7280)">&Sigma;(&minus;n&mu;) (eV)</td><td style="padding:2px 0;text-align:right;font-family:monospace;font-weight:600">' + f4(muTerm) + '</td></tr>';
+                  html += '<tr><td style="padding:2px 20px 2px 0;color:var(--wbg-muted,#6b7280);font-weight:700">E<sub>f</sub> (eV)</td><td style="padding:2px 0;text-align:right;font-family:monospace;font-weight:700;color:var(--wbg-accent,#0e7490)">' + f4(efVal) + '</td></tr>';
+                  html += '</table></div>';
+                  html += '<div style="color:var(--wbg-muted,#6b7280);font-size:12px;margin-top:4px">check: ' + f4(eDefVal) + ' &minus; (' + f4(eBulkVal) + ') + ' + f4(muTerm) + ' = ' + f4(efVal) + ' eV</div>';
+                  var _mt = r.mu_terms || r.mu || (lastResult && lastResult.mu_terms) || "";
+                  var _ms = String(_mt).split("|").filter(Boolean).map(function(t){ var p=t.split(":"); var nx=(p[1]||"").split("x"); return sub(p[0])+": n = "+nx[0]+", &mu; = "+nx[1]+" eV"; });
+                  if (_ms.length) html += '<div style="margin:2px 0;font-size:12.5px">&mu; terms: ' + _ms.join(" &nbsp;&middot;&nbsp; ") + '</div>';
+                  var _lim = r.limiting || r.limiting_phase || (lastResult && lastResult.limiting) || "";
+                  if (_lim) html += '<div style="color:var(--wbg-muted,#6b7280);font-size:12.5px">limiting phase: ' + fsub(_lim) + '</div>';
+                } else {
+                  html += '<tr><td style="padding:2px 20px 2px 0;color:var(--wbg-muted,#6b7280);font-weight:700">E<sub>f</sub> (eV)</td><td style="padding:2px 0;text-align:right;font-family:monospace;font-weight:700;color:var(--wbg-accent,#0e7490)">' + f4(efVal) + '</td></tr>';
+                  html += '</table></div>';
+                }
+                
+                renderedBlocks++;
+              }
+            });
+          }
+
+          if (!renderedBlocks && r.Ef_min !== undefined) {
+            html += '<div style="margin-top:6px;font-size:13px"><b>E<sub>f</sub> min:</b> ' + r.Ef_min + ' eV &nbsp;&middot;&nbsp; <b>E<sub>f</sub> max:</b> ' + r.Ef_max + ' eV</div>';
+          }
+        }
+
+        infoEl.innerHTML = html;
+        typeWrite(infoEl);
+      }
+
+      // Initial fast render
+      var initialEDef = (r.E_def !== undefined) ? r.E_def : ((r.E_defect !== undefined) ? r.E_defect : ((lastResult && lastResult.E_def !== undefined) ? lastResult.E_def : null));
+      var initialEBulk = (r.E_bulk !== undefined) ? r.E_bulk : ((lastResult && lastResult.E_bulk !== undefined) ? lastResult.E_bulk : null);
+      var _bd = (r && r.breakdown && Object.keys(r.breakdown).length) ? r.breakdown : null;
+      renderBreakdownHTML(initialEDef, initialEBulk, _bd);
+
+      // Async enrichment: Smart lookup across all hosts in A.hosts!
+      try {
+        if (typeof data === "function") {
+          data().then(function(A){
+            if (!A || !A.hosts) return;
+            var keys = Object.keys(A.hosts);
+            for (var i = 0; i < keys.length; i++) {
+              var H = A.hosts[keys[i]];
+              if (!H || !H.mlff) continue;
+              var mKey = modelName.replace("-", "_");
+              var M = H.mlff[mKey] || H.mlff[modelName] || H.mlff["MACE_MPA0"];
+              if (!M) continue;
+              var D = M[r.defect];
+              if (D) {
+                renderBreakdownHTML(null, null, D);
+                break;
+              }
+            }
+          }).catch(function(_){});
+        }
+      } catch(_) {}
+
+      renderTraj(r);
+    }
+
+    q("c_frame").addEventListener("input", function(){ stopMovie(); showFrame(parseInt(q("c_frame").value,10)||0); });
+
+    q("c_play").addEventListener("click", function(){
+      if(playTimer){ stopMovie(); return; }
+      if(frames.length<2) return;
+      q("c_play").textContent="⏸ Pause";
+      showFrame(0);                         // replay from the start
+      playTimer=setInterval(function(){
+        if(fi >= frames.length-1){ stopMovie(); return; }  // stop at the relaxed frame
+        showFrame(fi+1);
+      }, 550);
+    });
+
+    if(!window.__wbgXanes) q("c_xan").style.display="none";
+    q("c_xan").addEventListener("click", function(){ if(currentRow && currentRow.cif && lastResult && lastResult.bulk_cif && window.__wbgXanes) window.__wbgXanes.open(String(currentRow.defect), lastResult.bulk_cif, currentRow.cif); });
+
+    function onEvt(ev,p){
+      if(ev!=="generating") return;
+      try{ var msg=JSON.parse(JSON.parse(p)[0]); var pct=Math.max(0,Math.min(100,Math.round((msg.progress||0)*100)));
+        if(INFLIGHT){ INFLIGHT.pct=pct; INFLIGHT.desc=msg.desc||"Computing"; INFLIGHT.log=msg.log; }
+        q("c_bar").style.display="block"; q("c_barfill").style.width=pct+"%";
+        desc('<span class="spin"></span>'+fmtLog(msg.desc||"Computing")+' — '+pct+'%');
+        if(msg.log && msg.log.length){ q("c_log").style.display="block"; q("c_log").innerHTML=fmtLogAll(msg.log); q("c_log").scrollTop=q("c_log").scrollHeight; }
+      }catch(e){}
+    }
+
+    function attachToInflight(job){
+      busy(true);
+      q("c_table").innerHTML=""; q("c_pd").innerHTML=""; q("c_pdwrap").style.display="none";
+      q("c_defwrap").style.display="none"; q("c_log").style.display="none"; q("c_log").textContent="";
+      q("c_bar").style.display="block"; q("c_barfill").style.width=(job.pct||0)+"%";
+      desc('<span class="spin"></span>'+fmtLog(job.desc||"Submitting to the compute backend…")+' — keeps running in the background if you switch tabs; come back here to see the result.');
+      if(job.log && job.log.length){ q("c_log").style.display="block"; q("c_log").innerHTML=fmtLogAll(job.log); }
+      job.p.then(function(res){
+        if(INFLIGHT===job) INFLIGHT=null;
+        lastResult=res; LAST=res;
+        try{ q("c_barfill").style.width="100%"; }catch(_){}
+        renderTable(root, res.columns, res.rows, selectDefect);
+        if((res.pd_entries&&res.pd_entries.length) || res.pd_plotly_json || res.plot_b64){ q("c_pdwrap").style.display="block"; renderPD(res); }
+        if(res.log && res.log.length){ q("c_log").style.display="block"; q("c_log").innerHTML=fmtLogAll(res.log); }
+        if(res.rows && res.rows.length){ selectDefect(res.rows[0]); var tr0=root.querySelector("#c_table tbody tr"); if(tr0) tr0.classList.add("sel"); }
+        desc(res.ok ? "Done — click a defect row to inspect its relaxed structure." : '<span style="color:#b91c1c">'+fmtLog(res.error || "Finished with an issue — see log below.")+'</span>');
+        busy(false);
+      }, function(e){
+        if(INFLIGHT===job) INFLIGHT=null;
+        desc('<span style="color:#b91c1c">Request failed: '+esc(String(e))+'</span>');
+        busy(false);
+      });
+    }
+
+    async function run(cif){
+      if(INFLIGHT){ attachToInflight(INFLIGHT); return; }
+      stopMovie(); mvUnmount(defInst); defInst=null;
+      var data=[ cif||"", q("c_model").value, q("c_key").value,
+        num(q("c_sc").value,12), num(q("c_fmax").value,0.1), num(q("c_steps").value,60),
+        num(q("c_eah").value,0.02), q("c_dopants").value,
+        q("c_vac").checked, q("c_anti").checked, q("c_int").checked, q("c_dop").checked,
+        q("c_custom").value, q("c_env").checked, num(q("c_mpe").value,8) ];
+      var job={ desc:"Submitting to the compute backend…" };
+      job.p=(async function(){
+        var r=await fetch(HF+"/gradio_api/call/compute",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data:data})});
+        var j=await r.json();
+        if(!j.event_id) throw new Error("Could not start the job.");
+        return await readSSE(HF+"/gradio_api/call/compute/"+j.event_id, onEvt);
+      })();
+      INFLIGHT=job;
+      attachToInflight(job);
+    }
+
+    q("c_go").addEventListener("click", function(){
+      if(!uploadedCif){ desc('<span style="color:#b91c1c">Please upload a CIF file first.</span>'); return; }
+      run(uploadedCif);
+    });
+
+    // Reset: tear down every matterviz viewer (freeing its WebGL context), clear the
+    // uploaded structure + all results, and wipe the persisted cross-reinject state so the
+    // user gets a genuinely fresh calculator. The MP API key is kept for convenience.
+    function resetAll(){
+      stopMovie();
+      mvUnmount(upInst); mvUnmount(defInst); upInst=null; defInst=null;
+      mvClear(q("c_upview")); mvClear(q("c_defview"));
+      uploadedCif=null; lastResult=null; currentRow=null; frames=[]; fi=0;
+      UPCIF=null; LAST=null; SELROW=null; INFLIGHT=null; FORM=null;
+      try{ q("c_file").value=""; }catch(_){}
+      q("c_custom").value=""; q("c_dopants").value="";
+      q("c_upview").innerHTML='<pre class="muted">Upload a CIF to preview the structure here.</pre>';
+      q("c_table").innerHTML="";
+      q("c_pd").innerHTML=""; q("c_pdwrap").style.display="none";
+      q("c_defwrap").style.display="none";
+      q("c_log").style.display="none"; q("c_log").innerHTML="";
+      q("c_bar").style.display="none"; q("c_barfill").style.width="0%";
+      busy(false);
+      desc('<span class="muted">Fill in the form and run. First run downloads the MLFF model, so allow a few minutes.</span>');
+    }
+    q("c_reset").addEventListener("click", resetAll);
+
+    // restore prior structure + results after a re-inject (React wipes the tab)
+    if(UPCIF){ uploadedCif=UPCIF; mvUnmount(upInst); upInst=mvMount(q("c_upview"), UPCIF, null, 1, 300); }
+    restoreForm();
+    if(INFLIGHT){
+      attachToInflight(INFLIGHT);
+    } else if(LAST){
+      lastResult=LAST;
+      renderTable(root, LAST.columns, LAST.rows, selectDefect);
+      if((LAST.pd_entries&&LAST.pd_entries.length) || LAST.pd_plotly_json || LAST.plot_b64){ q("c_pdwrap").style.display="block"; renderPD(LAST); }
+      if(LAST.log && LAST.log.length){ q("c_log").style.display="block"; q("c_log").innerHTML=fmtLogAll(LAST.log); }
+      if(LAST.rows && LAST.rows.length){ selectDefect(SELROW || LAST.rows[0]); }
+      desc("Done — click a defect row to inspect its relaxed structure.");
+    }
+  }
+
+  // Stylesheet goes in <head> once. CALC_CSS is already a newline-joined STRING
+  // (defined as [...].join("\n")), so assign it directly — do NOT call .join on it.
+  // Keeping CSS in <head> means a React re-render of #wbg-calc-root can't strip the
+  // styling (the cause of the intermittent "unstyled, needs a refresh" render).
+  function ensureCSS(){
+    if(document.getElementById("wbg-calc-css")) return;
+    var st=document.createElement("style"); st.id="wbg-calc-css";
+    st.textContent=(CALC_CSS.join?CALC_CSS.join("\n"):CALC_CSS);
+    document.head.appendChild(st);
+  }
+  function cleanOrphans(){var root=document.getElementById("wbg-calc-root");var s=document.querySelectorAll("#wbg-calc-shell");for(var i=0;i<s.length;i++){if(s[i].parentElement!==root){try{s[i].remove();}catch(e){}}}}
+  function inject(){
+    cleanOrphans();
+    ensureCSS();
+    var root=document.getElementById("wbg-calc-root");
+    if(!root) return;
+    if(root.querySelector("#wbg-calc-shell")) return;
+    var shell=document.createElement("div");
+    shell.id="wbg-calc-shell";
+    shell.innerHTML=HTML;
+    root.appendChild(shell);
+    wire(shell);
+  }
+  inject();
+  new MutationObserver(inject).observe(document.documentElement, {childList:true, subtree:true});
+})();
+
 </script>
 </body>
 </html>
