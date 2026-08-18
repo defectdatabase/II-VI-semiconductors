@@ -1,0 +1,74 @@
+{
+ "pbesol_SnTe2": {
+  "kmesh": "7x7x4",
+  "paws": [
+   "Sn_d",
+   "Te"
+  ],
+  "natoms": 3
+ },
+ "pbesol_GeTe2": {
+  "kmesh": "3x3x2",
+  "paws": [
+   "Ge_d",
+   "Te"
+  ],
+  "natoms": 12
+ },
+ "hse_SnTe2": {
+  "kmesh": "6x6x4",
+  "paws": [
+   "Sn_d",
+   "Te"
+  ],
+  "natoms": 3
+ },
+ "hse_GeTe2": {
+  "kmesh": "3x3x2",
+  "paws": [
+   "Ge_d",
+   "Te"
+  ],
+  "natoms": 48
+ },
+ "soc_Cu2S": {
+  "kmesh": "2x2x2",
+  "paws": [
+   "Cu",
+   "S"
+  ],
+  "natoms": 144
+ },
+ "soc_Cu2Se": {
+  "kmesh": "2x2x2",
+  "paws": [
+   "Cu",
+   "Se"
+  ],
+  "natoms": 144
+ },
+ "pbe_ZnS": {
+  "kmesh": "5x5x1",
+  "paws": [
+   "Zn",
+   "S"
+  ],
+  "natoms": 28
+ },
+ "pbe_CdS": {
+  "kmesh": "7x7x4",
+  "paws": [
+   "Cd",
+   "S"
+  ],
+  "natoms": 4
+ },
+ "pbe_In2S3": {
+  "kmesh": "2x2x1",
+  "paws": [
+   "In_d",
+   "S"
+  ],
+  "natoms": 80
+ }
+}

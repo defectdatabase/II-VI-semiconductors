@@ -362,8 +362,8 @@ for (_th, _cn), _lst in steps.items():
         _v = _d.get("variant") or ""
         if _v in _seen: continue
         _seen.add(_v)
-        _m = re.match(r"(\d+)_atoms", _v)
-        _nat = int(_m.group(1)) if _m else None
+        _vm = re.match(r"(\d+)_atoms", _v)   # NOT _m -- that is the module's math alias, and
+        _nat = int(_vm.group(1)) if _vm else None   # shadowing it silently killed every SLME call
         _cls, _enc = foot_of(_d.get("incar"))
         _Es = [s.get("E") for s in (_d.get("steps") or []) if s.get("E") is not None]
         _out.append({"F": _d["F"], "nat": _nat, "fpa": (_d["F"] / _nat if _nat else None),
@@ -479,10 +479,19 @@ def _classify_row(theory, r):
 import numpy as _np
 _KBT298 = 8.617333e-5 * 298.15
 
+VALID_ELS = set(("H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn "
+                 "Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce "
+                 "Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Ac Th Pa U Pu").split())
 def _tokens(name):
-    base = re.sub(r"_(kesterite|stannite|reference|zincblende|wurtzite|rocksalt|chalcopyrite)$", "",
-                  re.sub(r"-\d+$", "", name))
-    return [(e, float(n) if n else 1.0) for e, n in re.findall(r"([A-Z][a-z]?)([0-9.]*)", base)]
+    # "-SQS" (special quasirandom structure) is a structure tag, not chemistry: left in place it
+    # tokenised as S+Q+S and a phantom element "Q" entered the decomposition LP at dH = 0 and
+    # blocked the row's formation energy on a missing "Q" reference
+    base = re.sub(r"(-SQS|_supercell)$", "",
+           re.sub(r"_(kesterite|stannite|reference|zincblende|wurtzite|rocksalt|chalcopyrite)$", "",
+                  re.sub(r"-\d+$", "", name)))
+    base = re.sub(r"(-SQS|_supercell)$", "", base)
+    toks = [(e, float(n) if n else 1.0) for e, n in re.findall(r"([A-Z][a-z]?)([0-9.]*)", base)]
+    return [(e, n) for e, n in toks if e in VALID_ELS]
 
 def _mix_entropy(name):
     toks = _tokens(name); terms = []; i = 0
@@ -591,6 +600,55 @@ def _simplex_lp(cvec, A, b):
     if x[n:].max(initial=0.0) > 1e-7: return None
     return x[:n]
 
+# ---- the ChalcoDB / paper convention (EES Solar d6el00026f, eqn for Edecomp): every cation pairs
+# with every anion of the mixed anion sublattice into its valence-characteristic binary --
+# A(+1) -> A2X, B(+2) -> BX, B(+3) -> B2X3, C(+4) -> CX2 -- with coefficient (n_cation/binary
+# cations) x (anion fraction), plus kBT sum n f ln f. This is what the released dataset and the
+# paper publish; a free LP over all binaries picked lower-energy but non-canonical sets (elements
+# included), which is why the website disagreed with the paper.
+_VAL1 = {"Li","Na","K","Rb","Cs","Cu","Ag"}
+_VAL2 = {"Be","Mg","Ca","Sr","Ba","Zn","Cd","Hg","Mn","Fe","Ni","Co","Pb"}
+_VAL3 = {"Al","Ga","In"}
+_VAL4 = {"Si","Ge","Sn","Ti","Zr","Hf"}
+_ANION = {"S","Se","Te","O"}
+def chalcodb_decomp(cls, name, comp_fu, dHf_fu):
+    cats = {e: n for e, n in comp_fu.items() if e not in _ANION and n > 0}
+    ans  = {e: n for e, n in comp_fu.items() if e in _ANION and n > 0}
+    if not cats or not ans:
+        return None, "no cation/anion partition"
+    def val(e):
+        return 1 if e in _VAL1 else 2 if e in _VAL2 else 3 if e in _VAL3 else 4 if e in _VAL4 else None
+    if any(val(e) is None for e in cats):
+        return None, "cation outside the ABX2/A2BCX4 valence classes"
+    nX = sum(ans.values())
+    if abs(sum(val(e) * n for e, n in cats.items()) - 2.0 * nX) > 1e-6:
+        return None, "not charge balanced in the ABX2/A2BCX4 scheme"
+    tbl = _bin_table(cls)
+    terms, missing, tot = [], [], 0.0
+    for c, ncat in sorted(cats.items()):
+        v = val(c)
+        for X, nx in sorted(ans.items()):
+            fX = nx / nX
+            bcomp = {1: {c: 2, X: 1}, 2: {c: 1, X: 1}, 3: {c: 2, X: 3}, 4: {c: 1, X: 2}}[v]
+            coeff = (ncat / 2.0 if v in (1, 3) else ncat) * fX
+            hit = tbl.get(_reduced(bcomp))
+            if hit is None:
+                missing.append("".join(f"{e}{int(n) if n != 1 else ''}" for e, n in sorted(bcomp.items())))
+                continue
+            nm, dh, cf, var, th = hit
+            terms.append({"coeff": round(coeff, 4), "phase": nm, "E_pfu": round(dh, 4),
+                          "contribution": round(coeff * dh, 4), "run": var})
+            tot += coeff * dh
+    if missing:
+        return None, ("no archived same-footing run for the canonical binar" +
+                      ("y " if len(set(missing)) == 1 else "ies ") + ", ".join(sorted(set(missing))))
+    S_terms = _mix_entropy(name)
+    S = round(sum(x["contribution_eV"] for x in S_terms), 6)
+    d0 = round(dHf_fu - tot, 4)
+    return {"kind": "stoichiometric binary decomposition (canonical A2X/BX/B2X3/CX2 set over the anion mix)",
+            "E_pfu": round(dHf_fu, 4), "pre": 1, "sum": round(tot, 4), "S": S, "S_used": S,
+            "S_terms": S_terms, "d0": d0, "d": round(d0 + S, 4), "terms": terms}, None
+
 _BD_CACHE = {}
 def binary_decomp(cls, name, comp_fu, dHf_fu):
     """comp_fu: per-f.u. composition of the host; dHf_fu: its same-class formation enthalpy per f.u."""
@@ -665,6 +723,7 @@ for (theory, name, poly), members in sorted(groups.items()):
     # ---- energetics, re-derived within one footing class (see "run footing" above) ----------
     dterms = None
     ef_pa = None
+    no_decomp_reason = None
     fc = classify_row(r["theory"], r)
     Fe, nate = fc["F"], fc["nat"]
     comp_atoms = None
@@ -700,13 +759,17 @@ for (theory, name, poly), members in sorted(groups.items()):
         comp_fu = {}
         for e, n in _tk: comp_fu[e] = comp_fu.get(e, 0.0) + n / _g
         n_fu_atoms = sum(comp_fu.values()) or 1
-        if len([e for e, n in comp_fu.items() if n > 0]) >= 2:
-            dterms = binary_decomp(fc["cls"], r["compound"], comp_fu, ef_pa * n_fu_atoms)
-            if dterms is None:
-                en_note = ((en_note + "; ") if en_note else "") + \
-                    f"no same-footing binary/elemental set could be assembled for the decomposition"
+        n_distinct = len([e for e, n in comp_fu.items() if n > 0])
+        if n_distinct <= 2:
+            dterms = None      # element or binary: dHf IS the stability measure; no decomposition defined
         else:
-            dterms = None                    # an element: nothing to decompose into
+            dterms, why = chalcodb_decomp(fc["cls"], r["compound"], comp_fu, ef_pa * n_fu_atoms)
+            if dterms is None and ("valence" in (why or "") or "charge balanced" in (why or "") or "partition" in (why or "")):
+                dterms = binary_decomp(fc["cls"], r["compound"], comp_fu, ef_pa * n_fu_atoms)
+                if dterms is not None:
+                    dterms["kind"] = "stoichiometric decomposition (outside the ABX2/A2BCX4 valence scheme: linear programme over all same-footing binaries and elements)"
+            if dterms is None:
+                no_decomp_reason = why or "no same-footing binary set could be assembled"
     edec_fu = dterms["d"] if dterms else None
     foot_info = {"class": fc["cls"], "label": class_label(fc["cls"]) if fc["cls"] else None,
                  "encut": fc["enc"], "mode": fc["mode"], "refs": refs_used}
@@ -715,7 +778,8 @@ for (theory, name, poly), members in sorted(groups.items()):
     elif en_note or fc["mode"] != "ok":
         dterms = {"withheld": en_note or "energetics not derivable", "footing": foot_info}
     elif ef_pa is not None:
-        dterms = {"footing": foot_info}       # an element or a host with nothing to decompose into
+        dterms = {"footing": foot_info}       # an element/binary or a host with nothing to decompose into
+        if no_decomp_reason: dterms["no_decomp"] = no_decomp_reason
     if en_note and "terms" in (dterms or {}):
         dterms["note"] = en_note
     if not fc["keep_props"]:

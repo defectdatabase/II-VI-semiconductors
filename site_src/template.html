@@ -2877,6 +2877,15 @@ function provenanceBody(r,ord){
   const footKey = (v.length>7 && v[7]) ? v[7] : null;
   const R = (footKey && REFS[footKey]) || REFS[r.rk] || REFS[th];
   const D27 = (v.length>27 && v[27]) ? v[27] : null;
+  if(D27 && !D27.withheld && !(D27.terms&&D27.terms.length) && v[0]!==null && v[0]!==undefined){
+    // formation energy exists but no decomposition: an element/binary (dHf IS the stability
+    // measure) or a canonical binary is missing from the archive -- say which
+    const els2=(r.n.match(/[A-Z][a-z]?/g)||[]).filter(e=>PT_VALID.has(e));
+    const nEls=new Set(els2).size;
+    const why=D27.no_decomp?`Decomposition energy is not published for this row: ${D27.no_decomp}.`
+      :(nEls<=2?`This is ${nEls===1?"an elemental reference":"a binary compound"} — decomposition into binaries is not defined for it; the formation enthalpy ΔH<sub>f</sub> above is the stability measure.`:"");
+    if(why) r.__whyNoDecomp=why; else r.__whyNoDecomp=null;
+  }
   if(D27 && D27.withheld){
     return `<b>Level of theory: ${th}${footKey?` — archived run footing: ${footKey}`:""}.</b><br>
       <div class="notebox">Formation and decomposition energies are withheld for this entry: ${D27.withheld}.</div>
@@ -2885,8 +2894,11 @@ function provenanceBody(r,ord){
   if(!R) return `<b>Level of theory: ${th}.</b><br>No elemental reference set is published for `
     +`this level of theory, so no formation energy is derived here.`;
   const comp = {};
-  for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0], parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
-    comp[el]=(comp[el]||0)+n;
+  // "-SQS" is a structure tag: tokenised as chemistry it yields S+Q+S and the panel printed
+  // "no elemental reference for Q" on every SQS alloy
+  const nameChem = r.n.replace(/(-SQS|_supercell)$/,"");
+  for(const [el,n] of (nameChem.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0], parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
+    if(PT_VALID.has(el)) comp[el]=(comp[el]||0)+n;
   // formula unit = the name's stoichiometry, gcd-reduced when integral (Cd108Se27Te81 -> Cd4SeTe3);
   // fractional alloy names keep their own unit -- the same rule the payload uses for E_pfu
   const cvals = Object.values(comp);
@@ -2953,6 +2965,15 @@ function provenanceBody(r,ord){
         + `<br>Fully occupied sublattices contribute zero and are omitted. `
       : ". "
     }The convention previously published gives ${(D.S_used||0).toFixed(4)} eV.<br>
+    ${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
+  }
+  if(D27 && !(D27.terms&&D27.terms.length) && !D27.withheld){
+    const fx2=D27.footing||{};
+    return `<b>Level of theory: ${th.split(" (")[0]}${fx2.label?` — run footing from the archived INCAR: ${fx2.label}${fx2.encut?`, ENCUT ${fx2.encut}`:""}`:""}.</b><br>
+    Total energy: OSZICAR free energy F = <span class="mono">${F.toFixed(2)}</span> eV for the ${nat}-atom cell (${+nfu.toFixed(2)} formula units); ΔH<sub>f</sub> = <span class="mono">${(v[0]!==null&&v[0]!==undefined)?(v[0]*apfu).toFixed(3):"—"}</span> eV/f.u.<br>
+    <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
+    = <span class="mono">${efTxt}</span> eV/atom, against elemental references of the same footing:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    ${r.__whyNoDecomp?`<div class="notebox">${r.__whyNoDecomp}</div>`:""}
     ${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
   }
   if(v.length>9&&v[9]!==null&&v[9]!==undefined){
