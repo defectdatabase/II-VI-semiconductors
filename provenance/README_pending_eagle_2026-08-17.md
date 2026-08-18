@@ -531,3 +531,15 @@ systematic audit is owed).
 - TACE: env built (torch 2.13.0+cu126), smoke job 11539819 still pending on a100-40gb standby;
   corpus synced to Gilbreth at 94 runs.
 - DOS campaigns: ddos 89/4,996, pdos 13/1,898.
+
+## 2026-08-18 (late) — TACE smoke moved to normal QoS; RF ML data removed from the site
+- User directives: run the smoke job on normal (not standby), and remove the ML data from the
+  website. Smoke resubmitted as 11543631 (-q normal -p a100-40gb; Gilbreth requires an explicit
+  partition). showpartitions: a100-40gb 0 idle nodes, 3,695 cores pending. Our normal-QoS
+  association allows exactly gres/hp_a100-40gb=1 and hp_a100-80gb=0 — so normal works only on
+  a100-40gb with at most 1 GPU; job is PD(AssocGrpGRES) until the account's high-priority GPU
+  frees. The RF models/predictions stay archived on Gilbreth (tace/ dir) for TACE comparison.
+- ML removal shipped: dropdown option, lazy loader, filter branch, panel note and
+  data/mlscreen.json.gz all reverted — the rebuilt bundle hashes back to EXACTLY the pre-ML build
+  id 0aa1d335ac44 (perfect reversal check). Verified live 10/10: no ML option, 13,959 rows,
+  mlscreen.json.gz 404, 0 console errors.
