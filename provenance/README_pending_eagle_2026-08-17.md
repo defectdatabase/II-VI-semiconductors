@@ -363,3 +363,30 @@ systematic audit is owed).
   is the broken part and its repair is in the Eagle to-do; decomposition energies are computed by
   us from our own footing-verified energies with the paper's convention (not copied); dielectric
   constants and optics are entirely our own extraction, never touched by the release ingest.
+
+## 2026-08-18 (later) — SLME recomputed everywhere; release demoted to validation
+- User directive: SLME and epsilon must be recomputed, not copied from the released paper dataset.
+  SLME is now computed by our own Yu-Zunger integrator (500 nm, fr = 1, AM1.5G) from each run's own
+  absorption spectrum for every row — the release contributes nothing to it except the already-
+  labelled gap onset on the 3,525 repaired-gap rows, and a printed validation (6,400 matched rows:
+  median |d| 3.5 pct-points, p90 9.9, ours systematically lower — thickness/fr convention; anchors:
+  Cu2ZnGeSSe3 kesterite ours 30.14 vs paper 32.66, AgAl0.5Ga0.5Te2 31.92 vs 32.65). 6,316 rows
+  changed; 346 went honestly blank (303 near-metallic gap < 0.31 eV, 43 with no local spectrum).
+  Per-row notebox states the method. Epsilon was never copied: all 6,763 HSE+SOC dielectric
+  constants are our own `vasprun epsilon(omega->0)` extraction and the trimmed release json holds
+  no epsilon field at all. Deployed 193fa78ac (site build 0b68c3031694), verified live 10/10 via
+  CDP + screenshot (anchor SLMEs, repaired-row double notebox, 352 low-gap rows all SLME-blank,
+  eps value+source intact).
+- Recompute routes evaluated and REJECTED with measurements (kept here so they are not retried):
+  DOSCAR-window gaps are biased −0.26 to −0.38 eV median vs trusted EIGENVAL gaps on EVERY theory
+  (PBEsol −0.26, HSE −0.38, n≈10k), so DOS-derived gaps are unpublishable; absorption-onset gaps
+  (alpha >= 1e4 cm^-1) show sub-gap tails reaching 0.2 eV on 4.5+ eV hosts — also unpublishable.
+  The gap column therefore keeps the labelled release repair until the Eagle EIGENVAL extractor is
+  rebuilt occupancy-based (read the occ column, never NELECT/2) — first item of the Eagle to-do.
+- Mistakes & corrections log (append to Eagle README): 2026-08-18 — I published the released
+  dataset's SLME verbatim on 6,762 rows → WRONG because "you need to get SLME and epsilon by
+  recomputing not just copy pasting from my paper" (his words) → GUARD: external data may enter
+  the payload only as a printed validation or as a labelled scalar repairing a demonstrated
+  extraction bug; every derived quantity (SLME, decomposition, epsilon) must come from our own
+  pipeline on our own spectra/energies → GUARD LIVES IN build_payload's release block (recomputes
+  SLME, prints the validation) and this log.
