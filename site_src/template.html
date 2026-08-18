@@ -2958,8 +2958,8 @@ function provenanceBody(r,ord){
     = <span class="mono">${efTxt}</span> eV/atom, against elemental references of the same footing (same functional, hybrid base, SOC and PAW potential):<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> (${D.kind}) = ΔH<sub>f</sub><sup>f.u.</sup> − ${pre}Σ c·ΔH<sub>f</sub>(binary) + k<sub>B</sub>T·Σ<sub>sublattice</sub> n·Σ f ln f
     = ${D.E_pfu.toFixed(3)} − (${(D.sum*(D.pre||1)).toFixed(3)}) + (${(D.S||0).toFixed(3)})
-    = <span class="mono">${(D.d0 + (D.S||0)).toFixed(3)}</span> eV/f.u., against the optimal stoichiometric set of
-    <b>${D.terms.length}</b> phase${D.terms.length>1?"s":""} — a linear programme over every same-footing binary in this element set, elements entering at ΔH<sub>f</sub> = 0:<br>&nbsp;&nbsp;${rows}${sTermsHTML}<br>
+    = <span class="mono">${(D.d0 + (D.S||0)).toFixed(3)}</span> eV/f.u., against the stoichiometric set of
+    <b>${D.terms.length}</b> phase${D.terms.length>1?"s":""} — ${/linear programme/.test(D.kind)?"a linear programme over every same-footing binary in this element set, elements entering at ΔH<sub>f</sub> = 0":"each cation paired with every anion of the mixed anion sublattice, all references on the same footing"}:<br>&nbsp;&nbsp;${rows}${sTermsHTML}<br>
     <b>Configurational entropy</b> −T·ΔS<sub>mix</sub> = k<sub>B</sub>T · Σ<sub>sublattice</sub> n<sub>sites</sub> · Σ f ln f
     = <span class="mono">${(D.S||0).toFixed(4)}</span> eV/f.u.${
       (D.S_terms&&D.S_terms.length)
