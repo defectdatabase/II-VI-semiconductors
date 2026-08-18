@@ -438,3 +438,23 @@ systematic audit is owed).
   we have ~5e4 frames) — fine-tune the released 222M checkpoint instead; (3) SLME/eps head on
   relaxed configurations; (4) EquFlash/TACE relaxation campaign over the 644k space
   (Gilbreth env verified alive: ckpt + GGNN + cap_results present).
+
+## 2026-08-18 (later) — TACE single-model plan locked; training-data collection started
+- User directives: skip M3GNet/ALIGNN — ONE TACE model for all tasks (relaxation E/F/S + labels
+  SLME/gap/epsilon), trained on ALL our DFT data, bulk + defect, all charge states, all theories.
+  Correction delivered: FINE-TUNE the released 222M TeCE-OAM-RRA checkpoint, not from-scratch
+  (112M-structure pretraining vs our ~1e5 frames). TACE's repo natively supports full/freeze/LoRA
+  fine-tuning, fidelity_idx (level-of-theory token) and total-charge embedding — the
+  multifidelity + charge-aware conditioning is a first-class feature, not surgery.
+- Collector LIVE: gautschi:/scratch/gautschi/rahma103/tace_collect.py (idempotent; re-run at any
+  harvest) → tace_data/frames.extxyz + manifest.jsonl. Per-frame E/F(+stress when present) with
+  info fields theory / charge (q = sum ZVAL*counts - NELECT; per-species ZVAL from POMASS lines —
+  the OUTCAR summary ZVAL line double-counts and must NOT be regexed) / kind / label / run.
+  First sweep: 153 frames from 89 completed runs — PBEsol q=0 61, q=+1 14, q=+2 15, q=-1 14,
+  q=-2 13 (the ddos statics ARE the charged campaign), HSE(PBEsol) 21, HSE+SOC 1, PBE 14.
+  Corpus grows as ddos (4,995) / pdos (1,897) / bin_runs / chg_g finish; the bulk of the corpus
+  (every archived relaxation trajectory) unlocks with Eagle ~08-20.
+- Next (compute-gated): TACE env on Gilbreth GPU + LoRA fine-tune with fidelity_idx+charge on the
+  growing corpus; property head for gap/eps/SLME per TACE docs (dipole/polarizability heads exist;
+  if scalar heads are closed, a readout-head fork is the fallback); then the 644k-space relaxation
+  campaign with the fine-tuned model replaces the RF lattice/energetics blanks in the ML rows.
