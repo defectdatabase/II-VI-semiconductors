@@ -473,3 +473,11 @@ systematic audit is owed).
   (jellium-raw energies; finite-size corrections stay downstream); gap/eps/SLME heads masked to
   HSE+SOC-labelled frames. Exact config keys to be pinned from tace-repo/example when the training
   env is built (next session on Gilbreth GPU).
+
+## 2026-08-18 — Desktop clone disposition (user question)
+- ~/Desktop/Habibur_Rahman/telluride (4.2 GB) is fully pushed (0 unpushed commits, 0 untracked
+  files after removing one stray probe screenshot). It is NEEDED until Eagle is back: it is the
+  only build+deploy path during the outage (Gautschi payload → splice.py → docs → push). AFTER
+  the Eagle resume checklist completes (Eagle clone pulled, Eagle-built push verified live), the
+  Desktop clone is redundant — delete it then; the repo on GitHub + the Eagle clone
+  (site/repo, 4.1 GB) are the only two copies needed. Added as the final resume step.
