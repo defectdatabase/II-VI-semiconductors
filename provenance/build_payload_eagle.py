@@ -878,6 +878,34 @@ dos_by_key, n_dos_defect = stream_defect_dos(charge_label_to_q)
 dos_keys.extend(dos_by_key.values())
 print(f"defect dos matched {n_dos_defect}")
 
+# ---- duplicate host twins ("Al_i in AgAlSe2 ordering 1 shows only Neutral"): the archive holds
+# a suffix-less copy of many kesterite/stannite hosts carrying ONLY the neutral per-site scan of
+# the same defects (gs like Al_i-5), while the _kesterite/_stannite row of the same host carries
+# the full charge ladder. Publishing both made the bare row look like a defect with no charged
+# data. Drop the bare row when a suffixed twin with the same (theory, defect) exists and the bare
+# row has no charge state the twin lacks.
+_twin = {(r["theory"], r["host"], r["defect"]) for r in dd}
+def _qs(r):
+    out = set()
+    for v in (r.get("vertices") or {}).values():
+        for c in (v.get("charges") or {}).values(): out.add(c.get("q"))
+    return out
+_qmap = {}
+for r in dd: _qmap[(r["theory"], r["host"], r["defect"])] = _qs(r)
+_dropped = 0
+_keep = []
+for r in dd:
+    h = r["host"]
+    if not re.search(r"_(kesterite|stannite)$", h):
+        twins = [(r["theory"], h + s, r["defect"]) for s in ("_kesterite", "_stannite")]
+        tw = [k for k in twins if k in _twin]
+        if tw and _qmap[(r["theory"], h, r["defect"])] <= set().union(*(_qmap[k] for k in tw)):
+            _dropped += 1
+            continue
+    _keep.append(r)
+print(f"bare-host twin rows dropped: {_dropped} (their charge states are a subset of the suffixed ordering row)")
+dd = _keep
+
 defects = []
 for r in dd:
     theory = THEORY.get(r["theory"], r["theory"])
@@ -895,6 +923,44 @@ for r in dd:
         for c0 in (v0.get("charges") or {}).values():
             if c0.get("q") == 0 and c0.get("dE") is not None:
                 dE_neu = c0["dE"]
+    # ---- whole-ladder physics gates (2026-08-18, "some defect formation energy is crazy negative").
+    # Every term of Ef must come from one consistent chain; three broken patterns were live:
+    #   1. neutral dE far off any physical scale (Al_i in K0.5Ag0.5Al1S1Te1: +129 eV for every
+    #      charge -- consistent with each other, so the per-charge gate passed, all garbage);
+    #   2. the host reference scaled from a small k-converged cell while the supercell ran
+    #      Gamma-only (ZnTe HSE+SOC: hpa from the 6-atom cell; the 215-atom Vac_Zn cell is MORE
+    #      bound per atom than the perfect crystal -- impossible -- and 14 meV/atom of k-mesh
+    #      error becomes 3.1 eV in dE, publishing Ef(V_Zn) = -2.3 eV);
+    #   3. mixed-footing mu0 (no true HSE+SOC Zn elemental run exists; chempot fell back to the
+    #      HSE06-base value).
+    # A defect whose NEUTRAL formation energy comes out below -0.2 eV at any solved vertex claims
+    # the host decays spontaneously -- for hosts the bulk side shows stable, that is a broken
+    # chain, not physics. Withhold Ef for the WHOLE ladder (the charged states share the same
+    # host reference and mu set), keep dE/DOS/structures, and say exactly why.
+    ladder_note = None
+    nat_r = r.get("natoms")
+    if dE_neu is not None and nat_r and abs(dE_neu) / nat_r > 0.05:
+        ladder_note = (f"the neutral run is {dE_neu:+.1f} eV off the host reference "
+                       f"({dE_neu/nat_r:+.3f} eV/atom): not the same calculation settings")
+    if ladder_note is None and dE_neu is not None and r.get("host_F_per_atom") is not None        and nat_r and r.get("n_pristine"):
+        dn_r = r.get("dn") or {}
+        if dn_r and all(n <= 0 for n in dn_r.values()):        # pure removal (vacancies)
+            epa_def = (r["host_F_per_atom"] * r["n_pristine"] + dE_neu) / nat_r
+            if epa_def < r["host_F_per_atom"] - 0.003:
+                ladder_note = (f"the defect cell is more bound per atom ({epa_def:.4f} eV) than the "
+                               f"perfect crystal ({r['host_F_per_atom']:.4f} eV), which is impossible for a "
+                               f"vacancy at one set of settings: the host reference (scaled from a "
+                               f"{r.get('host_natoms')}-atom cell) is not consistent with this supercell")
+    if ladder_note is None and dE_neu is not None:
+        neg = None
+        for v0 in (r.get("vertices") or {}).values():
+            c0 = next((c for c in (v0.get("charges") or {}).values() if c.get("q") == 0), None)
+            if c0 and c0.get("Ef_VBM") is not None and c0["Ef_VBM"] < -0.2:
+                neg = c0["Ef_VBM"]
+        if neg is not None:
+            ladder_note = (f"the neutral formation energy comes out {neg:+.2f} eV, i.e. the host would "
+                           f"form this defect spontaneously -- the bulk data shows this host stable, so "
+                           f"the chain (host reference / chemical potentials) is not consistent")
     for vname, v in (r.get("vertices") or {}).items():
         ch = {}
         for cname, c in (v.get("charges") or {}).items():
@@ -905,6 +971,10 @@ for r in dd:
                 c["Ef_VBM"] = None; c["Ef_CBM"] = None
                 c["note"] = (f"charge state {q} is {c['dE']-dE_neu:+.1f} eV off the neutral run "
                              "-- not the same calculation settings; withheld")
+            if ladder_note and c.get("Ef_VBM") is not None:
+                c = dict(c)
+                c["Ef_VBM"] = None; c["Ef_CBM"] = None
+                c["note"] = "formation energies withheld: " + ladder_note
             ch[q] = {"dE": c.get("dE"), "vbm": c.get("Ef_VBM"), "cbm": c.get("Ef_CBM"),
                      "note": c.get("note"),
                      # every term behind Ef, so the panel can show the arithmetic instead of
