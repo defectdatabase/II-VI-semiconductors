@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="366cbc3c40e0";
+  var BUILD_ID="dd10e7499915";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -780,13 +780,17 @@ function dApplyFilters(){
   const allq=document.getElementById("ck-allq").checked;
   const fs=new Set(); if(document.getElementById("ck-pbesol").checked)fs.add("pbesol");
   if(document.getElementById("ck-hsesoc").checked)fs.add("hse_soc");
+  const dQEls=q?queryEls(q):null;
   dFiltered=DEFECTS.filter(r=>{
     if(!fs.has(r.f))return false;
     if(dClass!=="all"&&!r.clset.has(dClass)&&r.cls!==dClass)return false;
     if(spont&&!r.spont)return false;
     if(allq&&r.nq<5)return false;
     if(q){const hay=(r.h+" "+r.d+" "+r.cls+" "+THEORY[r.f]).toLowerCase();
-      if(!hay.includes(q))return false;}
+      if(!hay.includes(q)){
+        if(!r.__hels) r.__hels=new Set((r.h.match(/[A-Z][a-z]?/g)||[]).filter(e=>PT_VALID.has(e)));
+        if(!(dQEls&&sameEls(dQEls,r.__hels)))return false;
+      }}
     return true;
   });
   const col=DCOLS.find(c=>c.k===dSort.k);
@@ -1377,6 +1381,28 @@ const PT_LAYOUT=[
  ["","","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu","",""]];
 const PT_VALID=new Set(PT_LAYOUT.flat().filter(Boolean));
 let PT_SEL=new Set(), PT_ELS_AVAIL=null;
+/* "CdSeTe" / "Cd-Se-Te" / "cd se te" as a search means the CHEMICAL SYSTEM — a substring can
+   never match CdSe0.25Te0.75, which is why Cd-Se-Te "had no data". If the whole query parses as
+   element symbols, rows whose element set equals the queried set also match. */
+function queryEls(q){
+  const raw=q.replace(/[^a-zA-Z]/g," ").trim(); if(!raw) return null;
+  const caps=raw.match(/[A-Z][a-z]?/g)||[];
+  const out=new Set();
+  if(caps.length&&caps.join("").toLowerCase()===raw.replace(/\s+/g,"").toLowerCase()){
+    for(const e of caps){ if(!PT_VALID.has(e)) return null; out.add(e); }
+    return out.size?out:null;
+  }
+  const s=raw.replace(/\s+/g,"").toLowerCase(); let i=0;
+  const cap=x=>x[0].toUpperCase()+x.slice(1);
+  while(i<s.length){
+    const two=cap(s.slice(i,i+2)), one=s[i].toUpperCase();
+    if(s.length-i>=2&&PT_VALID.has(two)){out.add(two);i+=2;}
+    else if(PT_VALID.has(one)){out.add(one);i+=1;}
+    else return null;
+  }
+  return out.size?out:null;
+}
+function sameEls(a,b){ if(!a||!b||a.size!==b.size) return false; for(const e of a) if(!b.has(e)) return false; return true; }
 function compoundElements(r){
   if(r.__els) return r.__els;
   const els=new Set((r.n.match(/[A-Z][a-z]?/g)||[]).filter(e=>PT_VALID.has(e)));
@@ -1434,6 +1460,7 @@ function cApplyFilters(){
   const has=document.getElementById("c-has").value;
   const binf=stepb?CSTEP_BINS.find(([id])=>id===stepb)[2]:null;
   const hasf=has?CHAS.find(([id])=>id===has)[2]:null;
+  const cQEls=q?queryEls(q):null;
   cFiltered=COMPOUNDS.filter(r=>{
     const v=r.o[r.b];
     if(th&&r.f!==th)return false;
@@ -1442,7 +1469,8 @@ function cApplyFilters(){
     if(mode&&(mode==="none"?cMode(v)!==null&&cMode(v)!==undefined:cMode(v)!==mode))return false;
     if(binf){const n=cSteps(v); if(n===null||n===undefined||!binf(n))return false;}
     if(hasf&&!hasf(r,structKeyOf(r,r.b),v))return false;
-    if(q&&!(r.n+" "+r.f+" "+Object.keys(r.o).join(" ")).toLowerCase().includes(q))return false;
+    if(q&&!(r.n+" "+r.f+" "+Object.keys(r.o).join(" ")).toLowerCase().includes(q)
+       &&!(cQEls&&sameEls(cQEls,compoundElements(r))))return false;
     if(!ptPass(r))return false;
     return true;
   });
