@@ -305,3 +305,31 @@ binaries and let a structure tag ("-SQS") enter chemistry parsing. WHY IT WAS WR
 paper. THE GUARD: the four Table-3 anchor values are now asserted against the payload before ship;
 element tokens are validated against the periodic table. WHERE THE GUARD NOW LIVES:
 `build_payload_eagle.py` (chalcodb_decomp, VALID_ELS) and this section.
+
+## 2026-08-18 — band gap: the release is right, our extraction was wrong; SLME/gap now ingested from the released dataset
+
+**"bandgap also does not match — which one is correct?"** Adjudicated: 3,299 HSE+SOC rows disagreed
+with the released ChalcoDB dataset by >0.3 eV while their lattice constants are byte-identical to
+the release rows — same runs, so the difference is pure extraction. Ours (EIGENVAL occupied-band
+counting with NELECT) collapsed wide-gap I–III–VI2 sulfides to 0.04–0.3 eV, which is unphysical;
+the release values are the published, correct ones. Fix: for the 6,762 matched (name+ordering,
+lattice <0.02 Å) HSE+SOC rows, band gap (3,525 replaced) and SLME (all matched rows — the paper's
+ref-35 thickness convention, ours was 500 nm) are ingested from `chalcodb_release.json` (mirrored
+in provenance/), the local VBM/CBM are withheld on replaced rows, and every affected panel carries
+the provenance note. Library agreement vs the release after ingest: gap median |Δ| 0.0 (max 0.05 =
+threshold), SLME ≤0.005, decomposition median |Δ| 0.061 eV/f.u. (p95 0.36) — the decomposition
+residual is ours-footing-verified vs the release's original energies, and OURS is kept (each term
+traces to a named archived run; the release predates the footing audit).
+
+**Decomposition "which is best":** published number = the canonical A2X/BX/B2X3/CX2 convention
+(comparable with the paper and with how alloy stability is reported experimentally); the free LP
+over all binaries+elements is the stricter test (it finds the lowest-energy competing set, so it
+can only make d larger) and is kept for hosts outside the valence scheme, labelled. The fully
+rigorous quantity — convex hull over ALL same-footing phases including ternaries — is the Eagle
+build_all rework, the same machinery the defect μ polytopes need.
+
+**Eagle upstream fix required:** the EIGENVAL gap extractor in build_all must be repaired (compare
+against occupation-resolved band edges; SOC doubles bands — suspected NELECT/2 assumption) before
+any theory without a release reference (PBEsol/HSE06/PBE gaps from the same extractor are suspect
+where no cross-check exists; PBEsol/HSE06 gaps DID pass earlier anchor spot-checks, but a
+systematic audit is owed).
