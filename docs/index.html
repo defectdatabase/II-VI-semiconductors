@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="19e23babde17";
+  var BUILD_ID="e13c38ab1a17";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -1515,7 +1515,7 @@ function cOpenDetail(r,ord){
      <div><span>Number of atoms</span><span>${v[6]||"—"}</span></div>
      <div><span>Lattice parameters</span><span>${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"—"}</span></div>
      <div><span>Lattice angles α × β × γ</span><span>${v.length>18&&v[18]?v[18].map(x=>x.toFixed(2)).join(" × ")+" °":"—"}</span></div>
-     <div><span>Level of theory</span><span>${r.f}</span></div>
+     <div><span>Level of theory</span><span>${r.f}${v.length>7&&v[7]&&v[7]!==r.f?` — run footing ${v[7]}`:""}</span></div>
      <div><span>Calculation type</span><span>${cMode(v)?CMODE_LABEL[cMode(v)]||cMode(v):"—"}${
        v.length>31&&v[31]&&v[31][0]!==null?` — NSW ${v[31][0]}, IBRION ${v[31][1]}, ISIF ${v[31][2]}`:""}</span></div>
      <div><span>Ionic steps</span><span>${cSteps(v)===null||cSteps(v)===undefined?"—":cSteps(v)}${
@@ -2822,24 +2822,45 @@ function provenanceBody(r,ord){
   // rk names a campaign ("HSE06 (A2BCX4)") while REFS is keyed by the plain theory, so the
   // campaign-specific lookup misses and the whole breakdown rendered empty. Fall back to the
   // theory's own reference set, and say so plainly if even that is absent.
-  const R = REFS[r.rk] || REFS[th];
+  // v[7] carries the footing class the payload derived this row's energetics in (e.g.
+  // "HSE06 (PBEsol base)"): the HSE tree mixes HSE06 and HSEsol runs, so the reference set must
+  // be the row's own class, never the tab's label.
+  const footKey = (v.length>7 && v[7]) ? v[7] : null;
+  const R = (footKey && REFS[footKey]) || REFS[r.rk] || REFS[th];
+  const D27 = (v.length>27 && v[27]) ? v[27] : null;
+  if(D27 && D27.withheld){
+    return `<b>Level of theory: ${th}${footKey?` — archived run footing: ${footKey}`:""}.</b><br>
+      <div class="notebox">Formation and decomposition energies are withheld for this entry: ${D27.withheld}.</div>
+      ${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
+  }
   if(!R) return `<b>Level of theory: ${th}.</b><br>No elemental reference set is published for `
     +`this level of theory, so no formation energy is derived here.`;
   const comp = {};
   for(const [el,n] of (r.n.match(/[A-Z][a-z]?[\d.]*/g)||[]).map(t=>[t.match(/[A-Z][a-z]?/)[0], parseFloat(t.replace(/^[A-Z][a-z]?/,"")||"1")]))
     comp[el]=(comp[el]||0)+n;
-  const apfu = Object.values(comp).reduce((a,b)=>a+b,0);
+  // formula unit = the name's stoichiometry, gcd-reduced when integral (Cd108Se27Te81 -> Cd4SeTe3);
+  // fractional alloy names keep their own unit -- the same rule the payload uses for E_pfu
+  const cvals = Object.values(comp);
+  let gfu = 1;
+  if(cvals.every(x=>Math.abs(x-Math.round(x))<1e-6)){
+    const gcd=(a,b)=>b?gcd(b,a%b):a;
+    gfu = cvals.map(x=>Math.round(x)).reduce((a,b)=>gcd(a,b),0)||1;
+  }
+  const apfu = cvals.reduce((a,b)=>a+b,0)/gfu;
   const nfu = nat/apfu, epfu = F/nfu;
   // An element with no elemental reference AT THIS THEORY has mu === undefined, and calling
   // .toFixed on it threw right here -- which aborted cOpenDetail half-rendered, so the row never
   // finished opening and the Calculation inputs card kept whatever the PREVIOUS row had put there.
   // That is what made In2O3 read "HSE+SOC" in the table and show a PBEsol INCAR.
   let terms=[], refsum=0, missing=[];
+  const usedRefs = (D27 && D27.footing && D27.footing.refs) ? D27.footing.refs : {};
   for(const el in comp){
-    const mu=R.el?R.el[el]:undefined;
+    const u=usedRefs[el];
+    const mu=(u&&u.mu!==undefined&&u.mu!==null)?u.mu:(R.el?R.el[el]:undefined);
     if(mu===undefined||mu===null){ missing.push(el); continue; }
-    refsum+=comp[el]*nfu*mu;
-    terms.push(`${comp[el]*nfu}·μ<sub>${el}</sub> = ${(comp[el]*nfu*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(2)} eV/atom)`);
+    const nEl=comp[el]/gfu*nfu;
+    refsum+=nEl*mu;
+    terms.push(`${+nEl.toFixed(4)}·μ<sub>${el}</sub> = ${(nEl*mu).toFixed(2)} eV (μ<sub>${el}</sub> = ${mu.toFixed(3)} eV/atom${u&&u.paw?`, PAW ${u.paw}`:""}${u&&u.encut?`, ENCUT ${u.encut}`:""})`);
   }
   const eform = missing.length ? null : (F-refsum)/nat;
   // printed in four places below; a null must read as a dash, never crash the panel
@@ -2851,7 +2872,7 @@ function provenanceBody(r,ord){
   if(v.length>27&&v[27]&&v[27].terms&&v[27].terms.length){
     const D=v[27];
     const rows=D.terms.map(t=>`${t.coeff} · ΔH<sub>f</sub>(${subHTML(t.phase)}) = ${t.contribution.toFixed(3)} eV`
-      +`  [ΔH<sub>f</sub>(${subHTML(t.phase)}) = ${t.E_pfu.toFixed(3)} eV/f.u.]`).join("<br>&nbsp;&nbsp;");
+      +`  [ΔH<sub>f</sub>(${subHTML(t.phase)}) = ${t.E_pfu.toFixed(3)} eV/f.u.${t.run?`, archived run ${t.run}`:""}]`).join("<br>&nbsp;&nbsp;");
     const sTermsHTML=(D.S_terms&&D.S_terms.length)
       ? `<br><b>Configurational entropy</b> −T·ΔS<sub>mix</sub> = k<sub>B</sub>T · Σ<sub>sublattice</sub> n<sub>sites</sub> · Σ f ln f = <span class="mono">${(D.S||0).toFixed(4)}</span> eV/f.u., from:<br>&nbsp;&nbsp;`
         + D.S_terms.map(t=>`${t.sublattice} site (${t.sites_per_fu} per f.u.): `
@@ -2860,16 +2881,18 @@ function provenanceBody(r,ord){
         + `<br>Fully occupied sublattices contribute zero and are omitted.`
       : "";
     const pre=(D.pre&&D.pre!==1)?`${D.pre} · `:"";
-    return `<b>Level of theory: ${th.split(" (")[0]}.</b><br>
+    const fx = D.footing||{};
+    return `<b>Level of theory: ${th.split(" (")[0]}${fx.label?` — run footing from the archived INCAR: ${fx.label}${fx.encut?`, ENCUT ${fx.encut}`:""}`:""}.</b><br>
+    ${D.note?`<div class="notebox">${D.note}.</div>`:""}
     Total energy: OSZICAR free energy F = <span class="mono">${F.toFixed(2)}</span> eV
-    for the ${nat}-atom cell (${nfu.toFixed(0)} formula units); ΔH<sub>f</sub> =
+    for the ${nat}-atom cell (${+nfu.toFixed(2)} formula units of ${subHTML(Object.entries(comp).map(([e,n])=>e+(n/gfu===1?"":+(n/gfu).toFixed(3))).join(""))}); ΔH<sub>f</sub> =
     <span class="mono">${D.E_pfu.toFixed(3)}</span> eV/f.u.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
-    = <span class="mono">${efTxt}</span> eV/atom, against same-theory elemental references:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
+    = <span class="mono">${efTxt}</span> eV/atom, against elemental references of the same footing (same functional, hybrid base, SOC and PAW potential):<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
     <b>Decomposition energy</b> (${D.kind}) = ΔH<sub>f</sub><sup>f.u.</sup> − ${pre}Σ c·ΔH<sub>f</sub>(binary) + k<sub>B</sub>T·Σ<sub>sublattice</sub> n·Σ f ln f
     = ${D.E_pfu.toFixed(3)} − (${(D.sum*(D.pre||1)).toFixed(3)}) + (${(D.S||0).toFixed(3)})
-    = <span class="mono">${(D.d0 + (D.S||0)).toFixed(3)}</span> eV/f.u., over <b>all ${D.terms.length}</b>
-    competing phases:<br>&nbsp;&nbsp;${rows}${sTermsHTML}<br>
+    = <span class="mono">${(D.d0 + (D.S||0)).toFixed(3)}</span> eV/f.u., against the optimal stoichiometric set of
+    <b>${D.terms.length}</b> phase${D.terms.length>1?"s":""} — a linear programme over every same-footing binary in this element set, elements entering at ΔH<sub>f</sub> = 0:<br>&nbsp;&nbsp;${rows}${sTermsHTML}<br>
     <b>Configurational entropy</b> −T·ΔS<sub>mix</sub> = k<sub>B</sub>T · Σ<sub>sublattice</sub> n<sub>sites</sub> · Σ f ln f
     = <span class="mono">${(D.S||0).toFixed(4)}</span> eV/f.u.${
       (D.S_terms&&D.S_terms.length)

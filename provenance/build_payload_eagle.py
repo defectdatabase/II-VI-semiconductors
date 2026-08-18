@@ -312,14 +312,330 @@ def run_mode(incar_text):
         return "static"
     return "relax-cell" if isif >= 3 else "relax-ions"
 
+
+# ---------------------------------------------------------------- run footing (the INCAR is the truth)
+# The theory label on a row comes from the directory tree; the archived INCAR is what actually ran.
+# Audit 2026-08-17 over every bulk run record: 55 "PBEsol"-labelled runs are HSE, 39 "HSE" runs
+# are PBEsol, and the HSE tree itself mixes HSE06 (PBE base, mostly ENCUT 400) with HSEsol
+# (PBEsol base) whose total energies sit ~0.2 eV/atom apart; build_all took the lowest-energy
+# variant per compound AND per element regardless of footing, which is how Na2Sr1Sn1Te4 got a
+# +2252 eV/f.u. decomposition energy, Na2Cd1Sn1Se4 -116, and the CdSeTe alloys +85..+106.
+# Every energetic quantity below (formation energy, decomposition) is therefore re-derived here
+# from run records of ONE footing class -- functional, hybrid base, SOC, +U -- against elemental
+# references of that same class computed with the same PAW potential; a row whose published energy
+# cannot be traced to a run of its own class is withheld and says why.
+def foot_of(inc):
+    if isinstance(inc, (list, tuple)): inc = "\n".join(map(str, inc))
+    if isinstance(inc, dict): inc = " ".join(f"{a}={v}" for a, v in inc.items())
+    inc = inc or ""
+    def g(t):
+        m = re.search(rf"\b{t}\s*=\s*([^\s;]+)", inc, re.I)
+        return m.group(1) if m else None
+    T = lambda v: bool(v) and v.strip(".").upper().startswith("T")
+    hf, soc, u = T(g("LHFCALC")), T(g("LSORBIT")), T(g("LDAU"))
+    gga = (g("GGA") or "").upper()
+    base = "PBEsol" if gga == "PS" else ("PBE" if gga in ("", "PE") else gga)
+    if g("METAGGA"): base = g("METAGGA").upper()
+    f = ("HSE/" + base) if hf else base
+    if soc: f += "+SOC"
+    if u: f += "+U"
+    return f, g("ENCUT")
+
+LABEL_CLASSES = {"PBE": ("PBE",), "PBE+U": ("PBE+U",), "PBEsol": ("PBEsol",), "PBEsol+U": ("PBEsol+U",),
+                 "HSE": ("HSE/PBEsol", "HSE/PBE"), "HSE+SOC": ("HSE/PBEsol+SOC", "HSE/PBE+SOC"),
+                 "HSE+U": ("HSE/PBE+U", "HSE/PBEsol+U")}
+CLASS_LABEL = {"PBE": "PBE", "PBEsol": "PBEsol", "PBE+U": "PBE+U", "PBEsol+U": "PBEsol+U",
+               "HSE/PBE": "HSE06 (PBE base)", "HSE/PBEsol": "HSE06 (PBEsol base)",
+               "HSE/PBEsol+SOC": "HSE+SOC (PBEsol base)", "HSE/PBE+SOC": "HSE+SOC (PBE base)",
+               "HSE/PBE+U": "HSE+U (PBE base)", "HSE/PBEsol+U": "HSE+U (PBEsol base)"}
+def class_label(c): return CLASS_LABEL.get(c, c)
+def _potsym(p):                     # 'PAW_PBE Na_pv 19Sep2006' -> ('Na', 'Na_pv')
+    parts = str(p).split()
+    if len(parts) < 2: return None, None
+    return parts[1].split("_")[0], parts[1]
+
+RUNS = {}          # (theory label, compound) -> [ {F, nat, fpa, cls, enc, var, pot} ]
+for (_th, _cn), _lst in steps.items():
+    _seen, _out = set(), []
+    for _d in _lst:
+        if _d.get("F") is None: continue
+        _v = _d.get("variant") or ""
+        if _v in _seen: continue
+        _seen.add(_v)
+        _m = re.match(r"(\d+)_atoms", _v)
+        _nat = int(_m.group(1)) if _m else None
+        _cls, _enc = foot_of(_d.get("incar"))
+        _Es = [s.get("E") for s in (_d.get("steps") or []) if s.get("E") is not None]
+        _out.append({"F": _d["F"], "nat": _nat, "fpa": (_d["F"] / _nat if _nat else None),
+                     "cls": _cls, "enc": _enc, "var": _v, "pot": list(_d.get("potcar") or []),
+                     "emin": (min(_Es) if _Es else None), "nsteps": len(_Es)})
+    RUNS[(_th, _cn)] = _out
+
+EREF = {}          # cls -> PAW symbol ('Na_pv') -> {"mu", "enc", "var", "el"}
+for (_th, _cn), _lst in RUNS.items():
+    if not re.fullmatch(r"[A-Z][a-z]?", _cn): continue
+    for _x in _lst:
+        if _x["fpa"] is None or not (-20.0 < _x["fpa"] < 0.0): continue      # diverged / broken
+        if _x["emin"] is not None and (_x["F"] - _x["emin"]) / _x["nat"] > 0.05: continue
+        _syms = [_potsym(p)[1] for p in _x["pot"]]
+        _sym = next((s for s in _syms if s and s.split("_")[0] == _cn), None)
+        if not _sym: continue
+        _cur = EREF.setdefault(_x["cls"], {}).get(_sym)
+        if _cur is None or _x["fpa"] < _cur["mu"]:
+            EREF[_x["cls"]][_sym] = {"mu": _x["fpa"], "enc": _x["enc"], "var": _x["var"], "el": _cn}
+print("footing classes with elemental references:",
+      {c: len(v) for c, v in sorted(EREF.items())})
+
+def ref_lookup(cls, el, pots):
+    """the elemental reference of THIS class computed with the PAW this run used for `el`"""
+    table = EREF.get(cls, {})
+    for p in pots:
+        e, sym = _potsym(p)
+        if e == el and sym in table:
+            return sym, table[sym]
+    # no PAW list (or PAW not run as an element): fall back to any potential of that element,
+    # preferring the plain one; the note discloses which was used
+    for sym in sorted(table, key=lambda s: (s != el, s)):
+        if sym.split("_")[0] == el:
+            return sym, table[sym]
+    return None, None
+
+def formation_pa(cls, F, nat, comp_atoms, pots):
+    """F - sum n_i mu_i over N, all of one class; returns (Ef_pa, refs_used, missing)"""
+    used, missing, s = {}, [], 0.0
+    for el, n in comp_atoms.items():
+        if n <= 0: continue
+        sym, ref = ref_lookup(cls, el, pots)
+        if ref is None: missing.append(el); continue
+        used[el] = {"paw": sym, "mu": round(ref["mu"], 6), "encut": ref["enc"]}
+        s += n * ref["mu"]
+    if missing: return None, used, missing
+    return (F - s) / nat, used, missing
+
+_CLS_CACHE = {}
+def classify_row(theory, r):
+    k = (theory, r["compound"], r.get("F"))
+    if k not in _CLS_CACHE:
+        _CLS_CACHE[k] = _classify_row(theory, r)
+    return dict(_CLS_CACHE[k])
+
+def _classify_row(theory, r):
+    """Trace the published ground state to a run record and its footing.
+    Returns dict(cls, F, nat, enc, pots, mode, note, keep_props)."""
+    allowed = LABEL_CLASSES.get(theory, (theory,))
+    recs = RUNS.get((theory, r["compound"]), [])
+    F, nat = r.get("F"), r.get("natoms")
+    match = [x for x in recs if F is not None and abs(x["F"] - F) < 0.02]
+    if match:
+        x = match[0]
+        # a relaxation runs downhill: a final ionic step sitting more than 50 meV/atom ABOVE the
+        # run's own lowest step means the last SCF diverged (Na1Ag1Cd1Zr1Se4 HSE stannite:
+        # -281.9 -> -233.5 eV in one step, forces 2.3 eV/A) -- the published energy is not a
+        # converged total energy and nothing derived from it can be shown
+        if x["cls"] in allowed and x["emin"] is not None and nat and (F - x["emin"]) / nat > 0.05:
+            return {"cls": x["cls"], "F": F, "nat": nat, "enc": x["enc"], "pots": x["pot"] or r.get("paw") or [],
+                    "mode": "diverged", "keep_props": False,
+                    "note": (f"the final ionic step of the archived run ({F:.2f} eV) sits {(F - x['emin'])/nat:.2f} eV/atom "
+                             f"above the run's own lowest step ({x['emin']:.2f} eV): the last SCF diverged, so this "
+                             f"is not a converged total energy -- energetics and properties withheld")}
+        if x["cls"] in allowed:
+            return {"cls": x["cls"], "F": F, "nat": nat, "enc": x["enc"], "pots": x["pot"] or r.get("paw") or [],
+                    "mode": "ok", "note": None, "keep_props": True}
+        return {"cls": x["cls"], "F": F, "nat": nat, "enc": x["enc"], "pots": x["pot"],
+                "mode": "mislabelled", "keep_props": False,
+                "note": (f"the archived run behind this entry is {class_label(x['cls'])} (from its INCAR), "
+                         f"not {THEORY.get(theory, theory)}: its numbers are withheld from this level of theory")}
+    same = [x for x in recs if x["cls"] in allowed and x["nat"]]
+    if same:
+        x = min(same, key=lambda y: y["fpa"])
+        fpa_pub = (F / nat) if (F is not None and nat) else None
+        far = fpa_pub is None or abs(fpa_pub - x["fpa"]) > 0.10
+        note = (f"the published ground-state energy ({fpa_pub:+.3f} eV/atom) matches no archived "
+                f"{THEORY.get(theory, theory)} run; energetics are taken from the archived "
+                f"{class_label(x['cls'])} run '{x['var']}' ({x['fpa']:+.3f} eV/atom)"
+                if fpa_pub is not None else
+                f"no published energy; energetics from the archived {class_label(x['cls'])} run '{x['var']}'")
+        if far:
+            note += (" -- the two differ by more than 0.1 eV/atom, i.e. the published run is a different "
+                     "footing (functional/basis), so its band gap, dielectric and lattice values are withheld too")
+        return {"cls": x["cls"], "F": x["F"], "nat": x["nat"], "enc": x["enc"], "pots": x["pot"],
+                "mode": "realigned", "note": note, "keep_props": not far}
+    if recs:
+        x = recs[0]
+        return {"cls": None, "F": F, "nat": nat, "enc": None, "pots": r.get("paw") or [],
+                "mode": "withheld", "keep_props": False,
+                "note": (f"the only archived runs for this entry are {', '.join(sorted(set(class_label(y['cls']) for y in recs)))}, "
+                         f"not {THEORY.get(theory, theory)}: withheld")}
+    return {"cls": None, "F": F, "nat": nat, "enc": None, "pots": r.get("paw") or [],
+            "mode": "norecord", "keep_props": True,
+            "note": "no archived run record (INCAR/OSZICAR) exists for this entry, so its footing cannot be verified: energetics withheld"}
+
+# ---------------------------------------------------------------- binary decomposition (nanoHUB rule)
+# Decomposition into the stoichiometric set of binaries of the same footing class (the ChalcoDB /
+# nanoHUB definition): d = dH_f(host, per f.u.) - min over binary combinations of sum c*dH_f(binary)
+# + k_B T sum_sublattice n sum f ln f at 298.15 K.  The minimum is a small linear programme over
+# ALL same-class binaries in the host's element set (elements at dH = 0), never a hand-picked list;
+# every candidate's dH_f is computed from its own run record against the same-class references.
+import numpy as _np
+_KBT298 = 8.617333e-5 * 298.15
+
+def _tokens(name):
+    base = re.sub(r"_(kesterite|stannite|reference|zincblende|wurtzite|rocksalt|chalcopyrite)$", "",
+                  re.sub(r"-\d+$", "", name))
+    return [(e, float(n) if n else 1.0) for e, n in re.findall(r"([A-Z][a-z]?)([0-9.]*)", base)]
+
+def _mix_entropy(name):
+    toks = _tokens(name); terms = []; i = 0
+    while i < len(toks):
+        if abs(toks[i][1] - round(toks[i][1])) > 1e-6:      # fractional -> mixed sublattice
+            j = i; tot = 0.0
+            while j < len(toks) and abs(toks[j][1] - round(toks[j][1])) > 1e-6:
+                tot += toks[j][1]; j += 1
+                if abs(tot - round(tot)) < 1e-6 and tot > 0: break
+            grp = toks[i:j]; tot = sum(n for _, n in grp)
+            if abs(tot - round(tot)) < 1e-6 and len(grp) > 1:
+                fr = {e: n / tot for e, n in grp}
+                sfl = sum(f * _np.log(f) for f in fr.values())
+                terms.append({"sublattice": "/".join(e for e, _ in grp),
+                              "sites_per_fu": round(tot, 4),
+                              "fractions": {e: round(f, 4) for e, f in fr.items()},
+                              "sum_f_ln_f": round(float(sfl), 6),
+                              "contribution_eV": round(float(tot * _KBT298 * sfl), 6)})
+            i = j
+        else:
+            i += 1
+    return terms
+
+def _reduced(comp):
+    """{'Cd':4,'Te':4} -> (('Cd',1.0),('Te',1.0)) per formula unit"""
+    vals = [v for v in comp.values() if v > 0]
+    if all(abs(v - round(v)) < 1e-6 for v in vals):
+        g = 0
+        for v in vals: g = _np.gcd(g, int(round(v)))
+        g = g or 1
+        return tuple(sorted((e, v / g) for e, v in comp.items() if v > 0))
+    return tuple(sorted((e, v) for e, v in comp.items() if v > 0))
+
+# every same-class binary/elemental candidate, its dH per f.u. computed ONCE per class:
+# cls -> reduced composition key -> (name, dH_fu, comp_fu, variant, theory label)
+_BIN_TABLE = {}
+def _bin_table(cls):
+    if cls in _BIN_TABLE: return _BIN_TABLE[cls]
+    best = {}
+    for (th, cname), lst in RUNS.items():
+        toks = _tokens(cname)
+        comp = {}
+        for e, n in toks: comp[e] = comp.get(e, 0.0) + n
+        ce = set(comp)
+        if not ce or len(ce) > 2: continue
+        apfu = sum(comp.values())
+        for x in lst:
+            if x["cls"] != cls or not x["nat"] or x["fpa"] is None or not (-20 < x["fpa"] < 0): continue
+            if x["emin"] is not None and (x["F"] - x["emin"]) / x["nat"] > 0.05: continue   # diverged last step
+            nfu = x["nat"] / apfu
+            if abs(nfu - round(nfu)) > 1e-6: continue
+            comp_atoms = {e: n * nfu for e, n in comp.items()}
+            ef_pa, used, missing = formation_pa(cls, x["F"], x["nat"], comp_atoms, x["pot"])
+            if ef_pa is None or abs(ef_pa) > 3.5: continue
+            key = _reduced(comp)
+            dH_fu = ef_pa * sum(v for _, v in key)
+            if key not in best or dH_fu < best[key][1]:
+                best[key] = (cname, dH_fu, dict(key), x["var"], th)
+    _BIN_TABLE[cls] = best
+    return best
+
+_BIN_CACHE = {}
+def _binaries(cls, els):
+    """same-class binary (and elemental) reference phases inside the element set, dH per f.u."""
+    k = (cls, frozenset(els))
+    if k in _BIN_CACHE: return _BIN_CACHE[k]
+    out = [v for key, v in _bin_table(cls).items() if set(e for e, _ in key).issubset(els)]
+    for e in els:                                   # elemental fallback at dH = 0
+        out.append((e, 0.0, {e: 1.0}, None, None))
+    _BIN_CACHE[k] = out
+    return out
+
+def _simplex_lp(cvec, A, b):
+    """min c.x  s.t. A x = b, x >= 0. Two-phase tableau simplex with Bland's rule.
+    Sizes here are <= 6 equations x ~25 variables. Returns x or None."""
+    A = _np.asarray(A, float); b = _np.asarray(b, float); cvec = _np.asarray(cvec, float)
+    m, n = A.shape
+    neg = b < 0
+    A[neg] *= -1; b = b.copy(); b[neg] *= -1
+    T = _np.zeros((m + 1, n + m + 1))
+    T[:m, :n] = A; T[:m, n:n + m] = _np.eye(m); T[:m, -1] = b
+    T[m, :n] = -A.sum(axis=0); T[m, -1] = -b.sum()
+    basis = list(range(n, n + m))
+    def pivot(allowed):
+        for _ in range(500):
+            col = -1
+            for j in allowed:
+                if T[m, j] < -1e-10: col = j; break
+            if col < 0: return True
+            ratios = [(T[i, -1] / T[i, col], i) for i in range(m) if T[i, col] > 1e-10]
+            if not ratios: return False
+            _, row = min(ratios)
+            T[row] /= T[row, col]
+            for i in range(m + 1):
+                if i != row and abs(T[i, col]) > 1e-12: T[i] -= T[i, col] * T[row]
+            basis[row] = col
+        return False
+    if not pivot(list(range(n + m))) or T[m, -1] < -1e-7: return None
+    T[m, :] = 0.0
+    T[m, :n] = cvec
+    for i, bi in enumerate(basis):
+        if abs(T[m, bi]) > 1e-12: T[m] -= T[m, bi] * T[i]
+    if not pivot(list(range(n))): return None
+    x = _np.zeros(n + m)
+    for i, bi in enumerate(basis): x[bi] = T[i, -1]
+    if x[n:].max(initial=0.0) > 1e-7: return None
+    return x[:n]
+
+_BD_CACHE = {}
+def binary_decomp(cls, name, comp_fu, dHf_fu):
+    """comp_fu: per-f.u. composition of the host; dHf_fu: its same-class formation enthalpy per f.u."""
+    host_key = _reduced(comp_fu)
+    ck = (cls, host_key)
+    if ck in _BD_CACHE:
+        cached = _BD_CACHE[ck]
+        if cached is None: return None
+        bestv, bestmix = cached
+    else:
+        els = sorted(set(e for e, n in comp_fu.items() if n > 0))
+        cands = [c for c in _binaries(cls, set(els)) if _reduced(c[2]) != host_key]   # never itself
+        if not cands:
+            _BD_CACHE[ck] = None; return None
+        A = _np.array([[c2[2].get(e, 0.0) for c2 in cands] for e in els])
+        b = _np.array([comp_fu.get(e, 0.0) for e in els])
+        cvec = _np.array([c2[1] for c2 in cands])
+        x = _simplex_lp(cvec, A, b)
+        if x is None:
+            _BD_CACHE[ck] = None; return None
+        bestv = float(cvec @ x)
+        bestmix = [(cands[i][0], float(x[i]), cands[i][1], cands[i][3]) for i in range(len(cands)) if x[i] > 1e-9]
+        _BD_CACHE[ck] = (bestv, bestmix)
+    S_terms = _mix_entropy(name)
+    S = round(sum(t["contribution_eV"] for t in S_terms), 6)
+    d0 = round(dHf_fu - bestv, 4)
+    return {"kind": "stoichiometric binary decomposition", "E_pfu": round(dHf_fu, 4),
+            "pre": 1, "sum": round(bestv, 4), "S": S, "S_used": S, "S_terms": S_terms,
+            "d0": d0, "d": round(d0 + S, 4),
+            "terms": [{"coeff": round(c2, 4), "phase": nm, "E_pfu": round(dh, 4),
+                       "contribution": round(c2 * dh, 4), "run": var} for nm, c2, dh, var in bestmix]}
+
+
 byname = collections.defaultdict(dict)         # (theory, name) -> {ord: row}
+n_foot = {}
 dos_keys, run_keys = [], []
 n_dos = n_runs = 0
 t0 = time.time()
 
 for (theory, name, poly), members in sorted(groups.items()):
     members.sort(key=lambda t: (t[1]["F_per_atom"], t[0]))
-    key, r, _ = members[0]                     # ground state
+    # ground state = lowest energy among the members whose run is verifiably of this theory's
+    # footing; a lower-energy member from a mislabelled/other-footing run must not win
+    _okm = [m for m in members if classify_row(m[1]["theory"], m[1])["mode"] == "ok"]
+    key, r, _ = (_okm or members)[0]
     fpa = [m[1]["F_per_atom"] for m in members]
     spread = round((max(fpa) - min(fpa)) * 1000, 3) if len(fpa) > 1 else 0.0
 
@@ -346,49 +662,89 @@ for (theory, name, poly), members in sorted(groups.items()):
     if r.get("abs_E") and r.get("abs_alpha") and r.get("gap"):
         try: slme = slme_500nm(list(zip(r["abs_E"], r["abs_alpha"])), r.get("gap"))
         except Exception: slme = None
-    # decomposition, term by term, in per-f.u. formation enthalpies (exactly consistent with
-    # the published number: edec_fu = dHf_fu(host) - sum coeff * dHf_fu(phase))
+    # ---- energetics, re-derived within one footing class (see "run footing" above) ----------
     dterms = None
-    if edec_fu is not None and r.get("decomp_terms"):
-        A = r["natoms"] / nfu
-        tl = []
-        oksum = 0.0
-        for t in r["decomp_terms"]:
-            if t.get("w", 0) <= 1e-9:
-                continue   # zero-weight member of the tie-line: not part of the decomposition
-            pc = fu_lookup(r["theory"], t["name"])
-            coeff = t["w"] * A / pc["atoms"]
-            E_pfu = t["dH_pa"] * pc["atoms"]
-            tl.append({"coeff": round(coeff, 4), "phase": t["name"],
-                       "E_pfu": round(E_pfu, 4), "contribution": round(coeff*E_pfu, 4)})
-            oksum += coeff*E_pfu
-        host_dHf_fu = r["Ef_per_atom"] * A if r.get("Ef_per_atom") is not None else None
-        if host_dHf_fu is not None:
-            dterms = {"kind": "stoichiometric mix", "E_pfu": round(host_dHf_fu, 4),
-                      "pre": 1, "sum": round(oksum, 4), "S": 0.0,
-                      "d0": round(host_dHf_fu - oksum, 4), "terms": tl}
+    ef_pa = None
+    fc = classify_row(r["theory"], r)
+    Fe, nate = fc["F"], fc["nat"]
+    comp_atoms = None
+    if comp and nate:
+        toks = _tokens(r["compound"])
+        tsum = sum(n for _, n in toks)
+        if toks and tsum > 0 and abs(nate / tsum - round(nate / tsum)) < 1e-6:
+            scale = nate / tsum
+            comp_atoms = {}
+            for e, n in toks: comp_atoms[e] = comp_atoms.get(e, 0.0) + n * scale
+        elif fc["mode"] == "ok":
+            comp_atoms = dict(comp)
+    en_note = fc["note"]
+    refs_used = {}
+    if fc["cls"] and Fe is not None and nate and comp_atoms and fc["mode"] != "diverged":
+        ef_pa, refs_used, missing = formation_pa(fc["cls"], Fe, nate, comp_atoms, fc["pots"])
+        if missing:
+            en_note = ((en_note + "; ") if en_note else "") + \
+                f"no {class_label(fc['cls'])} elemental reference for {', '.join(missing)}: formation energy withheld"
+        elif Fe / nate > 0 or abs(ef_pa) > 3.5:
+            en_note = ((en_note + "; ") if en_note else "") + \
+                f"the run energy is not physical ({Fe/nate:+.2f} eV/atom, formation energy {ef_pa:+.2f} eV/atom): diverged or broken run, everything withheld"
+            ef_pa = None; fc["keep_props"] = False
+    if ef_pa is not None:
+        # formula unit = the name's stoichiometry, gcd-reduced when integral (Cd108Se27Te81 -> Cd4SeTe3);
+        # fractional (alloy) names keep their own unit so the mixing-entropy term is per the same f.u.
+        _tk = _tokens(r["compound"])
+        _g = 1
+        if _tk and all(abs(n - round(n)) < 1e-6 for _, n in _tk):
+            _g = 0
+            for _, n in _tk: _g = math.gcd(_g, int(round(n)))
+            _g = _g or 1
+        comp_fu = {}
+        for e, n in _tk: comp_fu[e] = comp_fu.get(e, 0.0) + n / _g
+        n_fu_atoms = sum(comp_fu.values()) or 1
+        if len([e for e, n in comp_fu.items() if n > 0]) >= 2:
+            dterms = binary_decomp(fc["cls"], r["compound"], comp_fu, ef_pa * n_fu_atoms)
+            if dterms is None:
+                en_note = ((en_note + "; ") if en_note else "") + \
+                    f"no same-footing binary/elemental set could be assembled for the decomposition"
+        else:
+            dterms = None                    # an element: nothing to decompose into
+    edec_fu = dterms["d"] if dterms else None
+    foot_info = {"class": fc["cls"], "label": class_label(fc["cls"]) if fc["cls"] else None,
+                 "encut": fc["enc"], "mode": fc["mode"], "refs": refs_used}
+    if dterms is not None:
+        dterms["footing"] = foot_info
+    elif en_note or fc["mode"] != "ok":
+        dterms = {"withheld": en_note or "energetics not derivable", "footing": foot_info}
+    elif ef_pa is not None:
+        dterms = {"footing": foot_info}       # an element or a host with nothing to decompose into
+    if en_note and "terms" in (dterms or {}):
+        dterms["note"] = en_note
+    if not fc["keep_props"]:
+        eps3, eps_avg, slme = None, None, None
+        dr = None                            # a DOS from a run of another footing is not this row's
+    n_foot[fc["mode"]] = n_foot.get(fc["mode"], 0) + 1
+
 
     row = [
-        r.get("Ef_per_atom"),                                   # 0 formation energy, eV/atom
+        (round(ef_pa, 6) if ef_pa is not None else None),      # 0 formation energy, eV/atom (same-footing)
         edec_fu,                                                # 1 decomposition energy, eV/f.u.
-        r.get("gap"),                                           # 2 band gap
+        r.get("gap") if fc["keep_props"] else None,             # 2 band gap
         r.get("eps_avg"),                                       # 3 dielectric constant
         None,                                                   # 4 SLME -- see note below
-        r.get("F"),                                             # 5 total energy
-        r.get("natoms"),                                        # 6 atoms in the cell
-        "",                                                     # 7 (reserved, shipped empty)
-        [round(r[k], 4) for k in ("a", "b", "c")] if r.get("a") else None,   # 8 lattice
-        None,                                                   # 9 entropy term
+        Fe,                                                     # 5 total energy of the run the energetics use
+        nate,                                                   # 6 atoms in that cell
+        (foot_info["label"] or ""),                             # 7 footing class -> REFS key
+        [round(r[k], 4) for k in ("a", "b", "c")] if (r.get("a") and fc["keep_props"]) else None,   # 8 lattice
+        (dterms.get("S") if dterms else None),                  # 9 ideal-mixing entropy, eV/f.u.
         fmax,                                                   # 10 final max force
-        r.get("vbm"),                                           # 11
-        r.get("cbm"),                                           # 12
+        r.get("vbm") if fc["keep_props"] else None,             # 11
+        r.get("cbm") if fc["keep_props"] else None,             # 12
         eps3,                                                   # 13 dielectric tensor
         None,                                                   # 14 SLME(thickness)
-        r.get("direct"),                                        # 15 direct gap?
+        r.get("direct") if fc["keep_props"] else None,          # 15 direct gap?
         r.get("eps_source"),                                    # 16 where eps came from
         r.get("kmesh"),                                         # 17
-        [round(r[k], 2) for k in ("alpha", "beta", "gamma")] if r.get("alpha") else None,  # 18
-        r.get("decomposes_to"),                                 # 19 the phases it decomposes to
+        [round(r[k], 2) for k in ("alpha", "beta", "gamma")] if (r.get("alpha") and fc["keep_props"]) else None,  # 18
+        ([t["phase"] for t in dterms["terms"]] if (dterms and dterms.get("terms")) else None),   # 19 phases it decomposes to
         len(members),                                           # 20 configurations merged
         spread,                                                 # 21 spread across them, meV/atom
         r.get("paw"),                                           # 22 PAW potentials
@@ -419,13 +775,59 @@ for (theory, name, poly), members in sorted(groups.items()):
                          "reached_required_accuracy": st.get("reached_required_accuracy")})
         run_keys.append(sk)
         n_runs += 1
-    if r.get("abs_E") and r.get("abs_alpha"):
+    if r.get("abs_E") and r.get("abs_alpha") and fc["keep_props"]:
         # alpha(E) as [E, alpha] pairs, which is the shape the detail panel already reads
         optics[sk] = {"abs": [[e, a] for e, a in zip(r["abs_E"], r["abs_alpha"])],
                       "slme": ([[0.5, slme]] if slme is not None else None),
                       "eps": eps3, "source": r.get("alpha_source")}
 
 print(f"tars written in {time.time() - t0:.0f}s")
+print("row footing modes:", n_foot)
+
+# ---- cross-check gate: a formation energy is a property of the structure, and between PBEsol and
+# a hybrid built on it (or PBE) it moves by tens of meV/atom (this library: median 0.064, p99 0.42
+# eV/atom over 12,640 pairs). An ordering whose same-footing E_f sits > 0.5 eV/atom from the PBEsol
+# value of the SAME compound and ordering, or > 0.3 eV/atom (total energy) above the other
+# ordering of the same compound at the same theory, is an unconverged/broken run (K2Ba1Ge1S2Te2
+# HSE kesterite: -3.07 vs -4.71 eV/atom for its stannite, PBEsol -4.04 for both) -- withheld, with
+# both numbers quoted, rather than published as a +13 eV/f.u. decomposition energy.
+def _withhold(v, why):
+    foot = (v[27] or {}).get("footing") if len(v) > 27 and isinstance(v[27], dict) else None
+    v[27] = {"withheld": why, "footing": foot}
+    for i in (0, 1, 2, 3, 4, 8, 9, 11, 12, 13, 14, 15, 18, 19):
+        v[i] = None
+n_x = {"vs_pbesol": 0, "vs_ordering": 0}
+for (theory, name), ords in byname.items():          # pass 1: against PBEsol, same structure
+    if theory == "PBEsol": continue
+    for o, v in ords.items():
+        if v[0] is None: continue
+        pv = byname.get(("PBEsol", name), {}).get(o)
+        if pv is not None and pv[0] is not None and abs(v[0] - pv[0]) > 0.5:
+            _withhold(v, (f"the same-footing formation energy here ({v[0]:+.3f} eV/atom) differs from the PBEsol "
+                          f"value for the same compound and ordering ({pv[0]:+.3f} eV/atom) by "
+                          f"{abs(v[0]-pv[0]):.2f} eV/atom; across this library that difference is 0.06 eV/atom "
+                          f"(median) and 0.42 (99th percentile), so this run is not converged -- withheld"))
+            n_x["vs_pbesol"] += 1
+for (theory, name), ords in byname.items():          # pass 2: against the other, still-valid orderings
+    for o, v in ords.items():
+        if v[0] is None: continue
+        if len(ords) > 1 and v[5] is not None and v[6]:
+            others = [w[5] / w[6] for oo, w in ords.items() if oo != o and w[0] is not None and w[5] is not None and w[6]]
+            if others and (v[5] / v[6]) - min(others) > 0.3:
+                _withhold(v, (f"this ordering's total energy ({v[5]/v[6]:.3f} eV/atom) sits "
+                              f"{(v[5]/v[6]) - min(others):.2f} eV/atom above the other ordering of the same compound "
+                              f"at this theory ({min(others):.3f} eV/atom); cation orderings differ by tens of meV/atom "
+                              f"in every converged case, so this run is not converged -- withheld"))
+                n_x["vs_ordering"] += 1
+print("cross-check gate withheld:", n_x)
+# their optics/DOS entries go with them
+_gone = set()
+for (theory, name), ords in byname.items():
+    for o, v in ords.items():
+        if len(v) > 27 and isinstance(v[27], dict) and v[27].get("withheld") and v[2] is None:
+            _gone.add(struct_key(name, theory, o))
+optics = {k: x for k, x in optics.items() if k not in _gone}
+dos_keys = [k for k in dos_keys if k not in _gone]
 
 for (theory, name), ords in sorted(byname.items()):
     # the published polymorph is the most stable one that HAS a formation energy
@@ -484,10 +886,25 @@ for r in dd:
     e = {}
     corr = {}
     dos_by_q = {}
+    # Per-charge-state settings gate. build_all gates on the NEUTRAL dE/atom only; ZnTe HSE+SOC
+    # Vac_Te had a sane neutral run and charged runs 160 eV off it (different reference /
+    # settings), which published Ef@VBM = 159.5 eV. A charge state whose dE differs from the
+    # neutral by more than 15 eV cannot be the same calculation; withhold it with a reason.
+    dE_neu = None
+    for v0 in (r.get("vertices") or {}).values():
+        for c0 in (v0.get("charges") or {}).values():
+            if c0.get("q") == 0 and c0.get("dE") is not None:
+                dE_neu = c0["dE"]
     for vname, v in (r.get("vertices") or {}).items():
         ch = {}
         for cname, c in (v.get("charges") or {}).items():
             q = str(c["q"])
+            if dE_neu is not None and c.get("dE") is not None and c.get("q") != 0 \
+               and abs(c["dE"] - dE_neu) > 15.0 and c.get("Ef_VBM") is not None:
+                c = dict(c)
+                c["Ef_VBM"] = None; c["Ef_CBM"] = None
+                c["note"] = (f"charge state {q} is {c['dE']-dE_neu:+.1f} eV off the neutral run "
+                             "-- not the same calculation settings; withheld")
             ch[q] = {"dE": c.get("dE"), "vbm": c.get("Ef_VBM"), "cbm": c.get("Ef_CBM"),
                      "note": c.get("note"),
                      # every term behind Ef, so the panel can show the arithmetic instead of
@@ -532,6 +949,15 @@ cp = json.load(open(f"{LOG}/chempot.json"))
 refs = {}
 for th, o in cp.items():
     refs[THEORY.get(th, th)] = {"el": o.get("mu0", {}), "bin": {}}
+# one reference set per footing class (keyed by the label the row carries in v[7]); the mu shown
+# per element is the plain-PAW one where several PAWs exist, and the row's own breakdown lists the
+# exact PAW/mu pair it used
+for _cls, _tab in EREF.items():
+    _el = {}
+    for _sym, _ref in sorted(_tab.items(), key=lambda kv: (kv[1]["el"], kv[0] != kv[1]["el"], kv[0])):
+        _el.setdefault(_ref["el"], round(_ref["mu"], 6))
+    refs[class_label(_cls)] = {"el": _el, "bin": {}, "paw_mu": {s: round(x["mu"], 6) for s, x in _tab.items()},
+                               "class": _cls}
 
 # gen_traj.py (bulk) and gen_traj_defect.py (defect) run separately and write sharded
 # trajkeys_*.json / dtrajkeys_*.json -- merge them here so "trajKeys: []" never ships again
