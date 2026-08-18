@@ -115,3 +115,9 @@ Two distinct bugs, both fixed and shipped:
   arrays, cancelled by me and resubmitted.)
 - Harvest plan unchanged: dos_vasprun-style extraction of DOSCAR/vasprun -> dos_defect /
   dos_bulk jsonls in log/ -> site_build.sh on Eagle. Do not harvest until volume is meaningful.
+
+### DFT status 2026-08-17 22:30 (Gautschi; ALCF still unreachable)
+- Defect statics (`ddos_runs`, 4,995): **4 done** (Ag1Al0.5Ga0.5Se2 Vac_Ag q=+2/+1/−1/−2, 28–43 min each on 128 cores), 5 array slices pending on cpu-standby behind the account CPU cap (user's `chg_g` arrays, 40 pending).
+- Bulk HSE06 PDOS (`pdos_runs`, 1,897): **4 done** (Ag2Ba0.5Zn0.5Ge1Se4, Ag2Ba0.5Cd0.5Ge1Te4, Ag2Ba0.5Cd0.5Zr1Se4, Ag2Ba0.5Cd0.5Sn1S4; 2.5–3.5 h each on highmem), 2 slices pending on cpu-standby.
+- highmem feeder rewritten (`/scratch/gautschi/rahma103/hm_feed.sh`): the old scron copy sat PENDING on the same account cap and never fired; the partition rejects <96 cores and `highmem-qpart` allows 384 CPUs/user → feeder now keeps **4 × 96-core jobs** (alternating defect static / bulk PDOS) in highmem, breaks on sbatch failure (an infinite loop on a rejected sbatch was caught and fixed), runs from a login-node loop every 15 min (`login02`, pid 3383874) with the scron kept as backup. Both array scripts now use `mpirun -np ${SLURM_NTASKS:-128}`. First four highmem jobs submitted 22:28 (15331282–85). Log: `ddos_runs/logs/hm_feed.log`.
+- Failure accounting today: 12 FAILED + 3 CANCELLED = pre-login-shell-fix `pdos_b` slices only; 0 post-fix failures. `mhf_leps_*` TIMEOUT/OOM jobs are the user's own dielectric runs, not the DOS campaign.
