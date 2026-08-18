@@ -648,6 +648,7 @@ body{letter-spacing:-.006em}
 
 <script>
 let DEFECTS=[], COMPOUNDS=[], REFS={}, HAVE_STRUCT=new Set(), HAVE_TRAJ=new Set(), HAVE_DOS=new Set(), HAVE_RUN=new Set();
+let ML_ROWS=null, ML_P=null;   // RF-screened A2BCX4/ABX2 space, lazy-loaded when theory "ML" is picked
 let plotlyP=null;
 let OPTICS=null, opticsP=null;
 let CHEMPOT=null, chempotP=null;
@@ -664,6 +665,27 @@ function loadChempot(){
     return CHEMPOT;
   })();
   return chempotP;
+}
+function loadML(){                          // ~half-million RF-screened rows, fetched once on demand
+  if(!ML_P) ML_P=(async()=>{
+    try{
+      const r=await fetch("data/mlscreen.json.gz");
+      if(r.ok&&typeof DecompressionStream!=="undefined"){
+        const ds=new DecompressionStream("gzip");
+        const D=JSON.parse(await new Response(r.body.pipeThrough(ds)).text());
+        ML_ROWS=D.rows.map(rec=>{
+          const v=Array(28).fill(null);
+          v[2]=rec[1]; v[3]=rec[2]; v[4]=rec[3]; v[7]="ML";
+          v[27]={ml:1};   // lattice/Ef/decomp deliberately blank: they come from the MLFF campaign, not the RF
+          return {n:rec[0], f:"ML", b:"kesterite", o:{kesterite:v}};
+        });
+      }
+    }catch(e){ ML_ROWS=[]; }
+    if(!ML_ROWS) ML_ROWS=[];
+    cApplyFilters();
+    return ML_ROWS;
+  })();
+  return ML_P;
 }
 function loadOptics(){                       // 0.7 MB gzipped, fetched only when a modal needs it
   if(!opticsP) opticsP=(async()=>{
@@ -1366,7 +1388,8 @@ function cFillSelects(){
   });
   const opt=(val,text,n)=>`<option value="${val}">${text}${n?` (${n.toLocaleString()})`:""}</option>`;
   document.getElementById("c-theory").innerHTML=opt("","All levels of theory",0)+
-    Object.keys(nTh).sort().map(t=>opt(t,t,nTh[t])).join("");
+    Object.keys(nTh).sort().map(t=>opt(t,t,nTh[t])).join("")+
+    opt("ML","ML — RF-screened A2BCX4 / ABX2 space (644,112)");
   document.getElementById("c-mode").innerHTML=opt("","All calculation types",0)+
     Object.keys(CMODE_LABEL).filter(m=>nMode[m]).map(m=>opt(m,CMODE_LABEL[m],nMode[m])).join("")+
     (Object.values(nMode).reduce((a,b)=>a+b,0)<COMPOUNDS.length
@@ -1471,7 +1494,10 @@ function cApplyFilters(){
   const binf=stepb?CSTEP_BINS.find(([id])=>id===stepb)[2]:null;
   const hasf=has?CHAS.find(([id])=>id===has)[2]:null;
   const cQEls=q?queryEls(q):null;
-  cFiltered=COMPOUNDS.filter(r=>{
+  if(th==="ML"&&!ML_ROWS){ loadML(); cFiltered=[]; cRenderHead(); cRenderRows(); cRenderMeta();
+    document.getElementById("cfoot").innerHTML='<span class="spin"></span> Loading the RF-screened composition space (~13 MB, one-time)…'; return; }
+  const SRC=(th==="ML")?ML_ROWS:COMPOUNDS;
+  cFiltered=SRC.filter(r=>{
     const v=r.o[r.b];
     if(th&&r.f!==th)return false;
     if(stable&&!(v[1]!==null&&v[1]<=0))return false;
@@ -2864,6 +2890,16 @@ function provenanceHTML(r,ord){
   }
 }
 function provenanceBody(r,ord){
+  const _v=r.o[ord];
+  if(_v&&_v[27]&&_v[27].ml) return `<b>Machine-learned prediction — no DFT run exists for this row (yet).</b><br>
+    Band gap, dielectric constant and SLME are predicted by a random-forest model on composition
+    features, trained fresh (2026-08-18) on this library's 6,709 HSE+SOC kesterite/stannite DFT rows.
+    5-fold cross-validation on that training set: band gap MAE 0.25 eV (R² 0.78) · ε MAE 0.70 (R² 0.65)
+    · SLME MAE 2.5 points (R² 0.83) · a MAE 0.44 Å (R² 0.63) · c MAE 0.36 Å (R² 0.80).
+    Lattice parameters, formation energy, decomposition energy and the relaxed
+    structure/trajectory for these compositions come from the MLFF (EquFlash-class) relaxation
+    campaign as it lands — never from the RF, whose training cells mix supercell conventions.
+    Predictions assume the kesterite ordering.`;
   const th = r.f;
   const v = r.o[ord]; const F = v[5], nat = v[6];
   if(r.ref){
