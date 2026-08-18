@@ -121,3 +121,72 @@ Two distinct bugs, both fixed and shipped:
 - Bulk HSE06 PDOS (`pdos_runs`, 1,897): **4 done** (Ag2Ba0.5Zn0.5Ge1Se4, Ag2Ba0.5Cd0.5Ge1Te4, Ag2Ba0.5Cd0.5Zr1Se4, Ag2Ba0.5Cd0.5Sn1S4; 2.5–3.5 h each on highmem), 2 slices pending on cpu-standby.
 - highmem feeder rewritten (`/scratch/gautschi/rahma103/hm_feed.sh`): the old scron copy sat PENDING on the same account cap and never fired; the partition rejects <96 cores and `highmem-qpart` allows 384 CPUs/user → feeder now keeps **4 × 96-core jobs** (alternating defect static / bulk PDOS) in highmem, breaks on sbatch failure (an infinite loop on a rejected sbatch was caught and fixed), runs from a login-node loop every 15 min (`login02`, pid 3383874) with the scron kept as backup. Both array scripts now use `mpirun -np ${SLURM_NTASKS:-128}`. First four highmem jobs submitted 22:28 (15331282–85). Log: `ddos_runs/logs/hm_feed.log`.
 - Failure accounting today: 12 FAILED + 3 CANCELLED = pre-login-shell-fix `pdos_b` slices only; 0 post-fix failures. `mhf_leps_*` TIMEOUT/OOM jobs are the user's own dielectric runs, not the DOS campaign.
+
+## 2026-08-18 — bulk energetics re-derived per run footing; the ±100/+2252 eV/f.u. decomposition energies were mixed-footing artefacts
+
+**Report:** "some compound has decomp ~2000, some ~100, some −100". Whole-library machine audit
+(`provenance/footing_audit.py`, run over every bulk run record) found three mechanisms, none of them
+a formula problem:
+
+1. **The theory label is a directory name; the INCAR is what ran.** 55 "PBEsol"-labelled runs are
+   HSE (LHFCALC=.TRUE.), 39 "HSE" runs are plain PBEsol, and the HSE tree itself mixes HSE06 built on
+   PBE (3,842 records, mostly ENCUT 400) with HSEsol built on PBEsol (5,827 records, ENCUT default) —
+   total energies ~0.2 eV/atom apart. `build_all.py` took the lowest-energy variant per compound AND
+   per element regardless of footing (PBEsol|CdTe's ground state was an 8-atom run at −3.258 eV/atom
+   that matches no PBEsol record and is 3 meV from the HSEsol value; the CdSeTe alloys sat on a
+   PBEsol footing and were compared with it → +85..+106 eV/f.u.).
+2. **Diverged final SCF steps published as total energies:** Na2Sr1Sn1Te4 HSE kesterite F = +4437 eV
+   (last step 372 eV/atom above the run's own minimum), Na2Cd1Sn1Se4 HSE kesterite −18.8 eV/atom,
+   Na1Ag1Cd1Zr1Se4 HSE stannite −281.9 → −233.5 eV in one ionic step with 2.3 eV/Å forces.
+3. **"Formula unit" = the literal name** (Cd108Se27Te81 = 216 atoms), so a 0.02 eV/atom number
+   printed as 4 eV/f.u.
+
+**Fix (payload builder `build_payload_gautschi.py` = repo `provenance/build_payload_eagle.py`, live
+build e13c38ab1a17):**
+- Every run record is classified from its INCAR into a footing class (functional, hybrid base, SOC,
+  +U): PBE, PBEsol, HSE06 (PBE base), HSE06 (PBEsol base), HSE+SOC (PBEsol base), PBE+U.
+- Elemental references are built per class **and per PAW potential** from the element run records
+  (`EREF[class][Na_pv]`), min F/atom, diverged/positive runs excluded; the row's E_f uses the
+  reference computed with the PAW the row's own POTCAR list names. Classes with references:
+  HSE/PBE 86, HSE/PBEsol 21, HSE/PBEsol+SOC 49, PBE 86, PBEsol 87.
+- A row's published energy is traced to a run record (|ΔF| < 0.02 eV): matched-ok 20,191; realigned
+  28 (published F matches no same-class run → energetics from the archived same-class run, properties
+  withheld when the two differ by > 0.1 eV/atom, e.g. PBEsol CdTe now from `216_atoms-2`, −0.379
+  eV/atom); mislabelled 4 (Ca/Cu/Zn "HSE" and Zn "HSE+SOC" are PBEsol/HSEsol runs → withheld);
+  diverged 7 (final step > 50 meV/atom above the run's minimum → withheld); no record 2.
+- Decomposition = LP over every same-class binary + elements (nanoHUB rule), each binary's ΔH_f
+  from its own record against the same-class references; the host's own composition is excluded;
+  formula unit = name stoichiometry gcd-reduced when integral (Cd108Se27Te81 → Cd4SeTe3), fractional
+  alloy names keep their unit so the k_BT Σ f ln f term is per the same f.u.
+- Cross-check gate after the loop: E_f differing from the PBEsol value of the same compound+ordering
+  by > 0.5 eV/atom (library median 0.064, p99 0.42 over 12,640 pairs) → withheld (75); an ordering
+  > 0.3 eV/atom above the other still-valid ordering at the same theory → withheld (124).
+- Payload: v[0] E_f, v[1] d, v[7] = footing label (REFS key), v[27] carries footing/refs/terms (each
+  term names its archived run) or `withheld` + reason; refs gain one set per class. Template: uses
+  `REFS[v[7]]`, shows the footing on the "Level of theory" line, a withheld-reason notebox, PAW +
+  ENCUT per reference, gcd f.u.
+
+**Result:** decomposition |d| ≥ 10 eV/f.u.: 1 → 5 (all physical: P2O5/As2O5/In2O3 −17..−10 = ΔH_f
+per f.u. vs elements, TeN2Cl6 +11 with E_f +0.9); ≥ 3: 617 → 499; E_f coverage 20,017 / 20,232
+rows, decomposition 19,712; 226 rows withheld with the reason on the panel. Independent recompute
+(Cu2ZnSnS4 PBEsol kesterite from raw records: E_f −0.479, d −0.483) = published. Live 10/10 on the
+ten named rows (Na2Sr1Sn1Te4/K2Ba1Ge1S2Te2/Na1Ag1Cd1Zr1Se4 HSE withheld with reasons; Cd108Se27Te81
+PBEsol −0.41 / +0.09; CdTe PBEsol −0.38 / −0.76; Cs2SrZrTe4 +5.71 in both PBEsol and HSE+SOC).
+
+**Must move upstream when ALCF is back:** `build_all.py` must (a) label theory from the INCAR, not
+the directory, (b) pick the ground state and the elemental refs within one footing class and PAW,
+(c) drop diverged final steps — the same rules now in `provenance/build_payload_eagle.py`. Until then
+`chempot.json` mu0 for HSE (used by the defect side) is still the mixed-footing minimum; the defect
+settings gate (|ΔE|/atom > 0.05 host vs defect) limits, but does not remove, that exposure.
+
+### Mistakes & corrections log
+**2026-08-18 — I published formation/decomposition energies without checking that every term was on
+one footing.** WHAT I DID WRONG: took `Ef_per_atom`/`E_decomp` from `derived_bulk.json` and built the
+binary LP over "same theory" rows, where "theory" was a directory label. WHY IT WAS WRONG (his
+report): decomposition energies of ~2000, ~100 and −100 eV/f.u. on the live site — energies from HSE
+runs, HSEsol runs, PBEsol runs and diverged SCFs were being subtracted from each other. THE GUARD:
+`provenance/footing_audit.py` — classify every run from its INCAR, cross-tabulate against the label,
+trace every published F to a record, and print the |Ef − Ef_PBEsol| distribution; a build ships
+only if the audit's mislabelled/diverged/unmatched counts equal the withheld counts in the payload
+log. WHERE THE GUARD NOW LIVES: `build_payload_eagle.py` (classify_row, EREF, cross-check gate,
+"row footing modes" line) and this section.
