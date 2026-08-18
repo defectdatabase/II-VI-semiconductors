@@ -518,3 +518,16 @@ systematic audit is owed).
   on success). Smoke job 11539819 submitted (a100-40gb, standby QoS + partition BOTH required on
   Gilbreth sbatch, 1 GPU, --requeue, waits for the env marker before training). Purpose: validate
   the full pipeline so the real fine-tune starts the moment Eagle's trajectories land.
+
+## 2026-08-18 (evening) — status sweep + second binary harvest live
+- hse_GeTe2 relax TIMEOUT at its 12 h wall (HSE 48-atom, ~35 ionic steps) → restarted from
+  CONTCAR with 24 h as 15347699 (relax + chained SOC static in one job); the login-node watcher
+  for its SOC chain was retired (no longer needed, verified gone on login01-06 with a
+  non-self-matching pkill pattern — plain `pkill -f binph2` matches its own ssh command).
+- Harvested PBEsol GeTe2 (ZBRENT restart converged, 18 steps) + HSE+SOC SnTe2 (chained static):
+  +1,427 decomposition energies live (commit 89e96f641; 0 regressions, gap/eps/SLME untouched;
+  verified 10/10 — Ag2Ba0.5Cd0.5SnTe4 HSE+SOC stannite d=0.2793, anchor unchanged, Cu rows still
+  correctly pending Cu2S/Cu2Se which are ~5 h into their 24 h HSE+SOC statics).
+- TACE: env built (torch 2.13.0+cu126), smoke job 11539819 still pending on a100-40gb standby;
+  corpus synced to Gilbreth at 94 runs.
+- DOS campaigns: ddos 89/4,996, pdos 13/1,898.
