@@ -2848,9 +2848,11 @@ function opticsHTML(v,key){
 }
 function gapSourceNote(v){
   const D=(v.length>27&&v[27]&&typeof v[27]==="object")?v[27]:null;
-  return (D&&D.gap_source)
-    ? `<div class="notebox">Band gap and SLME for this row come from the released dataset of the source paper (${D.gap_source}): this run's archived EIGENVAL/NELECT band counting gave an inconsistent gap, so the locally derived VBM/CBM are withheld.</div>`
-    : "";
+  if(!D) return "";
+  let out="";
+  if(D.gap_source) out+=`<div class="notebox">Band gap for this row comes from the released dataset of the source paper (${D.gap_source}): this run's archived EIGENVAL/NELECT band counting gave an inconsistent gap, so the locally derived VBM/CBM are withheld.</div>`;
+  if(D.slme_source) out+=`<div class="notebox">SLME is ${D.slme_source}.</div>`;
+  return out;
 }
 // Four separate crashes inside this render have blanked the whole breakdown today. The panel is
 // assembled from independent blocks, so one failing block should cost that block, not the page.
