@@ -333,3 +333,33 @@ against occupation-resolved band edges; SOC doubles bands — suspected NELECT/2
 any theory without a release reference (PBEsol/HSE06/PBE gaps from the same extractor are suspect
 where no cross-check exists; PBEsol/HSE06 gaps DID pass earlier anchor spot-checks, but a
 systematic audit is owed).
+
+## 2026-08-18 — first binary-DFT harvest: +789 decomposition energies live
+- Gautschi bin_runs status: binq (15335917) FAILED because its final `sbatch soc_Cu2Se` hit the
+  QOS 8-submit cap (the 4 quick runs before it completed); pbesol_GeTe2 died separately on a
+  ZBRENT bracketing error at ionic step 20 (restarted from CONTCAR); soc_Cu2S ran `vasp_std` on a
+  SOC INCAR ("non collinear calculations require..." fatal) — run_one.slurm now picks `vasp_ncl`
+  whenever the INCAR has LSORBIT, takes multiple dirs per job, and its old `[ -s done.marker ]`
+  test (always false for `touch`-created empty markers, which silently skipped every chained SOC
+  static) is now `-f`. Resubmitted: 15343176 (pbesol_GeTe2 + hse_SnTe2 soc chain), 15343177
+  (soc_Cu2S), 15343178 (soc_Cu2Se); hse_GeTe2's SOC chain is submitted by a login-node watcher
+  loop once relax 15335919 ends and a submit slot frees. soc_Cu2S/Cu2Se INCARs got LWAVE=.TRUE.
+  (restartability across the 24 h wall only; no effect on the energy).
+- Harvested the 5 finished binaries (PBE ZnS/CdS/In2S3, PBEsol SnTe2, HSE SnTe2) into
+  log/steps_bulk_bin.jsonl (harvest script keeps records in the exact steps_bulk schema; final
+  step = run minimum for all 5, so none hit the diverged gate). Payload rebuilt: 789 rows gained a
+  decomposition energy (0 regressions, Ef/gap/SLME untouched); 684 Sn–Te HSE06 rows shifted
+  because the new relaxed SnTe2 reference sits ~48 meV/f.u. below the previous best same-class
+  entry. Still blocked: HSE+SOC rows needing Cu2S/Cu2Se/SnTe2(SOC)/GeTe2(SOC) + PBEsol/HSE rows
+  needing GeTe2 — fill on the next harvest. Deployed fe2b3fe25, verified live 10/10 via CDP
+  (new fills, shifted value, paper anchor unchanged, Cu-pending rows intact) + screenshot.
+- Self-found wording bug: the breakdown panel's trailing explainer said "a linear programme over
+  every same-footing binary" for every row — stale LP-era prose contradicting the canonical-kind
+  line above it. Now kind-dependent (canonical rows: "each cation paired with every anion of the
+  mixed anion sublattice"). Build 2d3689c8c2fc, commit 68e640cb2, verified live 10/10 for both a
+  canonical row and an LP-fallback row (AsCl3O).
+- Provenance answer of record (user asked): SLME and 3,525 gaps are ingested from the released
+  d6el00026f dataset and labelled per-row (`gap_source`), NOT recomputed — our SOC gap extractor
+  is the broken part and its repair is in the Eagle to-do; decomposition energies are computed by
+  us from our own footing-verified energies with the paper's convention (not copied); dielectric
+  constants and optics are entirely our own extraction, never touched by the release ingest.
