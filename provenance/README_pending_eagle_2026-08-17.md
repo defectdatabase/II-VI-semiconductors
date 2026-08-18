@@ -458,3 +458,18 @@ systematic audit is owed).
   growing corpus; property head for gap/eps/SLME per TACE docs (dipole/polarizability heads exist;
   if scalar heads are closed, a readout-head fork is the fallback); then the 644k-space relaxation
   campaign with the fine-tuned model replaces the RF lattice/energetics blanks in the ML rows.
+
+## 2026-08-18 (later) — TACE workstream staged on Gilbreth (user directive: move all there until Eagle returns)
+- gilbreth:/scratch/gilbreth/rahma103/tace/ now holds: data/ (frames.extxyz + manifest.jsonl,
+  synced from Gautschi), tace-repo (github.com/xvzemin/tace clone with example/ + docs),
+  ckpt/ (HF xvzemin/tace-foundations download, launched), rf_models.pkl + featdef.py +
+  mlscreen.json.gz (the RF v1 artifacts), and README_TACE.md (the workstream handoff).
+- Corpus flow: Gautschi stays the collector (runs live there) — after each harvest run
+  `bash /scratch/gautschi/rahma103/tace_sync.sh` (re-collects completed ddos/pdos/bin/chg_g runs,
+  pushes extxyz+manifest to Gilbreth over the direct Gautschi→Gilbreth key). Eagle trajectories
+  append to the same files at outage end.
+- Conditioning plan recorded for the fine-tune: fidelity_idx = {PBEsol, PBE, HSE(PBEsol),
+  HSE+SOC(PBEsol)} from the collector's theory field; total-charge embedding from its charge field
+  (jellium-raw energies; finite-size corrections stay downstream); gap/eps/SLME heads masked to
+  HSE+SOC-labelled frames. Exact config keys to be pinned from tace-repo/example when the training
+  env is built (next session on Gilbreth GPU).
