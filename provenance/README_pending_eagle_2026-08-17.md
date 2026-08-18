@@ -266,3 +266,42 @@ checkboxes; 1,235 with all theories).
 - Defect statics 12/4,995 done (Vac_Ag full ladder + Vac_Ga +2/Neutral + Vac_Al ladder in flight), bulk HSE06 PDOS 5/1,897; 4 highmem jobs running, feeder loop alive on login02.
 - pdos_b slice 4 (Ag2Ba0.5Zn0.5Ge1Te4_stannite) hit the 4 h TIMEOUT → resubmitted with -t 12:00:00 (job 15335804); feeder now submits all pdos jobs with 12 h (ddos keeps 4 h — they finish in 15–45 min).
 - Website today: footing-aware bulk energetics (e13c38ab1a17), defect ladder gates + twin dedup (366cbc3c40e0 side), transition-level gate + antisite nparts, chemical-system search (dd10e7499915) — all live, each 10/10 browser-verified.
+
+## 2026-08-18 — decomposition now IS the paper's convention (EES Solar d6el00026f); SLME regression caught; missing canonical binaries launched as DFT
+
+**"Website data does not match my paper — same dataset":** the paper defines E_decomp against the
+CANONICAL valence-partitioned binary set — every cation pairs with every anion of the mixed anion
+sublattice into A2X (+1), BX (+2), B2X3 (+3), CX2 (+4), coefficient (n_cat/binary-cations) × anion
+fraction, + kBT Σ n f ln f (eqn for Ag2Ca0.5Sr0.5Sn0.5Ge0.5S2Te2, p. 5). My LP instead found the
+minimum-energy stoichiometric set (elements allowed) — a different, stricter quantity. Rebuilt to
+the paper convention; LP retained only for hosts outside the ABX2/A2BCX4 valence scheme (labelled).
+Anchors (paper Table 3, HSE+SOC): AgAl0.5Ga0.5Te2 d = −0.307 site vs −0.317 paper (Δ = 10 meV,
+entropy-term bookkeeping), gap 1.364/1.365; gaps match ≤1 meV on all four anchors. The other three
+anchors publish d = None pending the missing binaries below. Binaries/elements no longer carry a
+decomposition (user directive: ΔH_f is their stability measure). "-SQS" names no longer tokenise
+as S+Q+S — the phantom element "Q" is gone from 56 alloys and their formation energies are back.
+
+**SLME regression (user: "slme gone why?"):** my footing block used `_m` as a module-level loop
+variable, shadowing the `math` alias — every `slme_500nm` call threw AttributeError and the bare
+`except` nulled it silently. 3,489 SLME values restored (median 18%, max 32.94%). GUARD: no bare
+`except` around a whole property computation; loop variables in module scope get unique `_x`
+names; the payload log now must show the SLME count.
+
+**Missing canonical binaries → computed, not faked.** 4,760 rows lack one of exactly 7 phases:
+Cu2S, Cu2Se, SnTe2, GeTe2 @ HSE+SOC; SnTe2, GeTe2 @ PBEsol; ZnS, CdS, In2S3 @ PBE. Launched on
+Gautschi highmem (`/scratch/gautschi/rahma103/bin_runs`, jobs 15335917–20; Cu2Se chains after the
+quick batch): SnTe2/GeTe2 from the archived SnSe2/GeSe2 geometries with Se→Te ×1.06, campaign
+INCARs verbatim (PBEsol relax; HSEsol relax → HSE+SOC static chained); Cu2S/Cu2Se = HSE+SOC statics
+on the archived 144-atom HSE06 chalcocite geometries; PBE trio relaxed from PBEsol geometries.
+Harvest → append to steps_bulk jsonl → payload rebuild completes the 4,760 rows. Campaign inputs
+mirrored in repo `provenance/bin_runs_campaign/`.
+
+### Mistakes & corrections log
+**2026-08-18 — I invented a decomposition convention instead of using the published one.** WHAT I
+DID WRONG: implemented decomposition as an LP over all binaries when the project's own paper
+(d6el00026f) defines the canonical valence-partitioned set; also published decompositions for
+binaries and let a structure tag ("-SQS") enter chemistry parsing. WHY IT WAS WRONG (his words):
+"do what best how people do it", "we computed from the same dataset" — the site must reproduce the
+paper. THE GUARD: the four Table-3 anchor values are now asserted against the payload before ship;
+element tokens are validated against the periodic table. WHERE THE GUARD NOW LIVES:
+`build_payload_eagle.py` (chalcodb_decomp, VALID_ELS) and this section.
