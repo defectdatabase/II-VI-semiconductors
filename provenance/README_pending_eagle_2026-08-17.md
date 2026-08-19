@@ -578,3 +578,22 @@ systematic audit is owed).
   frozen base) to isolate whether TACE accepts embedding modules absent from the checkpoint;
   multifidelity extension needs the same test. If unsupported natively -> small checkpoint
   surgery (add embedding rows, init, mark trainable) or upstream issue.
+
+## 2026-08-18 (night) — DOS Y-range bug fixed everywhere; TACE debugged on CPU (no debug queue exists)
+- User screenshot: total-DOS panel flat at ~0 with Y up to 6000+ — the total-only DOS branches
+  (compound AND defect explorer) had no y-range, so Plotly autoscaled to the semicore peaks at
+  -20 eV outside the displayed -4..+4 eV window. Both branches now use
+  projectedDosRange(d.e,[d.total]) — the same window-aware scaler the projected branches always
+  had. Audited every other plot for the same class: charged-defect Ef(E_F) (y from in-window
+  values), trajectory E/Fmax (unwindowed autoscale, correct), stability map dG(T) (y from the
+  plotted T grid), optics (text only) — no other instance. Deployed fa82a0c72, verified live
+  10/10 on a real total-only row (y-top 50 vs global max 533; both ranged lines in the bundle).
+- Gilbreth has NO debug QoS for our account (normal, standby only) — equivalent debugging done on
+  the login node CPU with a mini 8-frame corpus, sweeping three configs: (A) single-fidelity /
+  no-charge PASSES; (B) total_charge embedding enabled PASSES (the charge conditioning grafts
+  onto the frozen base cleanly — q conditioning is available NOW); (C) 4-fidelity FAILS with the
+  index assert (login node has a GPU; accelerator:auto grabbed it) — confirming multifidelity
+  extension of a 1-fidelity checkpoint is the single broken path. CPU rerun with
+  CUDA_VISIBLE_DEVICES="" in flight for the Python-level traceback.
+- User's "did u fix" paste of dHf/archived-run term lines = a cached tab: the total-energy term
+  format re-verified live 10/10 this session.
