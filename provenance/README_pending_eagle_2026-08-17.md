@@ -543,3 +543,15 @@ systematic audit is owed).
   data/mlscreen.json.gz all reverted — the rebuilt bundle hashes back to EXACTLY the pre-ML build
   id 0aa1d335ac44 (perfect reversal check). Verified live 10/10: no ML option, 13,959 rows,
   mlscreen.json.gz 404, 0 console errors.
+
+## 2026-08-18 (night) — a30 smoke RUNNING; term display = total energies; wording fixes
+- User was right about the group's GPUs: normal-QoS association = hp_a30=2 + hp_a100-40gb=1, all
+  else 0; multi-partition submits are standby-only on Gilbreth. Smoke resubmitted -p a30 -q normal
+  as 11544428 → RUNNING on gilbreth-b011.
+- "run footing" phrasing removed site-wide (3facf4c7d): level of theory now reads the class label
+  directly ("HSE+SOC (PBEsol base)"), ENCUT noted as "(archived INCAR)". Verified 10/10.
+- Decomposition term lines (user request) now lead with each reference's archived TOTAL energy per
+  f.u. (E_fu_tot added through _bin_table/chalcodb_decomp/LP fallback; elemental LP entries carry
+  null), with dHf kept as the derived quantity and the "archived run N_atoms" tags dropped
+  (5c6cc526b). All published values unchanged (0 rows moved; the dHf and total-energy forms are
+  identical in a stoichiometric set — elemental references cancel). Verified live 10/10.
