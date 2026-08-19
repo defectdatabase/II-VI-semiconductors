@@ -555,3 +555,11 @@ systematic audit is owed).
   null), with dHf kept as the derived quantity and the "archived run N_atoms" tags dropped
   (5c6cc526b). All published values unchanged (0 rows moved; the dHf and total-energy forms are
   identical in a stoichiometric set — elemental references cancel). Verified live 10/10.
+
+## 2026-08-18 (night) — smoke OOM on a30; racing 40GB-normal vs 80GB-standby
+- First a30 attempt completed ONE training step (loss 0.132 — checkpoint load, fidelity+charge
+  conditioning and the whole data path validated) then OOM'd: TECE-RRA 222M training on 287-atom
+  charged supercells needs >24 GB even at batch 1 + expandable_segments. Group a100-40gb normal
+  slot is busy (tcraigs SEG_UNET ~11 h). Two lock-guarded twins submitted — 11544947
+  (a100-40gb, normal) and 11544948 (a100-80gb, standby+requeue); first to start touches
+  RUNNING.lock, the other exits clean.
