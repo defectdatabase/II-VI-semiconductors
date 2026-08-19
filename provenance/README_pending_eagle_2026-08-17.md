@@ -655,3 +655,11 @@ systematic audit is owed).
   every needed class after the earlier harvests. All three are in flight: 12-atom Cu2X chain
   (running, Cu2S relax step 3 tracking the archived 12-atom HSE energy), 144-atom Cu2X WAVECAR
   chains, and hse_GeTe2 relax+SOC (16 h in). Expected: blocked rows -> 0 after today's harvests.
+
+## 2026-08-19 — DOS campaign maintenance
+- ddos 354/4,996 (214 completed today alone), pdos 36/1,898. 46 FAILED ddos today = VASP EDWAV
+  "gradient is not orthogonal" (rot.F) crashes: 48 dirs total carried it — 24 were ALGO=Normal
+  (patched to ALGO = All) and 24 were ALREADY ALGO=All (reset for one retry; if they EDWAV again
+  the next remedy is ALGO = Damped). All 48 reset (outputs cleared) so the feeder arrays retry
+  them automatically. 10 pdos TIMEOUTs at 12 h -> feeder walltime raised to 24 h (resubmit-safe
+  DOSCAR guard makes reruns free).
