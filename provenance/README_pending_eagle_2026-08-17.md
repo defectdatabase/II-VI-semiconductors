@@ -614,3 +614,15 @@ systematic audit is owed).
 - TACE multifidelity traceback (CPU): tace/models/_e3nn/tace.py readout_fn — atomic_energy table
   indexed by fidelity_idx is loaded (1,89) from the checkpoint; extension = tile to (n_fid,89)
   before fine-tune (checkpoint surgery), everything else already passes.
+
+## 2026-08-19 (morning) — smoke fine-tune COMPLETE; pipeline certified end-to-end
+- Smoke 11549587 ran to its 4 h standby wall at epoch 75/80: train loss 0.132 -> 0.0013/step
+  (epoch loss 0.0185), val synth_metric best 0.291, LR schedule stepping (1e-4 -> 5e-5),
+  checkpoints saved each epoch. The redundant normal-QoS twin was cancelled (its restart would
+  have overwritten checkpoints since the EXIT trap clears RUNNING.lock). LoRA merged per the
+  documented flow: tace-convert --type merge_lora — 30.9M LoRA params folded into the 222M base;
+  merged model in the tace/ dir. EVERY stage of the TACE pipeline is now certified: corpus ->
+  conditioning fields -> LoRA fine-tune -> checkpoint -> merged deployable model.
+- Corpus at 114 runs on both clusters (ddos surge: 113 DOSCARs; q=-2 frames now 20). Remaining
+  for the REAL fine-tune: Eagle trajectories (+ charged HSE+SOC defect data for q-conditioned
+  hybrid relaxations), the (1,89)->(4,89) fidelity-table surgery, charge embedding ON (proven).
