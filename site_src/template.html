@@ -2939,8 +2939,9 @@ function provenanceBody(r,ord){
   // printed -4.12 eV/f.u. against the table's -0.29 and listed 2 of the 4 phases.
   if(v.length>27&&v[27]&&v[27].terms&&v[27].terms.length){
     const D=v[27];
-    const rows=D.terms.map(t=>`${t.coeff} · ΔH<sub>f</sub>(${subHTML(t.phase)}) = ${t.contribution.toFixed(3)} eV`
-      +`  [ΔH<sub>f</sub>(${subHTML(t.phase)}) = ${t.E_pfu.toFixed(3)} eV/f.u.${t.run?`, archived run ${t.run}`:""}]`).join("<br>&nbsp;&nbsp;");
+    const rows=D.terms.map(t=>`${t.coeff} · ${subHTML(t.phase)}: `
+      +(t.E_fu_tot!==null&&t.E_fu_tot!==undefined?`E = <span class="mono">${t.E_fu_tot.toFixed(3)}</span> eV/f.u. total energy, `:``)
+      +`ΔH<sub>f</sub> = ${t.E_pfu.toFixed(3)} eV/f.u. → contribution ${t.contribution.toFixed(3)} eV`).join("<br>&nbsp;&nbsp;");
     const sTermsHTML=(D.S_terms&&D.S_terms.length)
       ? `<br><b>Configurational entropy</b> −T·ΔS<sub>mix</sub> = k<sub>B</sub>T · Σ<sub>sublattice</sub> n<sub>sites</sub> · Σ f ln f = <span class="mono">${(D.S||0).toFixed(4)}</span> eV/f.u., from:<br>&nbsp;&nbsp;`
         + D.S_terms.map(t=>`${t.sublattice} site (${t.sites_per_fu} per f.u.): `
