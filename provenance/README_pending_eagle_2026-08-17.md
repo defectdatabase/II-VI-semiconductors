@@ -626,3 +626,15 @@ systematic audit is owed).
 - Corpus at 114 runs on both clusters (ddos surge: 113 DOSCARs; q=-2 frames now 20). Remaining
   for the REAL fine-tune: Eagle trajectories (+ charged HSE+SOC defect data for q-conditioned
   hybrid relaxations), the (1,89)->(4,89) fidelity-table surgery, charge embedding ON (proven).
+
+## 2026-08-19 — first DFT-vs-TACE parity plot (held-out runs), ~/Desktop/tace_parity.png
+- 25 held-out frames (runs harvested AFTER training — never seen): E MAE 339 meV/atom (R2 0.26),
+  F MAE 0.035 eV/A (R2 negative because the test set is near-equilibrium statics with DFT forces
+  ~0; MAE is the meaningful number there). Test mix: PBEsol q=0/±1/±2 (23) + HSE(PBEsol) (2).
+- The energy scatter is exactly the predicted failure of an UNCONDITIONED smoke model: theories
+  were mashed into one fidelity (HSE and PBEsol sit on different total-energy scales — the two
+  HSE frames miss by ~0.9 eV/atom) and 19/25 test frames are charged supercells whose jellium
+  energy shifts are invisible without the charge embedding. The plot is the acceptance harness:
+  the same script (tace_parity.py on Gilbreth + plot_parity.py) reruns after the fidelity-table
+  surgery + charge-enabled real fine-tune, and per-(theory,q) parity becomes the gate for using
+  TACE on charged HSE+SOC defect optimization.
