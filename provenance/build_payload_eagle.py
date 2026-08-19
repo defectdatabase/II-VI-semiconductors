@@ -547,9 +547,10 @@ def _bin_table(cls):
             ef_pa, used, missing = formation_pa(cls, x["F"], x["nat"], comp_atoms, x["pot"])
             if ef_pa is None or abs(ef_pa) > 3.5: continue
             key = _reduced(comp)
-            dH_fu = ef_pa * sum(v for _, v in key)
+            fu_per_key = sum(v for _, v in key)
+            dH_fu = ef_pa * fu_per_key
             if key not in best or dH_fu < best[key][1]:
-                best[key] = (cname, dH_fu, dict(key), x["var"], th)
+                best[key] = (cname, dH_fu, dict(key), x["var"], th, x["F"] / x["nat"] * fu_per_key)
     _BIN_TABLE[cls] = best
     return best
 
@@ -635,8 +636,9 @@ def chalcodb_decomp(cls, name, comp_fu, dHf_fu):
             if hit is None:
                 missing.append("".join(f"{e}{int(n) if n != 1 else ''}" for e, n in sorted(bcomp.items())))
                 continue
-            nm, dh, cf, var, th = hit
+            nm, dh, cf, var, th, efu = hit
             terms.append({"coeff": round(coeff, 4), "phase": nm, "E_pfu": round(dh, 4),
+                          "E_fu_tot": round(efu, 4),
                           "contribution": round(coeff * dh, 4), "run": var})
             tot += coeff * dh
     if missing:
@@ -670,7 +672,7 @@ def binary_decomp(cls, name, comp_fu, dHf_fu):
         if x is None:
             _BD_CACHE[ck] = None; return None
         bestv = float(cvec @ x)
-        bestmix = [(cands[i][0], float(x[i]), cands[i][1], cands[i][3]) for i in range(len(cands)) if x[i] > 1e-9]
+        bestmix = [(cands[i][0], float(x[i]), cands[i][1], cands[i][3], (cands[i][5] if len(cands[i])>5 else None)) for i in range(len(cands)) if x[i] > 1e-9]
         _BD_CACHE[ck] = (bestv, bestmix)
     S_terms = _mix_entropy(name)
     S = round(sum(t["contribution_eV"] for t in S_terms), 6)
@@ -679,7 +681,8 @@ def binary_decomp(cls, name, comp_fu, dHf_fu):
             "pre": 1, "sum": round(bestv, 4), "S": S, "S_used": S, "S_terms": S_terms,
             "d0": d0, "d": round(d0 + S, 4),
             "terms": [{"coeff": round(c2, 4), "phase": nm, "E_pfu": round(dh, 4),
-                       "contribution": round(c2 * dh, 4), "run": var} for nm, c2, dh, var in bestmix]}
+                       "E_fu_tot": (round(efu, 4) if efu is not None else None),
+                       "contribution": round(c2 * dh, 4), "run": var} for nm, c2, dh, var, efu in bestmix]}
 
 
 # ---- the released ChalcoDB dataset (paper d6el00026f): per-run band gap and SLME as published.
@@ -692,7 +695,7 @@ try:
     CHALCODB = json.load(open(f"{LOG}/chalcodb_release.json"))
 except Exception:
     CHALCODB = {}
-n_rel = {"gap": 0, "slme": 0}
+n_rel = {"gap": 0, "slme_val": []}
 
 byname = collections.defaultdict(dict)         # (theory, name) -> {ord: row}
 n_foot = {}
@@ -835,19 +838,29 @@ for (theory, name, poly), members in sorted(groups.items()):
     row[4] = slme
     row[13] = eps3
     row[14] = [[0.5, slme]] if slme is not None else None   # thickness curve shape (um, %)
+    # gap: where our EIGENVAL counting collapsed the gap on a release-identical run, the released
+    # gap repairs it (labelled). SLME is NEVER copied: it is always recomputed here from this
+    # run's own absorption spectrum (user directive 2026-08-18) -- the release enters SLME only
+    # through the labelled gap onset on repaired rows, and as a printed validation below.
     if theory == "HSE+SOC" and poly in ("kesterite", "stannite") and fc["keep_props"]:
         rel = CHALCODB.get(f"{name}_{poly}")
         if rel and row[8] and rel.get("abc") and max(abs(a - b) for a, b in zip(row[8], rel["abc"])) < 0.02:
-            if rel.get("slme") is not None:
-                row[4] = round(rel["slme"], 2)
-                row[14] = None                       # published value; thickness curve not re-derived
-                n_rel["slme"] += 1
             if rel.get("g") is not None and (row[2] is None or abs(row[2] - rel["g"]) > 0.05):
                 row[2] = rel["g"]
                 row[11] = row[12] = None             # our VBM/CBM counting produced the wrong gap here
                 if isinstance(row[27], dict):
                     row[27] = dict(row[27]); row[27]["gap_source"] = "released dataset (d6el00026f)"
                 n_rel["gap"] += 1
+                # gap changed -> recompute SLME from our spectrum with the repaired onset
+                if r.get("abs_E") and r.get("abs_alpha"):
+                    try: row[4] = slme_500nm(list(zip(r["abs_E"], r["abs_alpha"])), row[2])
+                    except Exception: row[4] = None
+                    row[14] = [[0.5, row[4]]] if row[4] is not None else None
+                if isinstance(row[27], dict) and row[4] is not None:
+                    row[27]["slme_source"] = ("recomputed here (Yu-Zunger, 500 nm, fr = 1) from this "
+                                              "run's absorption spectrum, with the released gap as onset")
+            if rel.get("slme") is not None and row[4] is not None:
+                n_rel["slme_val"].append(row[4] - rel["slme"])
     byname[(theory, name)][poly] = row
 
     sk = struct_key(name, theory, poly)
@@ -871,7 +884,12 @@ for (theory, name, poly), members in sorted(groups.items()):
                       "eps": eps3, "source": r.get("alpha_source")}
 
 print(f"tars written in {time.time() - t0:.0f}s")
-print("release ingest:", n_rel)
+_sv = sorted(abs(x) for x in n_rel["slme_val"])
+print(f"release ingest: gaps repaired {n_rel['gap']}; SLME recomputed everywhere (never copied)")
+if _sv:
+    print(f"SLME validation vs released dataset ({len(_sv)} matched rows): "
+          f"median |d| {_sv[len(_sv)//2]:.2f}  p90 {_sv[int(len(_sv)*.9)]:.2f}  max {_sv[-1]:.2f} pct-points "
+          f"(thickness/fr conventions differ; comparison only)")
 print("row footing modes:", n_foot)
 
 # ---- cross-check gate: a formation energy is a property of the structure, and between PBEsol and
