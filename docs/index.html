@@ -381,7 +381,7 @@ body{letter-spacing:-.006em}
 /* The shell is cached for ten minutes by GitHub Pages, so a reader can keep an old layout after a
    publish. Compare this build's stamp with the one on the server and reload once if they differ. */
 (function(){
-  var BUILD_ID="b6d6ab5ef4b7";
+  var BUILD_ID="48209500b37b";
   try{
     fetch("version.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(v){
       if(!v||!v.id||v.id===BUILD_ID) return;
@@ -2556,7 +2556,7 @@ async function drawDOS(r,ord,key){
       hovertemplate:"total: %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"}],{
       margin:{l:60,r:10,t:8,b:44},font:{family:"Arial Narrow, Arial, sans-serif",size:12},
       xaxis:{title:{text:"Energy relative to Fermi level (eV)",font:{size:12}},range:[-4,4],zeroline:false,showgrid:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
-      yaxis:{title:{text:"Density of states (states/eV)",font:{size:12}},showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
+      yaxis:{title:{text:"Density of states (states/eV)",font:{size:12}},range:projectedDosRange(d.e,[d.total]),showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
       shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1.2,dash:"dash"}}],
       plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
     note.innerHTML=`Total density of states only — this run wrote no per-ion projection. Source: ${d.source||"archived DOS"}.`;
@@ -2667,7 +2667,7 @@ async function drawDefectDOS(r){
       hovertemplate:"total: %{y:.2f} states/eV at %{x:.2f} eV<extra></extra>"}],{
       margin:{l:60,r:10,t:8,b:44},font:{family:"Arial Narrow, Arial, sans-serif",size:12},
       xaxis:{title:{text:"Energy relative to Fermi level (eV)",font:{size:12}},range:[-4,4],zeroline:false,showgrid:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
-      yaxis:{title:{text:"Density of states (states/eV)",font:{size:12}},showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
+      yaxis:{title:{text:"Density of states (states/eV)",font:{size:12}},range:projectedDosRange(d.e,[d.total]),showgrid:false,zeroline:false,showline:true,linecolor:"#aebbc2",ticks:"outside"},
       shapes:[{type:"line",x0:0,x1:0,y0:0,y1:1,yref:"paper",line:{color:"#c0392b",width:1.2,dash:"dash"}}],
       plot_bgcolor:"#fff",paper_bgcolor:"rgba(0,0,0,0)"},{responsive:true,displaylogo:false,displayModeBar:false});
     note.innerHTML=`Total density of states only — this run wrote no per-ion projection.`;
