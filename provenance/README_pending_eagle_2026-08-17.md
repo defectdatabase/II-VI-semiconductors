@@ -563,3 +563,18 @@ systematic audit is owed).
   slot is busy (tcraigs SEG_UNET ~11 h). Two lock-guarded twins submitted — 11544947
   (a100-40gb, normal) and 11544948 (a100-80gb, standby+requeue); first to start touches
   RUNNING.lock, the other exits clean.
+
+## 2026-08-18 (late night) — smoke v2: checkpoint anatomy + documented finetune flow
+- The 80GB standby twin trained 14 steps (loss 0.132→0.107) then died on a device-side
+  index assert. Checkpoint inspection (TECE-OAM-RRA-1.0.pt: state_dict/cfg/target_property/
+  embedding_property/statistics): exactly ONE fidelity (atomic_energy (1,89)), universal_embedding
+  ALL disabled, embedding_property empty, targets E/F/S only → our fidelity_idx 1-3 and/or the
+  enabled charge embedding overran tables the base model does not have.
+- Smoke v2 per the documented flow: `tace-finetune -m ckpt` generated finetune_config.yaml
+  (base frozen, LoRA on top; merge later with `tace-convert --type merge_lora`); data re-stamped
+  all-fidelity-0 (train_f0/valid_f0.xyz; theory+charge kept as inert fields); yaml: single
+  fidelity, total_charge OFF. Twins 11549586 (a100-40gb normal) + 11549587 (a100-80gb standby),
+  lock-guarded. After a green run: re-enable total_charge ALONE (new trainable module on the
+  frozen base) to isolate whether TACE accepts embedding modules absent from the checkpoint;
+  multifidelity extension needs the same test. If unsupported natively -> small checkpoint
+  surgery (add embedding rows, init, mark trainable) or upstream issue.
