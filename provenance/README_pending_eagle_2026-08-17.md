@@ -648,3 +648,10 @@ systematic audit is owed).
   session): build the 4-fid model via tace's own create_model from the patched cfg, load the base
   state_dict strict=False, copy fid-0 slices from the base + tile atomic_energy/scale/shift rows,
   save the consistent checkpoint. The real fine-tune is Eagle-gated anyway, so nothing waits on this.
+
+## 2026-08-19 — remaining missing-binary census
+- Exactly THREE (class, phase) gaps remain, all HSE+SOC: Cu2Se blocks 1,115 rows, Cu2S 1,060,
+  GeTe2 782 — 2,546 rows total (a row can need several). Every other canonical binary exists at
+  every needed class after the earlier harvests. All three are in flight: 12-atom Cu2X chain
+  (running, Cu2S relax step 3 tracking the archived 12-atom HSE energy), 144-atom Cu2X WAVECAR
+  chains, and hse_GeTe2 relax+SOC (16 h in). Expected: blocked rows -> 0 after today's harvests.
