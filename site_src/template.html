@@ -1563,7 +1563,7 @@ function cOpenDetail(r,ord){
      <div><span>Number of atoms</span><span>${v[6]||"—"}</span></div>
      <div><span>Lattice parameters</span><span>${v[8]?`${v[8][0].toFixed(2)} × ${v[8][1].toFixed(2)} × ${v[8][2].toFixed(2)} Å`:"—"}</span></div>
      <div><span>Lattice angles α × β × γ</span><span>${v.length>18&&v[18]?v[18].map(x=>x.toFixed(2)).join(" × ")+" °":"—"}</span></div>
-     <div><span>Level of theory</span><span>${r.f}${v.length>7&&v[7]&&v[7]!==r.f?` — run footing ${v[7]}`:""}</span></div>
+     <div><span>Level of theory</span><span>${(v.length>7&&v[7])?v[7]:r.f}</span></div>
      <div><span>Calculation type</span><span>${cMode(v)?CMODE_LABEL[cMode(v)]||cMode(v):"—"}${
        v.length>31&&v[31]&&v[31][0]!==null?` — NSW ${v[31][0]}, IBRION ${v[31][1]}, ISIF ${v[31][2]}`:""}</span></div>
      <div><span>Ionic steps</span><span>${cSteps(v)===null||cSteps(v)===undefined?"—":cSteps(v)}${
@@ -2894,7 +2894,7 @@ function provenanceBody(r,ord){
     if(why) r.__whyNoDecomp=why; else r.__whyNoDecomp=null;
   }
   if(D27 && D27.withheld){
-    return `<b>Level of theory: ${th}${footKey?` — archived run footing: ${footKey}`:""}.</b><br>
+    return `<b>Level of theory: ${footKey||th}.</b><br>
       <div class="notebox">Formation and decomposition energies are withheld for this entry: ${D27.withheld}.</div>
       ${gapSourceNote(v)}${edgesHTML(v)}${opticsHTML(v,structKeyOf(r,ord))}${setupHTML(r,v)}`;
   }
@@ -2950,7 +2950,7 @@ function provenanceBody(r,ord){
       : "";
     const pre=(D.pre&&D.pre!==1)?`${D.pre} · `:"";
     const fx = D.footing||{};
-    return `<b>Level of theory: ${th.split(" (")[0]}${fx.label?` — run footing from the archived INCAR: ${fx.label}${fx.encut?`, ENCUT ${fx.encut}`:""}`:""}.</b><br>
+    return `<b>Level of theory: ${fx.label||th.split(" (")[0]}${fx.encut?` — ENCUT ${fx.encut} (archived INCAR)`:""}.</b><br>
     ${D.note?`<div class="notebox">${D.note}.</div>`:""}
     Total energy: OSZICAR free energy F = <span class="mono">${F.toFixed(2)}</span> eV
     for the ${nat}-atom cell (${+nfu.toFixed(2)} formula units of ${subHTML(Object.entries(comp).map(([e,n])=>e+(n/gfu===1?"":+(n/gfu).toFixed(3))).join(""))}); ΔH<sub>f</sub> =
@@ -2976,7 +2976,7 @@ function provenanceBody(r,ord){
   }
   if(D27 && !(D27.terms&&D27.terms.length) && !D27.withheld){
     const fx2=D27.footing||{};
-    return `<b>Level of theory: ${th.split(" (")[0]}${fx2.label?` — run footing from the archived INCAR: ${fx2.label}${fx2.encut?`, ENCUT ${fx2.encut}`:""}`:""}.</b><br>
+    return `<b>Level of theory: ${fx2.label||th.split(" (")[0]}${fx2.encut?` — ENCUT ${fx2.encut} (archived INCAR)`:""}.</b><br>
     Total energy: OSZICAR free energy F = <span class="mono">${F.toFixed(2)}</span> eV for the ${nat}-atom cell (${+nfu.toFixed(2)} formula units); ΔH<sub>f</sub> = <span class="mono">${(v[0]!==null&&v[0]!==undefined)?(v[0]*apfu).toFixed(3):"—"}</span> eV/f.u.<br>
     <b>Formation energy</b> = (F − Σn<sub>i</sub>μ<sub>i</sub>)/N = (${F.toFixed(2)} − (${refsum.toFixed(2)}))/${nat}
     = <span class="mono">${efTxt}</span> eV/atom, against elemental references of the same footing:<br>&nbsp;&nbsp;${terms.join("<br>&nbsp;&nbsp;")}<br>
