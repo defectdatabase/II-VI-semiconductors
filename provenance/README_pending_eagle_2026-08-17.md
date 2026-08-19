@@ -597,3 +597,20 @@ systematic audit is owed).
   CUDA_VISIBLE_DEVICES="" in flight for the Python-level traceback.
 - User's "did u fix" paste of dHf/archived-run term lines = a cached tab: the total-energy term
   format re-verified live 10/10 this session.
+
+## 2026-08-18 (night) — why Cu-compounds lack decomposition; small-cell Cu2S/Cu2Se chains launched
+- Cu2ZnGeSSe3 / Cu2Ca0.5Cd0.5SnS4 HSE+SOC rows: panel already prints the recorded reason —
+  "no archived same-footing run for the canonical binary Cu2S(/Cu2Se)". Root cause found in the
+  archive: the campaign's OWN 144-atom HSE+SOC Cu2S/Cu2Se runs exist with F=None (never finished).
+  Our replacement 144-atom statics manage only ~5 SCF iterations per 9 h (1.8 h/iter, 2x2x2 kpts,
+  96 cores) — they cannot converge inside a 24 h wall; LWAVE=T means WAVECAR chains can continue
+  them, but chain-guard submissions hit the QOS 8-job cap (resubmit when slots free).
+- Fast track launched instead: 12-atom MP structures (Cu2S mp-aaabjfrj P4_32_12 ehull 0.02;
+  Cu2Se mp-aaacgdcl P4_32_12 ehull 0.11 — METASTABLE polymorph, disclosed; the 144-atom ground
+  state supersedes it in _bin_table whenever it lands) with verbatim campaign HSE relax + SOC
+  static INCARs, Gamma 4x4x4 for the 12-atom cells (k-density >= campaign's 5x3x3 12-atom
+  convention). Job 15352952 (both sequential, 12 h). HSE06/PBEsol rows of these compounds already
+  have d values — only the HSE+SOC class is blocked.
+- TACE multifidelity traceback (CPU): tace/models/_e3nn/tace.py readout_fn — atomic_energy table
+  indexed by fidelity_idx is loaded (1,89) from the checkpoint; extension = tile to (n_fid,89)
+  before fine-tune (checkpoint surgery), everything else already passes.
