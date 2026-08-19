@@ -638,3 +638,13 @@ systematic audit is owed).
   the same script (tace_parity.py on Gilbreth + plot_parity.py) reruns after the fidelity-table
   surgery + charge-enabled real fine-tune, and per-(theory,q) parity becomes the gate for using
   TACE on charged HSE+SOC defect optimization.
+
+## 2026-08-19 — fidelity surgery v1 tested; exact remaining work mapped
+- Surgery v1 (tile fidelity-indexed tensors 1->4 + statistics + cfg.fidelity) rejected at load with
+  a fully informative mismatch list: wigner_inv_rescale is NOT fidelity-indexed (must stay (1,25,25));
+  energy_readouts.*.linear2 weights ARE fidelity-structured (x4 output blocks with output_masks);
+  and tace's finetune() rebuilds the model from the checkpoint's own cfg with strict=True hardcoded
+  (lit_model.py:680), so a consistent checkpoint must be produced offline. Surgery v2 (next
+  session): build the 4-fid model via tace's own create_model from the patched cfg, load the base
+  state_dict strict=False, copy fid-0 slices from the base + tile atomic_energy/scale/shift rows,
+  save the consistent checkpoint. The real fine-tune is Eagle-gated anyway, so nothing waits on this.
